@@ -128,6 +128,8 @@ namespace xdp {
 
   void HALDeviceOffloadPlugin::updateDevice(void* userHandle)
   {
+    std::cout << "AIE_R3: HALDeviceoffloadPlugin::updateDevice(). \n";
+
     // For HAL devices, the pointer passed in is an xrtDeviceHandle.
     //  We will query information on that passed in handle, but we
     //  should user our own locally opened handle to access the physical

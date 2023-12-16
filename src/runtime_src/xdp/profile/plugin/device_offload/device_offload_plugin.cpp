@@ -458,6 +458,8 @@ namespace xdp {
 
   void DeviceOffloadPlugin::clearOffloader(uint64_t deviceId)
   {
+    std::cout << "AIE_R3: HALDeviceoffloadPlugin::clearOffloader(). \n";
+
     if(offloaders.find(deviceId) == offloaders.end()) {
       return;
     }

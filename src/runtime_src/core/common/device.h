@@ -278,6 +278,11 @@ public:
   xrt::xclbin
   get_xclbin(const uuid& xclbin_id) const;
 
+  XRT_CORE_COMMON_EXPORT
+  xrt::xclbin
+  get_xclbin(std::string& xclbin_id) const;
+
+
   // Get all slots that match xclbin uuid
   std::vector<xclbin_map::slot_id>
   get_slots(const uuid& xclbin_id) const
@@ -485,6 +490,9 @@ public:
   xclbin_map m_xclbins;                       // currently loaded xclbins (multi-slot)
   mutable std::mutex m_mutex;
   std::shared_ptr<usage_metrics::base_logger> m_usage_logger = usage_metrics::get_usage_metrics_logger();
+  xrt::uuid m_xclbin_uuid;  // currently loading xclbin UUID 
+  std::string m_xclbin_uuid_str; // Currently loading xclbin UUID str
+  std::map<std::string, xrt::xclbin> m_xclbins_run; // currently all loaded xclbins for this single run.
 };
 
 /**

@@ -1045,6 +1045,15 @@ namespace xdp {
     return aieDevice ;
   }
 
+  std::unique_ptr<xdp::aie::BaseFiletypeImpl>
+  VPStaticDatabase::getAIEMetadataReader(void* handle)
+  {
+    if(aieMeta.empty()) {
+      return nullptr;
+    }
+    return xdp::aie::determineFileType(aieMeta);
+  }
+
   // ************************************************************************
   // ***** Functions for information from a specific xclbin on a device *****
   uint64_t VPStaticDatabase::getNumAM(uint64_t deviceId, XclbinInfo* xclbin)
@@ -1287,6 +1296,8 @@ namespace xdp {
   //  reload our information.
   void VPStaticDatabase::updateDevice(uint64_t deviceId, void* devHandle)
   {
+    std::cout<<"AIE_R3:  VPStaticDatabase::updateDevice().\n";
+
     std::shared_ptr<xrt_core::device> device = xrt_core::get_userpf_device(devHandle);
     if (nullptr == device)
       return;
@@ -1294,10 +1305,16 @@ namespace xdp {
     /* If multiple plugins are enabled for the current run, the first plugin has already updated device information
      * in the static data base. So, no need to read the xclbin information again.
      */
-    if (!resetDeviceInfo(deviceId, device))
-      return;
+    if (!resetDeviceInfo(deviceId, device)) {
+      std::cout<<"AIE_R3: REVERT: reset device info wants to skip this updateDevice(). But continuing... \n";
+//     return;
+    }
 
+    //AIER3_TODO: can we fetch the second UUID to get that xclbin.
+    std::cout<<"AIE_R3: device xclbin uuid querying: "<< device->get_xclbin_uuid().to_string()<<"\n";
     xrt::xclbin xrtXclbin = device->get_xclbin(device->get_xclbin_uuid());
+    std::cout<<"AIE_R3: device returned xclbin uuid: "<< xrtXclbin.get_uuid().to_string()<<"\n";
+
     DeviceInfo* devInfo   = updateDevice(deviceId, xrtXclbin);
     if (device->is_nodma())
       devInfo->isNoDMADevice = true;
@@ -1323,10 +1340,22 @@ namespace xdp {
     auto itr = deviceInfo.find(deviceId);
     if(itr != deviceInfo.end()) {
       DeviceInfo *devInfo = itr->second.get();
+      
       // Are we attempting to load the same xclbin multiple times?
+
       XclbinInfo* xclbin = devInfo->currentXclbin() ;
-      if (xclbin && device->get_xclbin_uuid() == xclbin->uuid) {
-        return false ;
+      // std::cout<<"AIE_R3: device new xclbin_uuid: "<<device->get_xclbin_uuid()<<" & stored devInfo xclbin_uuid: "<<xclbin->uuid<<" .\n";
+      // if (xclbin && device->get_xclbin_uuid() == xclbin->uuid) {
+      //   return false ;
+      // }
+
+      // Are we attempting to load the same xclbin multiple times?
+      auto xclbinUuids = devInfo->currentXclbinUUIDs() ;
+      std::cout<<"AIE_R3: device new xclbin_uuid: "<<device->get_xclbin_uuid()<<" & stored devInfo xclbin_uuid: "<<xclbin->uuid<<" .\n";
+      
+      if(!xclbinUuids.empty() && xclbinUuids.find(xclbin->uuid) != xclbinUuids.end()) {
+        std::cout<<"AIE_R3: currentXclbins uuids already contains this new xclbin uuid! \n ";
+        return false;
       }
     }
     return true;
@@ -1961,6 +1990,27 @@ namespace xdp {
     commandQueueAddresses.emplace(a) ;
   }
 
+  XclbinInfoType VPStaticDatabase::getXclbinType(xrt::xclbin& xclbin)
+  {
+    bool is_aie_available = false;
+    bool is_pl_available  = false;
+
+    auto data = xrt_core::xclbin_int::get_axlf_section(xclbin, AIE_METADATA);
+    if (data.first && data.second)
+        is_aie_available = true;  
+
+    data = xrt_core::xclbin_int::get_axlf_section(xclbin, IP_LAYOUT);
+    if (data.first && data.second)
+        is_pl_available = true;  
+
+    if(is_aie_available && is_pl_available)
+      return XCLBIN_AIE_PL;
+    else if (is_aie_available)
+      return XCLBIN_AIE_ONLY;
+    else 
+      return XCLBIN_PL_ONLY;
+  }
+
   // This function is called from "trace_processor" tool 
   // The tool creates events from raw PL trace data
   void VPStaticDatabase::updateDevice(uint64_t deviceId, const std::string& xclbinFile)
@@ -1994,15 +2044,20 @@ namespace xdp {
     } else {
       // This is a previously used device being reloaded with a new xclbin
       devInfo = itr->second.get();
-      devInfo->cleanCurrentXclbinInfo() ;
+      devInfo->cleanCurrentXclbinInfo() ; // Do not clean, it could be mix xclbins run.
     }
     
     XclbinInfo* currentXclbin = new XclbinInfo() ;
     currentXclbin->uuid = xrtXclbin.get_uuid();
+    currentXclbin->type = getXclbinType(xrtXclbin);
+
     currentXclbin->pl.clockRatePLMHz = findClockRate(xrtXclbin) ; 
- 
+
     setDeviceNameFromXclbin(deviceId, xrtXclbin);
+    readAIEMetadata(deviceId, xrtXclbin);
     setAIEGeneration(deviceId, xrtXclbin);
+    // Add aie clock to xclbin
+    setAIEClockRateMHz(deviceId, xrtXclbin);
 
     /* Configure AMs if context monitoring is supported
      * else disable alll AMs on this device
@@ -2014,12 +2069,10 @@ namespace xdp {
       return devInfo;
     }
 
-    devInfo->addXclbin(currentXclbin);
+    devInfo->createConfig(currentXclbin); // This could have PL_ONLY, AIE_ONLY or PL_AIE updated. commits this to currentXclbins of devInfo.
+    
     initializeProfileMonitors(devInfo, xrtXclbin);
     devInfo->isReady = true;
-
-    // Add aie clock to xclbin
-    setAIEClockRateMHz(deviceId, xrtXclbin);
 
     return devInfo;
 
@@ -2056,26 +2109,43 @@ namespace xdp {
       return;
     }
   }
-  
-  void VPStaticDatabase::setAIEGeneration(uint64_t deviceId, xrt::xclbin xrtXclbin) {
-    std::lock_guard<std::mutex> lock(deviceLock) ;
 
-    if (deviceInfo.find(deviceId) == deviceInfo.end())
-      return;
-
+  // Populate the aieMeta from Xclbin. 
+  void VPStaticDatabase::readAIEMetadata(uint64_t deviceId, xrt::xclbin xrtXclbin)
+  { 
     auto data = xrt_core::xclbin_int::get_axlf_section(xrtXclbin, AIE_METADATA);
-    if (!data.first || !data.second)
+    if (!data.first || !data.second) {
       return;
-
-    boost::property_tree::ptree aie_meta;
+    }
 
     std::stringstream aie_stream;
     aie_stream.write(data.first, data.second);
-    boost::property_tree::read_json(aie_stream, aie_meta);
-    
     try {
-      auto hwGen = aie_meta.get_child("aie_metadata.driver_config.hw_gen").get_value<uint8_t>();
+      boost::property_tree::read_json(aie_stream, aieMeta);
+    } catch (const std::exception& e) {
+      std::string msg("Error: invalid AIE_METADATA json detected: ");
+      msg += e.what();
+      xrt_core::message::send(xrt_core::message::severity_level::info, "XRT", msg);
+    }
+    
+    if(aieMeta.empty())
+      return;
+
+    xrt_core::message::send(xrt_core::message::severity_level::info, "XRT", "aieMeta read successfully!");
+  }
+
+  void VPStaticDatabase::setAIEGeneration(uint64_t deviceId, xrt::xclbin xrtXclbin) {
+    std::lock_guard<std::mutex> lock(deviceLock) ;
+    if (deviceInfo.find(deviceId) == deviceInfo.end())
+      return;
+
+    if(aieMeta.empty())
+      return;
+
+    try {
+      auto hwGen = aieMeta.get_child("aie_metadata.driver_config.hw_gen").get_value<uint8_t>();
       deviceInfo[deviceId]->setAIEGeneration(hwGen);
+      std::cout<<"AIE_R3: set the AIEGeneration to value: "<< hwGen <<".\n";
     } catch(...) {
       return;
     }
@@ -2091,18 +2161,11 @@ namespace xdp {
     if (!xclbin)
       return;
 
-    auto data = xrt_core::xclbin_int::get_axlf_section(xrtXclbin, AIE_METADATA);
-    if (!data.first || !data.second)
+    if(aieMeta.empty())
       return;
 
-    boost::property_tree::ptree aie_meta;
-
-    std::stringstream aie_stream;
-    aie_stream.write(data.first, data.second);
-    boost::property_tree::read_json(aie_stream,aie_meta);
-
     try {
-      auto dev_node = aie_meta.get_child("aie_metadata.DeviceData");
+      auto dev_node = aieMeta.get_child("aie_metadata.DeviceData");
       xclbin->aie.clockRateAIEMHz = dev_node.get<double>("AIEFrequency");
     } catch(...) {
       return;

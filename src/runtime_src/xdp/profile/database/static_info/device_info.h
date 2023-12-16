@@ -20,12 +20,14 @@
 
 #include <cstdint>
 #include <memory>
+#include <set>
 #include <string>
 #include <vector>
 
 #include "core/common/system.h"
 
 #include "xdp/config.h"
+#include "xdp/profile/database/static_info/xclbin_types.h"
 
 namespace xdp {
 
@@ -34,6 +36,7 @@ namespace xdp {
   struct Monitor ;
   struct NoCNode ;
   class aie_cfg_tile ;
+  struct ConfigInfo ;
 
   // An application may be run on a system that has multiple physical
   //  (or emulated) devices.  The DeviceInfo struct collects all of the
@@ -65,7 +68,7 @@ namespace xdp {
     // *******************************************************************
     // ****** Information specific to all previously loaded XCLBINs ******
     // *******************************************************************
-    std::vector<XclbinInfo*> loadedXclbins ;
+    std::vector<ConfigInfo*> loadedConfigInfos ;
 
     // Our AMs don't currently support profiling kernels that were compiled
     //  as multiple context kernels.  We call the XRT function
@@ -84,10 +87,21 @@ namespace xdp {
 
     ~DeviceInfo() ;
 
+    // ****** Functions for Device ConfigInfo ******
+    XDP_CORE_EXPORT ConfigInfo* addXclbinToConfig(xrt::xclbin& xclbin) ;
+    XDP_CORE_EXPORT XclbinInfo* createXclbinFromLastConfig(XclbinInfoType xclbinQueryType) ;
+    XDP_CORE_EXPORT ConfigInfo* createConfig(XclbinInfo* xclbin) ;
+    
     // ****** Functions for information on the device ******
     XDP_CORE_EXPORT std::string getUniqueDeviceName() const ;
     XDP_CORE_EXPORT xrt_core::uuid currentXclbinUUID() ;
-    inline std::vector<XclbinInfo*> getLoadedXclbins() { return loadedXclbins ;}
+
+    // ****** Functions for information on the device for the current config ******
+    XDP_CORE_EXPORT std::set<xrt_core::uuid> currentXclbinUUIDs() ;
+    XDP_CORE_EXPORT std::vector<XclbinInfo*> getLoadedXclbins() const ;
+    XDP_CORE_EXPORT std::vector<XclbinInfo*> getAllLoadedXclbins() const ;
+    inline std::vector<ConfigInfo*> getLoadedConfig() const { return loadedConfigInfos ;}
+    XDP_CORE_EXPORT ConfigInfo* currentConfig() const ;
     XDP_CORE_EXPORT void cleanCurrentXclbinInfo() ;
     inline bool isNoDMA() const { return isNoDMADevice ; }
     double getMaxClockRatePLMHz();

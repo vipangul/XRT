@@ -24,6 +24,47 @@
 
 namespace xdp {
 
+  PLInfo& PLInfo::operator=(const PLInfo& other)
+  {
+    if (this == &other)
+      return *this;
+
+    this->hostMaxReadBW    = other.hostMaxReadBW ;
+    this->hostMaxWriteBW   = other.hostMaxWriteBW ;
+    this->kernelMaxReadBW  = other.kernelMaxReadBW ;
+    this->kernelMaxWriteBW = other.kernelMaxWriteBW ;
+    this->clockRatePLMHz = other.clockRatePLMHz ;
+
+    this->usesTs2mm = other.usesTs2mm ;
+    this->usesFifo = other.usesFifo ;
+    
+    this->hasFloatingAIMWithTrace = other.hasFloatingAIMWithTrace ;
+    this->hasFloatingASMWithTrace = other.hasFloatingASMWithTrace ;
+
+    this->hasMemoryAIM = other.hasMemoryAIM ;
+
+    // Compute unit information
+    std::map<int32_t, ComputeUnitInstance*> cus ;
+    for(auto &cu : other.cus)
+      this->cus[cu.first] = new ComputeUnitInstance(*cu.second) ;
+
+
+    // Memory information
+    std::map<int32_t, Memory*> memoryInfo ;
+    for (auto &mi : other.memoryInfo)
+      this->memoryInfo[mi.first] = new Memory(*mi.second) ;
+
+    // Information on all our Monitor IPs (including shell monitors)
+    this->ams = std::vector<Monitor*>(other.ams.begin(), other.ams.end()) ;
+    this->aims = std::vector<Monitor*>(other.aims.begin(), other.aims.end()) ;
+    this->asms = std::vector<Monitor*>(other.asms.begin(), other.asms.end()) ;
+
+    // HLS deadlock diagnosis registers
+    this->ip_metadata_section = std::make_unique<ip_metadata>(*other.ip_metadata_section) ;
+  
+    return *this ;
+  }
+
   PLInfo::~PLInfo()
   {
     for (auto& i : cus) {
@@ -94,6 +135,40 @@ namespace xdp {
     }
   }
 
+  AIEInfo& AIEInfo::operator=(const AIEInfo& other)
+  {
+    if(this == &other)
+      return *this ;
+
+    this->clockRateAIEMHz = other.clockRateAIEMHz ;
+    this->numTracePLIO = other.numTracePLIO ;
+    this->isGMIORead = other.isGMIORead ;
+    this->isAIEcounterRead = other.isAIEcounterRead ;
+
+    for(auto &aie : other.aieList)
+      this->aieList.push_back(new AIECounter(*aie)) ;
+
+    for(auto &gmio : other.gmioList)
+      this->gmioList.push_back(new TraceGMIO(*gmio)) ;
+
+    this->aieCoreCountersMap    = other.aieCoreCountersMap ;
+    this->aieShimCountersMap    = other.aieShimCountersMap ;
+    this->aieMemTileCountersMap = other.aieMemTileCountersMap ;
+    this->aieCoreEventsMap      = other.aieCoreEventsMap ;
+    this->aieMemoryEventsMap    = other.aieMemoryEventsMap ;
+    this->aieShimEventsMap      = other.aieShimEventsMap ;
+    this->aieMemTileEventsMap   = other.aieMemTileEventsMap ;
+
+    std::vector<std::unique_ptr<aie_cfg_tile>> aieCfgList ;
+    for(auto &tile : other.aieCfgList)
+      this->aieCfgList.push_back(std::make_unique<aie_cfg_tile>(*tile)) ;
+
+    for(auto &noc : other.nocList)
+      this->nocList.push_back(new NoCNode(*noc)) ;
+
+    return *this ;
+  }
+
   AIEInfo::~AIEInfo()
   {
     for (auto i : nocList) {
@@ -106,5 +181,456 @@ namespace xdp {
     if (deviceIntf)
       delete deviceIntf ;
   }
+
+  ConfigInfo::ConfigInfo() : type(CONFIG_AIE_PL)
+  {
+
+  }
+
+  ConfigInfo::ConfigInfo(XclbinInfo* xclbin) : type(CONFIG_AIE_PL)
+  {
+    currentXclbins.push_back(xclbin);
+  }
+
+  ConfigInfo::~ConfigInfo()
+  {
+    for(auto cfg : currentXclbins)
+      delete cfg;
+  }
+
+  XclbinInfo* ConfigInfo::currentConfig()
+  {
+    return currentXclbins.empty() ? nullptr : currentXclbins.back() ;
+  }
+
+  std::vector<xrt_core::uuid> ConfigInfo::currentConfigUuids()
+  {
+    std::vector<xrt_core::uuid> uuids;
+    for(auto &xclbin : currentXclbins)
+      uuids.push_back(xclbin->uuid);
+    
+    return uuids;
+  }
+
+  void ConfigInfo::addXclbin(XclbinInfo* xclbin)
+  {
+    currentXclbins.push_back(xclbin);
+  }
+
+  void ConfigInfo::updateType(ConfigInfoType cfgType)
+  {
+    type = cfgType;
+  }
+
+  bool ConfigInfo::containsXclbin(xrt_core::uuid& uuid)
+  {
+    for(auto &xclbin : currentXclbins)
+    {
+      if(xclbin->uuid == uuid)
+        return true;
+    }
+    
+    return false;
+  }
+
+  bool ConfigInfo::isAiePlusPl()
+  {
+    if (type == CONFIG_AIE_PL || type == CONFIG_AIE_PL_FORMED)
+      return true;
+    return false; 
+  }
+  
+  bool ConfigInfo::isAieOnly()
+  {
+    return type == CONFIG_AIE_ONLY;
+  }
+
+  bool ConfigInfo::isPlOnly()
+  {
+    return type == CONFIG_PL_ONLY;
+  }
+
+    bool ConfigInfo::hasFloatingAIMWithTrace(XclbinInfo* xclbin)
+    {
+      for(auto bin : currentXclbins)
+        if(bin == xclbin)
+          return bin->pl.hasFloatingAIMWithTrace ;
+
+      return false ;
+    }
+
+    bool ConfigInfo::hasFloatingASMWithTrace(XclbinInfo* xclbin)
+    {
+      for(auto bin : currentXclbins)
+        if(bin == xclbin)
+          return bin->pl.hasFloatingASMWithTrace ;
+      
+      return false ;
+    }
+
+    uint64_t ConfigInfo::getNumAM(XclbinInfo* xclbin)
+    {
+      for(auto &bin : currentXclbins)
+        if(bin == xclbin)
+          return bin->pl.ams.size() ;
+      
+      return 0;
+    }
+
+    uint64_t ConfigInfo::getNumUserAMWithTrace(XclbinInfo* xclbin)
+    {
+      uint64_t num = 0 ;
+      for (auto bin : currentXclbins) {
+        if (bin == xclbin) {
+          for (auto am : bin->pl.ams) {
+            if (am->traceEnabled)
+              ++num ;
+          }
+        }
+      }
+      return num ;
+    }
+
+    uint64_t ConfigInfo::getNumAIM(XclbinInfo* xclbin)
+    {
+      for (auto bin : currentXclbins) {
+        if (bin == xclbin)
+          return bin->pl.aims.size() ;
+      }
+
+      return 0 ;
+    }
+
+    uint64_t ConfigInfo::getNumUserAIM(XclbinInfo* xclbin)
+    {
+      uint64_t num = 0 ;
+      for (auto bin : currentXclbins) {
+        if (bin == xclbin) {
+          for (auto aim : bin->pl.aims) {
+            if (!aim->isShellMonitor())
+              ++num ;
+          }
+        }
+      }
+      return num ;
+    }
+
+    uint64_t ConfigInfo::getNumUserAIMWithTrace(XclbinInfo* xclbin) const
+    {
+      uint64_t num = 0 ;
+      for (auto bin : currentXclbins) {
+        if (bin == xclbin) {
+          for (auto aim : bin->pl.aims) {
+            if (aim->traceEnabled && !aim->isShellMonitor())
+              ++num ;
+          }
+        }
+      }
+    
+      return num ;
+    }
+
+    uint64_t ConfigInfo::getNumASM(XclbinInfo* xclbin) const
+    {
+      for (auto bin : currentXclbins) {
+        if (bin == xclbin)
+          return bin->pl.asms.size() ;
+      }
+      return 0 ;
+    }
+
+    uint64_t ConfigInfo::getNumUserASM(XclbinInfo* xclbin) const
+    {
+      uint64_t num = 0 ;
+      for (auto bin : currentXclbins) {
+        if (bin == xclbin) {
+          for (auto mon : bin->pl.asms) {
+            if (!mon->isShellMonitor())
+              ++num ;
+          }
+        }
+      }
+      return num ;
+    }
+
+    uint64_t ConfigInfo::getNumUserASMWithTrace(XclbinInfo* xclbin)
+    {
+      uint64_t num = 0 ;
+      for (auto bin : currentXclbins) {
+        if (bin == xclbin) {
+          for (auto mon : bin->pl.asms) {
+            if (mon->traceEnabled && !mon->isShellMonitor())
+              ++num ;
+          }
+        }
+      }
+      return num ;
+    }
+
+    uint64_t ConfigInfo::getNumNOC(XclbinInfo* xclbin)
+    {
+      for (auto bin : currentXclbins) {
+        if (bin == xclbin)
+          return bin->aie.nocList.size() ;
+      }
+      return 0 ;
+    }
+
+    Monitor* ConfigInfo::getAMonitor(XclbinInfo* xclbin, uint64_t slotId)
+    {
+      for (auto bin : currentXclbins) {
+        if (bin == xclbin) {
+          for (auto am : bin->pl.ams) {
+            if (am->slotIndex == slotId)
+              return am ;
+          }
+        }
+      }
+      return nullptr ;
+    }
+
+    Monitor* ConfigInfo::getAIMonitor(XclbinInfo* xclbin, uint64_t slotId)
+    {
+      for (auto bin : currentXclbins) {
+        if (bin == xclbin) {
+          for (auto aim : bin->pl.aims) {
+            if (aim->slotIndex == slotId)
+              return aim ;
+          }
+        }
+      }
+      return nullptr ;
+    }
+
+    Monitor* ConfigInfo::getASMonitor(XclbinInfo* xclbin, uint64_t slotId)
+    {
+      for (auto bin : currentXclbins) {
+        if (bin == xclbin) {
+          for (auto streamMonitor : bin->pl.asms) {
+            if (streamMonitor->slotIndex == slotId)
+              return streamMonitor ;
+          }
+        }
+      }
+      return nullptr ;
+    }
+
+    NoCNode* ConfigInfo::getNOC(XclbinInfo* xclbin, uint64_t idx)
+    {
+      for (auto bin : currentXclbins) {
+        if (bin == xclbin) {
+          if (bin->aie.nocList.size() <= idx)
+            return nullptr;
+          return bin->aie.nocList[idx] ;
+        }
+      }
+      return nullptr ;
+    }
+
+    std::vector<Monitor*>* ConfigInfo::getAIMonitors(XclbinInfo* xclbin)
+    {
+      for (auto bin : currentXclbins) {
+        if (bin == xclbin)
+          return &(bin->pl.aims) ;
+      }
+      return nullptr ;
+    }
+
+    std::vector<Monitor*>* ConfigInfo::getASMonitors(XclbinInfo* xclbin)
+    {
+      for (auto bin : currentXclbins) {
+        if (bin == xclbin)
+          return &(bin->pl.asms) ;
+      }
+      return nullptr ;
+    }
+
+    std::vector<Monitor*> ConfigInfo::getUserAIMsWithTrace(XclbinInfo* xclbin)
+    {
+      std::vector<Monitor*> constructed ;
+      for (auto bin : currentXclbins) {
+        if (bin == xclbin) {
+          for (auto aim : bin->pl.aims) {
+            if (aim->traceEnabled && !aim->isShellMonitor())
+              constructed.push_back(aim) ;
+          }
+        }
+      }
+      return constructed ;
+    }
+
+    std::vector<Monitor*> ConfigInfo::getUserASMsWithTrace(XclbinInfo* xclbin)
+    {
+      std::vector<Monitor*> constructed ;
+      for (auto bin : currentXclbins) {
+        if (bin == xclbin) {
+          for (auto mon : bin->pl.asms) {
+            if (mon->traceEnabled && !mon->isShellMonitor())
+              constructed.push_back(mon) ;
+          }
+        }
+      }
+      return constructed ;
+    }
+
+    void ConfigInfo::addTraceGMIO(uint32_t id, uint16_t col, uint16_t num,
+                                uint16_t stream, uint16_t len)
+    {
+      for(auto xclbin : currentXclbins)
+      {
+        if(xclbin->aie.valid)
+        {
+          xclbin->aie.gmioList.push_back(new TraceGMIO(id, col, num, stream, len)) ;
+          return ;
+        }
+      }
+    }
+
+    void ConfigInfo::addAIECounter(uint32_t i, uint16_t col, uint16_t r,
+                                   uint8_t num, uint16_t start, uint16_t end,
+                                   uint8_t reset, uint32_t load, double freq,
+                                   const std::string& mod,
+                                   const std::string& aieName)
+    {
+      for(auto xclbin : currentXclbins)
+      {
+        if(xclbin->aie.valid)
+        {
+          xclbin->aie.aieList.push_back(new AIECounter(i, col, r, num, start, end,
+                                                    reset, load, freq, mod, aieName)) ;
+          return ;
+        }
+      }
+    }
+
+    void ConfigInfo::addAIECounterResources(uint32_t numCounters,
+                                            uint32_t numTiles,
+                                            uint8_t moduleType)
+    {
+      XclbinInfo* xclbin = nullptr ;
+      for(auto bin : currentXclbins)
+      {
+        if(bin->aie.valid)
+        {
+          xclbin = bin;
+          break ;
+        }
+      }
+
+      if(!xclbin)
+        return;
+
+      switch (moduleType)
+      {
+        case 0:
+          xclbin->aie.aieCoreCountersMap[numCounters] = numTiles ;
+          break ;
+        case 1:
+          xclbin->aie.aieMemoryCountersMap[numCounters] = numTiles ;
+          break ;
+        case 2:
+          xclbin->aie.aieShimCountersMap[numCounters] = numTiles ;
+          break ;
+        default:
+          xclbin->aie.aieMemTileCountersMap[numCounters] = numTiles ;
+          break ;
+      }
+    }
+
+    void ConfigInfo::addAIECoreEventResources(uint32_t numEvents,
+                                              uint32_t numTiles)
+    {
+      for(auto xclbin : currentXclbins)
+      {
+        if(xclbin->aie.valid)
+        {
+          xclbin->aie.aieCoreEventsMap[numEvents] = numTiles ;
+          break ;
+        }
+      }
+    }
+
+    void ConfigInfo::addAIEMemoryEventResources(uint32_t numEvents,
+                                                uint32_t numTiles)
+    {
+      for(auto xclbin : currentXclbins)
+      {
+        if(xclbin->aie.valid)
+        {
+          xclbin->aie.aieMemoryEventsMap[numEvents] = numTiles ;
+          break ;
+        }
+      }
+    }
+
+    void ConfigInfo::addAIEShimEventResources(uint32_t numEvents,
+                                              uint32_t numTiles)
+    {
+      for(auto xclbin : currentXclbins)
+      {
+        if(xclbin->aie.valid)
+        {
+          xclbin->aie.aieShimEventsMap[numEvents] = numTiles ;
+          break ;
+        }
+      }
+    }
+
+    void ConfigInfo::addAIEMemTileEventResources(uint32_t numEvents,
+                                                 uint32_t numTiles)
+    {
+      for(auto xclbin : currentXclbins)
+      {
+        if(xclbin->aie.valid)
+        {
+          xclbin->aie.aieMemTileEventsMap[numEvents] = numTiles ;
+          break ;
+        }
+      }
+
+    }
+
+    void ConfigInfo::addAIECfgTile(std::unique_ptr<aie_cfg_tile>&& tile)
+    {
+      for(auto xclbin : currentXclbins)
+      {
+        if(xclbin->aie.valid)
+        {
+          xclbin->aie.aieCfgList.push_back(std::move(tile)) ;
+          break ;
+        }
+      }
+    }
+
+    void ConfigInfo::cleanCurrentXclbinInfos()
+    {
+      for(auto xclbin : currentXclbins) {
+        if(xclbin->aie.valid) {
+          
+          for (auto i : xclbin->aie.aieList) {
+            delete i ;
+          }
+          xclbin->aie.aieList.clear() ;
+          
+          for (auto i : xclbin->aie.gmioList) {
+            delete i ;
+          }
+          xclbin->aie.gmioList.clear() ;
+          
+          xclbin->aie.valid = false;
+        }
+      }
+    }
+
+    bool ConfigInfo::hasAIMNamed(const std::string& name)
+    {
+      for(auto xclbin : currentXclbins) {
+        for (auto aim : xclbin->pl.aims) {
+          if (aim->name.find(name) != std::string::npos)
+            return true ;
+        }
+      }
+      return false ;
+    }
 
 } // end namespace xdp
