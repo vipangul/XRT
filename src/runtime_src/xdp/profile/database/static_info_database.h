@@ -28,6 +28,8 @@
 
 #include "core/common/system.h"
 #include "core/common/device.h"
+#include "xdp/profile/database/static_info/aie_util.h"
+#include "xdp/profile/database/static_info/filetypes/base_filetype_impl.h"
 
 #include "xdp/config.h"
 
@@ -107,6 +109,7 @@ namespace xdp {
     void* aieDevInst = nullptr ; // XAie_DevInst
     void* aieDevice = nullptr ; // xaiefal::XAieDev
     std::function<void (void*)> deallocateAieDevice = nullptr ;
+    boost::property_tree::ptree aieMeta; // stores AIE_METADATA
 
     bool resetDeviceInfo(uint64_t deviceId, const std::shared_ptr<xrt_core::device>& device);
 
@@ -337,6 +340,8 @@ namespace xdp {
     XDP_CORE_EXPORT void* getAieDevice(std::function<void* (void*)> allocate,
                                   std::function<void (void*)> deallocate,
                                   void* devHandle) ;
+    XDP_CORE_EXPORT void readAIEMetadata(uint64_t deviceId, xrt::xclbin xrtXclbin);
+    XDP_CORE_EXPORT std::unique_ptr<aie::BaseFiletypeImpl> getAIEMetadataReader(void* handle);
 
     // ************************************************************************
     // ***** Functions for information from a specific xclbin on a device *****

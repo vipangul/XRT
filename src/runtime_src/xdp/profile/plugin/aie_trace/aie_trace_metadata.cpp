@@ -76,16 +76,16 @@ namespace xdp {
     metadataReader = aie::readAIEMetadata("aie_control_config.json", aie_meta);
     
     #else
-
-    auto device = xrt_core::get_userpf_device(handle);
-    auto data = device->get_axlf_section(AIE_METADATA);
-
-    metadataReader = aie::readAIEMetadata(data.first, data.second, aie_meta);
-
+      VPDatabase* db = VPDatabase::Instance();
+      metadataReader = (db->getStaticInfo()).getAIEMetadataReader(handle);
     #endif
 
-    if (metadataReader == nullptr)
+    if (metadataReader == nullptr) {
+      std::stringstream msg;
+      msg << "Metadatareader reader couldn't be created.";
+      xrt_core::message::send(severity_level::error, "XRT", msg.str());
       return;
+    }
     
     // Catch when compile-time trace is specified (e.g., --event-trace=functions)
     auto compilerOptions = metadataReader->getAIECompilerOptions();
