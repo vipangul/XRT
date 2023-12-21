@@ -72,16 +72,10 @@ namespace xdp {
     }
 
     #ifdef XDP_MINIMAL_BUILD
-
-    metadataReader = aie::readAIEMetadata("aie_control_config.json", aie_meta);
-    
+      metadataReader = aie::readAIEMetadata("aie_control_config.json", aie_meta);
     #else
-
-    auto device = xrt_core::get_userpf_device(handle);
-    auto data = device->get_axlf_section(AIE_METADATA);
-
-    metadataReader = aie::readAIEMetadata(data.first, data.second, aie_meta);
-
+      VPDatabase* db = VPDatabase::Instance();
+      metadataReader = (db->getStaticInfo()).getAIEMetadataReader(handle);
     #endif
 
     if (metadataReader == nullptr)

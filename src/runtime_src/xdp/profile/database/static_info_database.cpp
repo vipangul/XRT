@@ -1045,6 +1045,25 @@ namespace xdp {
     return aieDevice ;
   }
 
+  // Read AIE metadata from axlf section
+  std::unique_ptr<xdp::aie::BaseFiletypeImpl>
+  VPStaticDatabase::readAIEMetadata(const char* data, size_t size)
+  {
+    std::stringstream aie_stream;
+    aie_stream.write(data,size);
+    boost::property_tree::read_json(aie_stream, aie_meta);
+
+    return xdp::aie::determineFileType(aie_meta);
+  }
+
+  // TODO: Check if handle is needed or if we can rely on initially 
+  // read aie_meta during update_device.
+  std::unique_ptr<xdp::aie::BaseFiletypeImpl>
+  VPStaticDatabase::getAIEMetadataReader(void* handle)
+  {
+    return xdp::aie::determineFileType(aie_meta);
+  }
+
   // ************************************************************************
   // ***** Functions for information from a specific xclbin on a device *****
   uint64_t VPStaticDatabase::getNumAM(uint64_t deviceId, XclbinInfo* xclbin)
@@ -2057,22 +2076,37 @@ namespace xdp {
     }
   }
   
-  void VPStaticDatabase::setAIEGeneration(uint64_t deviceId, xrt::xclbin xrtXclbin) {
-    std::lock_guard<std::mutex> lock(deviceLock) ;
-
-    if (deviceInfo.find(deviceId) == deviceInfo.end())
-      return;
-
+  bool VPStaticDatabase::readAIESection(xrt::xclbin xrtXclbin) {
     auto data = xrt_core::xclbin_int::get_axlf_section(xrtXclbin, AIE_METADATA);
     if (!data.first || !data.second)
-      return;
-
-    boost::property_tree::ptree aie_meta;
+      return false;
 
     std::stringstream aie_stream;
     aie_stream.write(data.first, data.second);
-    boost::property_tree::read_json(aie_stream, aie_meta);
+    boost::property_tree::read_json(aie_stream, aie_meta); // TODO: check try-catch 
+    return true;
+  }
+
+  bool VPStaticDatabase::readAIESection(uint64_t deviceId, xrt::xclbin xrtXclbin) {
+    std::lock_guard<std::mutex> lock(deviceLock) ;
+    if (deviceInfo.find(deviceId) == deviceInfo.end())
+      return false;
     
+    auto data = xrt_core::xclbin_int::get_axlf_section(xrtXclbin, AIE_METADATA);
+    if (!data.first || !data.second)
+      return false;
+
+    std::stringstream aie_stream;
+    aie_stream.write(data.first, data.second);
+    boost::property_tree::read_json(aie_stream, aie_meta); // TODO: check try-catch 
+    return true;
+  }
+
+  void VPStaticDatabase::setAIEGeneration(uint64_t deviceId, xrt::xclbin xrtXclbin) {
+    if(!readAIESection(deviceId, xrtXclbin))
+      return;
+    
+    std::lock_guard<std::mutex> lock(deviceLock) ;
     try {
       auto hwGen = aie_meta.get_child("aie_metadata.driver_config.hw_gen").get_value<uint8_t>();
       deviceInfo[deviceId]->setAIEGeneration(hwGen);
@@ -2082,24 +2116,13 @@ namespace xdp {
   }
 
   void VPStaticDatabase::setAIEClockRateMHz(uint64_t deviceId, xrt::xclbin xrtXclbin) {
-    std::lock_guard<std::mutex> lock(deviceLock) ;
-
-    if (deviceInfo.find(deviceId) == deviceInfo.end())
+    if(!readAIESection(deviceId, xrtXclbin))
       return;
-
+   
+    std::lock_guard<std::mutex> lock(deviceLock) ;
     XclbinInfo* xclbin = deviceInfo[deviceId]->currentXclbin() ;
     if (!xclbin)
       return;
-
-    auto data = xrt_core::xclbin_int::get_axlf_section(xrtXclbin, AIE_METADATA);
-    if (!data.first || !data.second)
-      return;
-
-    boost::property_tree::ptree aie_meta;
-
-    std::stringstream aie_stream;
-    aie_stream.write(data.first, data.second);
-    boost::property_tree::read_json(aie_stream,aie_meta);
 
     try {
       auto dev_node = aie_meta.get_child("aie_metadata.DeviceData");
