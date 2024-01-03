@@ -109,7 +109,7 @@ namespace xdp {
     void* aieDevInst = nullptr ; // XAie_DevInst
     void* aieDevice = nullptr ; // xaiefal::XAieDev
     std::function<void (void*)> deallocateAieDevice = nullptr ;
-    static boost::property_tree::ptree aie_meta; // stores AIE_METADATA
+    boost::property_tree::ptree aie_meta; // stores AIE_METADATA
 
     bool resetDeviceInfo(uint64_t deviceId, const std::shared_ptr<xrt_core::device>& device);
 

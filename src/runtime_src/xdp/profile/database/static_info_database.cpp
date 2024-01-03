@@ -56,6 +56,7 @@ constexpr unsigned int XMON_TRACE_PROPERTY_MASK = 0x1;
 
 namespace xdp {
 
+  using severity_level = xrt_core::message::severity_level;
   VPStaticDatabase::VPStaticDatabase(VPDatabase* d)
     : db(d)
     , runSummary(nullptr)
@@ -1052,6 +1053,9 @@ namespace xdp {
     std::stringstream aie_stream;
     aie_stream.write(data,size);
     boost::property_tree::read_json(aie_stream, aie_meta);
+    std::stringstream msg;
+    msg << "TMP_LOG: aie_meta in static_db is populated!";
+    xrt_core::message::send(severity_level::info, "XRT", msg.str());
 
     return xdp::aie::determineFileType(aie_meta);
   }
@@ -1061,6 +1065,10 @@ namespace xdp {
   std::unique_ptr<xdp::aie::BaseFiletypeImpl>
   VPStaticDatabase::getAIEMetadataReader(void* handle)
   {
+    std::stringstream msg;
+    msg << "TMP_LOG: aie_meta query received in static_db!";
+    xrt_core::message::send(severity_level::info, "XRT", msg.str());
+
     return xdp::aie::determineFileType(aie_meta);
   }
 

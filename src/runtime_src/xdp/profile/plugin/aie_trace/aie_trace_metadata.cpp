@@ -78,8 +78,12 @@ namespace xdp {
       metadataReader = (db->getStaticInfo()).getAIEMetadataReader(handle);
     #endif
 
-    if (metadataReader == nullptr)
+    if (metadataReader == nullptr) {
+      std::stringstream msg;
+      msg << "Error: metadatareader is nullptr during aie_trace metadataReader create! ";
+      xrt_core::message::send(severity_level::info, "XRT", msg.str());
       return;
+    }
     
     // Catch when compile-time trace is specified (e.g., --event-trace=functions)
     auto compilerOptions = metadataReader->getAIECompilerOptions();
@@ -116,6 +120,10 @@ namespace xdp {
       getConfigMetricsForInterfaceTiles(shimTileMetricsSettings, shimGraphMetricsSettings);
       setTraceStartControl(compilerOptions.graph_iterator_event);
     }
+
+    std::stringstream msg;
+    msg << "Success: aie_trace ctor completed!  ";
+    xrt_core::message::send(severity_level::info, "XRT", msg.str());
   }
 
   // **************************************************************************
