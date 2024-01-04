@@ -109,7 +109,9 @@ namespace xdp {
     void* aieDevInst = nullptr ; // XAie_DevInst
     void* aieDevice = nullptr ; // xaiefal::XAieDev
     std::function<void (void*)> deallocateAieDevice = nullptr ;
-    boost::property_tree::ptree aie_meta; // stores AIE_METADATA
+    boost::property_tree::ptree aieMeta; // stores AIE_METADATA
+    bool aieMetaExists = false;
+
 
     bool resetDeviceInfo(uint64_t deviceId, const std::shared_ptr<xrt_core::device>& device);
 
@@ -342,7 +344,6 @@ namespace xdp {
                                   void* devHandle) ;
     // A function to read the JSON from an axlf section inside the xclbin and
     // return the type of the file
-    XDP_CORE_EXPORT bool readAIESection(xrt::xclbin xrtXclbin);
     XDP_CORE_EXPORT bool readAIESection(uint64_t deviceId, xrt::xclbin xrtXclbin);
     XDP_CORE_EXPORT std::unique_ptr<xdp::aie::BaseFiletypeImpl>
     readAIEMetadata(const char* data, size_t size);

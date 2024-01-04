@@ -1052,24 +1052,31 @@ namespace xdp {
   {
     std::stringstream aie_stream;
     aie_stream.write(data,size);
-    boost::property_tree::read_json(aie_stream, aie_meta);
+    boost::property_tree::read_json(aie_stream, aieMeta);
+    if(aieMeta.empty()) {
+      xrt_core::message::send(severity_level::warning, "XRT", "Error: [3] Read aieMetadata is empty!");
+      return nullptr;
+    }
     std::stringstream msg;
-    msg << "TMP_LOG: aie_meta in static_db is populated!";
+    msg << "TMP_LOG: aieMeta in static_db is populated!";
     xrt_core::message::send(severity_level::info, "XRT", msg.str());
-
-    return xdp::aie::determineFileType(aie_meta);
+    
+    return xdp::aie::determineFileType(aieMeta);
   }
 
   // TODO: Check if handle is needed or if we can rely on initially 
-  // read aie_meta during update_device.
+  // read aieMeta during update_device.
   std::unique_ptr<xdp::aie::BaseFiletypeImpl>
   VPStaticDatabase::getAIEMetadataReader(void* handle)
   {
     std::stringstream msg;
-    msg << "TMP_LOG: aie_meta query received in static_db!";
+    msg << "TMP_LOG: aieMeta query received in static_db!";
     xrt_core::message::send(severity_level::info, "XRT", msg.str());
-
-    return xdp::aie::determineFileType(aie_meta);
+    if(aieMeta.empty()) {
+      xrt_core::message::send(severity_level::warning, "XRT", "Error: [4] Read aieMetadata is empty!");
+      return nullptr;
+    }
+    return xdp::aie::determineFileType(aieMeta);
   }
 
   // ************************************************************************
@@ -2001,6 +2008,10 @@ namespace xdp {
 
   DeviceInfo* VPStaticDatabase::updateDevice(uint64_t deviceId, xrt::xclbin xrtXclbin)
   {    
+    std::stringstream msg;
+    msg << "TMP_LOG: updateDevice() call received!";
+    xrt_core::message::send(severity_level::info, "XRT", msg.str());
+
     // We need to update the device, but if we had an xclbin previously loaded
     //  then we need to mark it
     if (deviceInfo.find(deviceId) != deviceInfo.end()) {
@@ -2027,7 +2038,8 @@ namespace xdp {
     XclbinInfo* currentXclbin = new XclbinInfo() ;
     currentXclbin->uuid = xrtXclbin.get_uuid();
     currentXclbin->pl.clockRatePLMHz = findClockRate(xrtXclbin) ; 
- 
+
+    readAIESection(deviceId, xrtXclbin);
     setDeviceNameFromXclbin(deviceId, xrtXclbin);
     setAIEGeneration(deviceId, xrtXclbin);
 
@@ -2083,40 +2095,52 @@ namespace xdp {
       return;
     }
   }
-  
-  bool VPStaticDatabase::readAIESection(xrt::xclbin xrtXclbin) {
-    auto data = xrt_core::xclbin_int::get_axlf_section(xrtXclbin, AIE_METADATA);
-    if (!data.first || !data.second)
-      return false;
 
-    std::stringstream aie_stream;
-    aie_stream.write(data.first, data.second);
-    boost::property_tree::read_json(aie_stream, aie_meta); // TODO: check try-catch 
-    return true;
-  }
-
-  bool VPStaticDatabase::readAIESection(uint64_t deviceId, xrt::xclbin xrtXclbin) {
+// Populating the aieMeta from Xclbin. 
+bool VPStaticDatabase::readAIESection(uint64_t deviceId, xrt::xclbin xrtXclbin)
+  { 
     std::lock_guard<std::mutex> lock(deviceLock) ;
-    if (deviceInfo.find(deviceId) == deviceInfo.end())
+    if (deviceInfo.find(deviceId) == deviceInfo.end()) {
+      xrt_core::message::send(severity_level::info, "XRT", "deviceInfo doesn't have deviceID.");
       return false;
+    }
     
     auto data = xrt_core::xclbin_int::get_axlf_section(xrtXclbin, AIE_METADATA);
-    if (!data.first || !data.second)
+    if (!data.first || !data.second) {
+      xrt_core::message::send(severity_level::info, "XRT", "AIE_METADATA doesn't exist.");
       return false;
+    }
 
     std::stringstream aie_stream;
     aie_stream.write(data.first, data.second);
-    boost::property_tree::read_json(aie_stream, aie_meta); // TODO: check try-catch 
+    try {
+      boost::property_tree::read_json(aie_stream, aieMeta);
+    } catch (const std::exception& e) {
+      std::string msg("Error: invalid AIE_METADATA json detected: ");
+      msg += e.what();
+      throw std::runtime_error(msg);
+    }
+    
+    if(aieMeta.empty()) {
+      xrt_core::message::send(severity_level::warning, "XRT", "Error: [1] Read aieMetadata is empty!");
+      return false;
+    }
+
+    aieMetaExists = true;
+    std::stringstream msg;
+    msg << "TMP_LOG: *aieMeta in static_db is populated!";
+    xrt_core::message::send(severity_level::info, "XRT", msg.str());
+
     return true;
   }
 
   void VPStaticDatabase::setAIEGeneration(uint64_t deviceId, xrt::xclbin xrtXclbin) {
-    if(!readAIESection(deviceId, xrtXclbin))
+    if (!aieMetaExists) 
       return;
     
     std::lock_guard<std::mutex> lock(deviceLock) ;
     try {
-      auto hwGen = aie_meta.get_child("aie_metadata.driver_config.hw_gen").get_value<uint8_t>();
+      auto hwGen = aieMeta.get_child("aie_metadata.driver_config.hw_gen").get_value<uint8_t>();
       deviceInfo[deviceId]->setAIEGeneration(hwGen);
     } catch(...) {
       return;
@@ -2124,7 +2148,7 @@ namespace xdp {
   }
 
   void VPStaticDatabase::setAIEClockRateMHz(uint64_t deviceId, xrt::xclbin xrtXclbin) {
-    if(!readAIESection(deviceId, xrtXclbin))
+    if (!aieMetaExists)
       return;
    
     std::lock_guard<std::mutex> lock(deviceLock) ;
@@ -2133,7 +2157,7 @@ namespace xdp {
       return;
 
     try {
-      auto dev_node = aie_meta.get_child("aie_metadata.DeviceData");
+      auto dev_node = aieMeta.get_child("aie_metadata.DeviceData");
       xclbin->aie.clockRateAIEMHz = dev_node.get<double>("AIEFrequency");
     } catch(...) {
       return;
