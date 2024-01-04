@@ -58,9 +58,7 @@ namespace xdp::aie {
   std::unique_ptr<xdp::aie::BaseFiletypeImpl>
   determineFileType(boost::property_tree::ptree& aie_project)
   {
-    xrt_core::message::send(severity_level::warning, "XRT", "TMP_LOG: determining fileType.");
     if(aie_project.empty()) {
-      xrt_core::message::send(severity_level::warning, "XRT", "TMP_LOG: Error: [2] Read aieMetadata is empty!");
       return nullptr;
     }
     //
@@ -75,7 +73,6 @@ namespace xdp::aie {
     }
     catch (...) {
       // Something went wrong, so it most likely is not a "compiler_report.json"
-      xrt_core::message::send(severity_level::warning, "XRT", "TMP_LOG: schema in AIE section is not matched, continuing..");
     }
 
     //
@@ -84,18 +81,12 @@ namespace xdp::aie {
     try {
       auto options = aie_project.get_child("aie_metadata.aiecompiler_options");
       if(options.empty()) {
-       std::string msg = "TMP_LOG: No aieMetadata aiecompiler_options found.";
-       xrt_core::message::send(severity_level::warning, "XRT", msg);
+        return nullptr;
       }
-      std::stringstream ss;
-      boost::property_tree::write_json(ss, options);
-      xrt_core::message::send(severity_level::warning, "XRT", "TMP_LOG: "+ ss.str());
-
       return std::make_unique<xdp::aie::AIEControlConfigFiletype>(aie_project);
     }
     catch(...) {
       // Something went wrong, so it most likely is not an aie_control_config
-      xrt_core::message::send(severity_level::warning, "XRT", "TMP_LOG: aiecompiler_options in AIE section is empty, continuing..");
     }
 
     //
@@ -109,11 +100,9 @@ namespace xdp::aie {
     }
     catch(...) {
       // Something went wrong, so it most likely is not the handwritten format
-      xrt_core::message::send(severity_level::warning, "XRT", "TMP_LOG: schema in AIE section is empty, continuing..");
     }
 
     // We could not determine the type
-    xrt_core::message::send(severity_level::warning, "XRT", "TMP_LOG: Returning nullptr");
     return nullptr;
   }
 
