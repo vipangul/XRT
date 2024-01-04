@@ -56,7 +56,6 @@ constexpr unsigned int XMON_TRACE_PROPERTY_MASK = 0x1;
 
 namespace xdp {
 
-  using severity_level = xrt_core::message::severity_level;
   VPStaticDatabase::VPStaticDatabase(VPDatabase* d)
     : db(d)
     , runSummary(nullptr)
@@ -1046,22 +1045,6 @@ namespace xdp {
     return aieDevice ;
   }
 
-  // Read AIE metadata from axlf section
-  std::unique_ptr<xdp::aie::BaseFiletypeImpl>
-  VPStaticDatabase::readAIEMetadata(const char* data, size_t size)
-  {
-    std::stringstream aie_stream;
-    aie_stream.write(data,size);
-    boost::property_tree::read_json(aie_stream, aieMeta);
-    if(aieMeta.empty()) {
-      return nullptr;
-    }
-   
-    return xdp::aie::determineFileType(aieMeta);
-  }
-
-  // TODO: Check if handle is needed or if we can rely on initially 
-  // read aieMeta during update_device.
   std::unique_ptr<xdp::aie::BaseFiletypeImpl>
   VPStaticDatabase::getAIEMetadataReader(void* handle)
   {
@@ -2027,7 +2010,7 @@ namespace xdp {
     currentXclbin->uuid = xrtXclbin.get_uuid();
     currentXclbin->pl.clockRatePLMHz = findClockRate(xrtXclbin) ; 
 
-    readAIESection(deviceId, xrtXclbin);
+    readAIEMetadata(deviceId, xrtXclbin);
     setDeviceNameFromXclbin(deviceId, xrtXclbin);
     setAIEGeneration(deviceId, xrtXclbin);
 
@@ -2084,19 +2067,19 @@ namespace xdp {
     }
   }
 
-// Populating the aieMeta from Xclbin. 
-bool VPStaticDatabase::readAIESection(uint64_t deviceId, xrt::xclbin xrtXclbin)
+  // Populate the aieMeta from Xclbin. 
+  void VPStaticDatabase::readAIEMetadata(uint64_t deviceId, xrt::xclbin xrtXclbin)
   { 
     {
       std::lock_guard<std::mutex> lock(deviceLock) ;
       if (deviceInfo.find(deviceId) == deviceInfo.end()) {
-        return false;
+        return;
       }
     }
     
     auto data = xrt_core::xclbin_int::get_axlf_section(xrtXclbin, AIE_METADATA);
     if (!data.first || !data.second) {
-      return false;
+      return;
     }
 
     std::stringstream aie_stream;
@@ -2110,11 +2093,10 @@ bool VPStaticDatabase::readAIESection(uint64_t deviceId, xrt::xclbin xrtXclbin)
     }
     
     if(aieMeta.empty()) {
-      return false;
+      return;
     }
 
     aieMetaExists = true;
-    return true;
   }
 
   void VPStaticDatabase::setAIEGeneration(uint64_t deviceId, xrt::xclbin xrtXclbin) {

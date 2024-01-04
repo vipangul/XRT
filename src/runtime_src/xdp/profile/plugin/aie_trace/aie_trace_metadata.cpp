@@ -80,8 +80,8 @@ namespace xdp {
 
     if (metadataReader == nullptr) {
       std::stringstream msg;
-      msg << "Error: metadatareader is nullptr during aie_trace metadataReader create! ";
-      xrt_core::message::send(severity_level::info, "XRT", msg.str());
+      msg << "Metadatareader reader couldn't be created.";
+      xrt_core::message::send(severity_level::error, "XRT", msg.str());
       return;
     }
     
@@ -120,10 +120,6 @@ namespace xdp {
       getConfigMetricsForInterfaceTiles(shimTileMetricsSettings, shimGraphMetricsSettings);
       setTraceStartControl(compilerOptions.graph_iterator_event);
     }
-
-    std::stringstream msg;
-    msg << "Success: aie_trace ctor completed!  ";
-    xrt_core::message::send(severity_level::info, "XRT", msg.str());
   }
 
   // **************************************************************************

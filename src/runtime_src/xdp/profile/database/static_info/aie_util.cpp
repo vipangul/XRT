@@ -58,9 +58,6 @@ namespace xdp::aie {
   std::unique_ptr<xdp::aie::BaseFiletypeImpl>
   determineFileType(boost::property_tree::ptree& aie_project)
   {
-    if(aie_project.empty()) {
-      return nullptr;
-    }
     //
     // Check if it is the known compiler_report.json format
     //

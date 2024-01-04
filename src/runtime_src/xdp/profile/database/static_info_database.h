@@ -342,13 +342,9 @@ namespace xdp {
     XDP_CORE_EXPORT void* getAieDevice(std::function<void* (void*)> allocate,
                                   std::function<void (void*)> deallocate,
                                   void* devHandle) ;
-    // A function to read the JSON from an axlf section inside the xclbin and
-    // return the type of the file
-    XDP_CORE_EXPORT bool readAIESection(uint64_t deviceId, xrt::xclbin xrtXclbin);
-    XDP_CORE_EXPORT std::unique_ptr<xdp::aie::BaseFiletypeImpl>
-    readAIEMetadata(const char* data, size_t size);
+    XDP_CORE_EXPORT void readAIEMetadata(uint64_t deviceId, xrt::xclbin xrtXclbin);
     XDP_CORE_EXPORT std::unique_ptr<aie::BaseFiletypeImpl> getAIEMetadataReader(void* handle);
-    
+
     // ************************************************************************
     // ***** Functions for information from a specific xclbin on a device *****
     XDP_CORE_EXPORT uint64_t getNumAM(uint64_t deviceId, XclbinInfo* xclbin) ;
