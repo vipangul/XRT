@@ -2084,19 +2084,21 @@ namespace xdp {
       msg += e.what();
       xrt_core::message::send(xrt_core::message::severity_level::info, "XRT", msg);
     }
-    
-    if(aieMeta.empty()) {
+
+    if (aieMeta.empty())
       return;
-    }
 
     xrt_core::message::send(xrt_core::message::severity_level::info, "XRT", "aieMeta read successfully!");
   }
 
   void VPStaticDatabase::setAIEGeneration(uint64_t deviceId, xrt::xclbin xrtXclbin) {
+    std::lock_guard<std::mutex> lock(deviceLock) ;
     if (deviceInfo.find(deviceId) == deviceInfo.end())
       return;
- 
-    std::lock_guard<std::mutex> lock(deviceLock) ;
+
+    if (aieMeta.empty())
+      return;
+
     try {
       auto hwGen = aieMeta.get_child("aie_metadata.driver_config.hw_gen").get_value<uint8_t>();
       deviceInfo[deviceId]->setAIEGeneration(hwGen);
@@ -2110,10 +2112,13 @@ namespace xdp {
 
     if (deviceInfo.find(deviceId) == deviceInfo.end())
       return;
-   
+
     XclbinInfo* xclbin = deviceInfo[deviceId]->currentXclbin() ;
     if (!xclbin)
       return;
+
+    if (aieMeta.empty())
+       return;
 
     try {
       auto dev_node = aieMeta.get_child("aie_metadata.DeviceData");
