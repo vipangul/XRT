@@ -45,7 +45,8 @@ namespace {
       return false;
 
     for (auto device : infos) {
-      for (auto xclbin : device->getLoadedXclbins()) {
+      auto loadedXclbins = device->getLoadedXclbins();
+      for (auto xclbin : loadedXclbins) {
         for (auto aim : xclbin->pl.aims) {
           // A CU index of -1 is a floating AIM not attached to a compute unit
           if (aim->cuIndex != -1)
@@ -531,7 +532,8 @@ namespace xdp {
     for (auto device : infos) {
       uint64_t deviceId = device->deviceId;
 
-      for (auto xclbin : device->loadedXclbins) {
+      std::vector<XclbinInfo*> loadedXclbins = device->getLoadedXclbins();
+      for (auto xclbin : loadedXclbins) {
 	xdp::CounterResults values =
           db->getDynamicInfo().getCounterResults(deviceId, xclbin->uuid);
 
@@ -590,7 +592,8 @@ namespace xdp {
       uint64_t deviceId = device->deviceId;
 
       // For every xclbin that was loaded on this device
-      for (auto xclbin : device->loadedXclbins) {
+      std::vector<XclbinInfo*> loadedXclbins = device->getLoadedXclbins();
+      for (auto xclbin : loadedXclbins) {
         xdp::CounterResults values =
           db->getDynamicInfo().getCounterResults(deviceId, xclbin->uuid);
 
@@ -672,7 +675,8 @@ namespace xdp {
 
     for (auto device : infos)
     {
-      for (auto xclbin : device->loadedXclbins)
+      auto loadedXclbins = device->getLoadedXclbins();
+      for (auto xclbin : loadedXclbins)
       {
         xdp::CounterResults values = (db->getDynamicInfo()).getCounterResults(device->deviceId, xclbin->uuid) ;
         uint64_t j = 0 ;      
@@ -929,7 +933,8 @@ namespace xdp {
     
     bool printTable = false ;
     for (auto device : infos) {
-      for (auto xclbin : device->loadedXclbins) {
+      auto loadedXclbins = device->getLoadedXclbins();
+      for (auto xclbin : loadedXclbins) {
         xdp::CounterResults values =
           db->getDynamicInfo().getCounterResults(device->deviceId,
                                                  xclbin->uuid) ;
@@ -969,7 +974,8 @@ namespace xdp {
     
     for (auto device : infos) 
     {
-      for (auto xclbin : device->loadedXclbins)
+      auto loadedXclbins = device->getLoadedXclbins();
+      for (auto xclbin : loadedXclbins)
       {
         xdp::CounterResults values = (db->getDynamicInfo()).getCounterResults(device->deviceId, xclbin->uuid) ;
         for (const auto& cu : xclbin->pl.cus)
@@ -1067,7 +1073,8 @@ namespace xdp {
 
     for (auto device : infos)
     {
-      for (auto xclbin : device->loadedXclbins)
+      auto loadedXclbins = device->getLoadedXclbins();
+      for (auto xclbin : loadedXclbins)
       {
       
       uint64_t AIMIndex = 0 ;
@@ -1182,7 +1189,8 @@ namespace xdp {
 
     printTable = false ;
     for (auto device : infos) {
-      for (auto xclbin : device->loadedXclbins) {
+      auto loadedXclbins = device->getLoadedXclbins();
+      for (auto xclbin : loadedXclbins) {
         uint64_t AIMIndex = 0 ;
         for (auto monitor : xclbin->pl.aims) {
           if (monitor->name.find("Peer to Peer") != std::string::npos) {
@@ -1219,7 +1227,8 @@ namespace xdp {
          << std::endl ;
 
     for (auto device : infos) {
-      for (auto xclbin : device->loadedXclbins) {
+      auto loadedXclbins = device->getLoadedXclbins();
+      for (auto xclbin : loadedXclbins) {
         uint64_t AIMIndex = 0 ;
         for (auto monitor : xclbin->pl.aims) {
           if (monitor->name.find("Peer to Peer") != std::string::npos) {
@@ -1306,7 +1315,8 @@ namespace xdp {
 
     bool hasMemoryMonitors = false ;
     for (auto device : infos) {
-      for (auto xclbin : device->loadedXclbins) {
+      auto loadedXclbins = device->getLoadedXclbins();
+      for (auto xclbin : loadedXclbins) {
         hasMemoryMonitors |= xclbin->pl.hasMemoryAIM ;
         if (hasMemoryMonitors) break ;
       }
@@ -1334,7 +1344,8 @@ namespace xdp {
          << "Average latency in ns of each transaction\n" ;
 
     for (auto device : infos) {
-      for (auto xclbin : device->loadedXclbins) {
+      auto loadedXclbins = device->getLoadedXclbins();
+      for (auto xclbin : loadedXclbins) {
         uint64_t AIMIndex = 0;
         xdp::CounterResults values =
           db->getDynamicInfo().getCounterResults(device->deviceId,
@@ -1392,7 +1403,8 @@ namespace xdp {
     if (infos.size() == 0) return ;
     bool printTable = false ;
     for (auto device : infos) {
-      for (auto xclbin : device->loadedXclbins) {
+      auto loadedXclbins = device->getLoadedXclbins();
+      for (auto xclbin : loadedXclbins) {
         uint64_t AIMIndex = 0 ;
         for (auto monitor : xclbin->pl.aims) {
           if (monitor->name.find("Memory to Memory") != std::string::npos) {
@@ -1429,7 +1441,8 @@ namespace xdp {
          << std::endl ;
 
     for (auto device : infos) {
-      for (auto xclbin : device->loadedXclbins) {
+      auto loadedXclbins = device->getLoadedXclbins();
+      for (auto xclbin : loadedXclbins) {
         uint64_t AIMIndex = 0 ;
         for (auto monitor : xclbin->pl.aims) {
           if (monitor->name.find("Memory to Memory") != std::string::npos) {
@@ -1579,7 +1592,8 @@ namespace xdp {
 
     std::vector<DeviceInfo*> infos = db->getStaticInfo().getDeviceInfos();
     for (auto device : infos) {
-      for (auto xclbin : device->loadedXclbins) {
+      auto loadedXclbins = device->getLoadedXclbins();
+      for (auto xclbin : loadedXclbins) {
         xdp::CounterResults values =
           db->getDynamicInfo().getCounterResults(device->deviceId,xclbin->uuid);
 
@@ -1683,7 +1697,8 @@ namespace xdp {
     {
       uint64_t deviceId = device->deviceId ;
 
-      for (auto xclbin : device->loadedXclbins)
+      auto loadedXclbins = device->getLoadedXclbins();
+      for (auto xclbin : loadedXclbins)
       {
         xdp::CounterResults values =
           (db->getDynamicInfo()).getCounterResults(deviceId, xclbin->uuid) ;

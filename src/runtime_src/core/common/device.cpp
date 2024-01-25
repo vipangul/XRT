@@ -123,18 +123,27 @@ record_xclbin(const xrt::xclbin& xclbin)
 // register_axlf() upon successful xclbin loading. It is possible for
 // register_axlf() to be called without the call originating from this
 // function, so special managing of m_xclbin data member is required.
+
+// Info: for AIE_R3 this is being called to load xclbin.
 void
 device::
 load_xclbin(const xrt::xclbin& xclbin)
 {
+  std::string msg = "AIE_RELOAD: device::laod_xclbin() is called for xclbin_uuid: " + xclbin.get_uuid().to_string() + ".\n";
+  std::cout<<msg;
+
   try {
     m_xclbin = xclbin;
+    m_xclbin_uuid = xclbin.get_uuid();
+    m_xclbin_uuid_str = xclbin.get_uuid().to_string();
+    m_xclbins_run[m_xclbin_uuid_str] = xclbin ;
     load_axlf(xclbin.get_axlf());
   }
   catch (const std::exception&) {
     m_xclbin = {};
     throw;
   }
+  std::cout<<"-----------------------------------------------\n";
 }
 
 void
@@ -178,6 +187,26 @@ get_xclbin(const uuid& xclbin_id) const
   }
 
   // Single xclbin case
+  return m_xclbin;
+}
+
+xrt::xclbin
+device::
+get_xclbin(std::string& xclbin_id) const
+{
+  // Allow access to xclbin in process of loading via device::load_xclbin
+  if (!xclbin_id.empty() && xclbin_id == m_xclbin.get_uuid().to_string())
+    return m_xclbin;
+  
+  if (!xclbin_id.empty()) {
+    std::lock_guard lk(m_mutex);
+    if(m_xclbins_run.find(xclbin_id) != m_xclbins_run.end()) {
+      std::cout << "AIE_R3: fetching another xclbin from loaded xclbins.";
+      auto it = m_xclbins_run.find(xclbin_id);
+      return it->second;
+    }
+  }
+    // Single xclbin case
   return m_xclbin;
 }
 

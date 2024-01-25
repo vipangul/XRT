@@ -283,8 +283,10 @@ fi
 
 # we pick Petalinux BSP
 if [ -f $SETTINGS_FILE ]; then
+    echo "SETTINGS_FILE : $SETTINGS_FILE"
     source $SETTINGS_FILE
 fi
+#export PETALINUX="/proj/petalinux/2024.1/petalinux-v2024.1_11291502/tool/petalinux-v2024.1-final/"
 source $PETALINUX/settings.sh
 
 VITIS_FILE="${THIS_SCRIPT_DIR}/vitis.build"

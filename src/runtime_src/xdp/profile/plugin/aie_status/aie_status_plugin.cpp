@@ -410,9 +410,7 @@ namespace xdp {
     }
 
     // Grab AIE metadata
-    auto device = xrt_core::get_userpf_device(handle);
-    auto data = device->get_axlf_section(AIE_METADATA);
-    filetype = aie::readAIEMetadata(data.first, data.second, mAieMeta);
+    filetype = (db->getStaticInfo()).getAIEMetadataReader(handle); 
     auto hwGen = filetype->getHardwareGeneration();
 
     // Update list of tiles to debug

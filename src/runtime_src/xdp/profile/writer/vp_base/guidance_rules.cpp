@@ -75,7 +75,8 @@ namespace {
     else {
       auto deviceInfos = db->getStaticInfo().getDeviceInfos();
       for (auto device : deviceInfos) {
-        for (auto xclbin : device->loadedXclbins) {
+        auto loadedXclbins = device->getLoadedXclbins();
+        for (auto xclbin : loadedXclbins) {
           for (const auto& cu : xclbin->pl.cus) {
             std::string cuName = cu.second->getName();
             std::vector<std::pair<std::string, xdp::TimeStatistics>> cuCalls =
@@ -119,7 +120,8 @@ namespace {
 
     auto deviceInfos = db->getStaticInfo().getDeviceInfos();
     for (auto device : deviceInfos) {
-      for (auto xclbin : device->loadedXclbins) {
+      auto loadedXclbins = device->getLoadedXclbins();
+      for (auto xclbin : loadedXclbins) {
         monitors[ACCEL_MONITOR]->numTotal += xclbin->pl.ams.size();
         for (auto am : xclbin->pl.ams) {
           if (am->traceEnabled)
@@ -174,7 +176,8 @@ namespace {
       auto deviceInfos = db->getStaticInfo().getDeviceInfos() ;
 
       for (auto device : deviceInfos) {
-        for (auto xclbin : device->loadedXclbins) {
+        auto loadedXclbins = device->getLoadedXclbins();
+        for (auto xclbin : loadedXclbins) {
           for (const auto& memory : xclbin->pl.memoryInfo) {
             std::string memName = memory.second->spTag ;
 
@@ -196,7 +199,8 @@ namespace {
     else {
       auto deviceInfos = db->getStaticInfo().getDeviceInfos();
       for (auto device : deviceInfos) {
-        for (auto xclbin : device->loadedXclbins) {
+        auto loadedXclbins = device->getLoadedXclbins();
+        for (auto xclbin : loadedXclbins) {
           for (const auto& memory : xclbin->pl.memoryInfo) {
             if (memory.second->spTag.find("PLRAM") != std::string::npos) {
               hasPLRAM = true ;
@@ -229,7 +233,8 @@ namespace {
     else {
       auto deviceInfos = db->getStaticInfo().getDeviceInfos() ;
       for (auto device : deviceInfos) {
-        for (auto xclbin : device->loadedXclbins) {
+        auto loadedXclbins = device->getLoadedXclbins();
+        for (auto xclbin : loadedXclbins) {
           for (const auto& memory : xclbin->pl.memoryInfo) {
             if (memory.second->spTag.find("HBM") != std::string::npos) {
               hasHBM = true ;
@@ -328,7 +333,8 @@ namespace {
 
     auto deviceInfos = db->getStaticInfo().getDeviceInfos() ;
     for (auto device : deviceInfos) {
-      for (auto xclbin : device->loadedXclbins) {
+      auto loadedXclbins = device->getLoadedXclbins();
+      for (auto xclbin : loadedXclbins) {
         for (const auto& cu : xclbin->pl.cus) {
           std::vector<uint32_t>* aimIds = cu.second->getAIMs() ;
           std::vector<uint32_t>* asmIds = cu.second->getASMs() ;
@@ -367,7 +373,8 @@ namespace {
     else {
       auto deviceInfos = db->getStaticInfo().getDeviceInfos() ;
       for (auto device : deviceInfos) {
-        for (auto xclbin : device->loadedXclbins) {
+        auto loadedXclbins = device->getLoadedXclbins();
+        for (auto xclbin : loadedXclbins) {
           for (const auto& cu : xclbin->pl.cus) {
             std::string kernelName = cu.second->getKernelName() ;
             if (kernelCounts.find(kernelName) == kernelCounts.end()) {
@@ -413,7 +420,8 @@ namespace {
       auto deviceInfos = db->getStaticInfo().getDeviceInfos() ;
 
       for (auto device : deviceInfos) {
-        for (auto xclbin : device->loadedXclbins) {
+        auto loadedXclbins = device->getLoadedXclbins();
+        for (auto xclbin : loadedXclbins) {
           if (xclbin->pl.usesTs2mm) {
             memType = "TS2MM" ;
             break ;
@@ -457,7 +465,8 @@ namespace {
     bool done = false ;
 
     for (auto device : deviceInfos) {
-      for (auto xclbin : device->loadedXclbins) {
+      auto loadedXclbins = device->getLoadedXclbins();
+      for (auto xclbin : loadedXclbins) {
         for (const auto& memory : xclbin->pl.memoryInfo) {
           if (memory.second->spTag.find("PLRAM") != std::string::npos) {
             fout << "PLRAM_SIZE_BYTES,"

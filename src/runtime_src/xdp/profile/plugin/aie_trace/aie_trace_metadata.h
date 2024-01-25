@@ -130,7 +130,6 @@ class AieTraceMetadata {
     
     std::string counterScheme;
     std::string metricSet;
-    boost::property_tree::ptree aie_meta;
     std::unique_ptr<aie::BaseFiletypeImpl> metadataReader;
     std::map<tile_type, std::string> configMetrics;
     std::map<tile_type, uint8_t> configChannel0;
