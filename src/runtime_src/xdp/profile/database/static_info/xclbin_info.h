@@ -90,7 +90,7 @@ namespace xdp {
     // HLS deadlock diagnosis registers
     std::unique_ptr<ip_metadata> ip_metadata_section = nullptr;
     
-    // TODO: set to false for now, change it to false after initial testing 
+    // Informs if this PLInfo is valid for current xclbins configuration
     bool valid = true ;
 
     PLInfo& operator=(const PLInfo& other) ;
@@ -152,7 +152,7 @@ namespace xdp {
     //  gain information on NoC traffic, but today is unused.
     std::vector<NoCNode*> nocList ;
 
-    // TODO: set to false for now, change it to false after initial testing 
+    // Informs if this AIEInfo is valid for current xclbins configuration
     bool valid = true ;
 
     AIEInfo& operator=(const AIEInfo& other) ;

@@ -88,7 +88,6 @@ namespace xdp {
     ~DeviceInfo() ;
 
     // ****** Functions for Device ConfigInfo ******
-    XDP_CORE_EXPORT ConfigInfo* addXclbinToConfig(xrt::xclbin& xclbin) ;
     XDP_CORE_EXPORT XclbinInfo* createXclbinFromLastConfig(XclbinInfoType xclbinQueryType) ;
     XDP_CORE_EXPORT ConfigInfo* createConfig(XclbinInfo* xclbin) ;
     
@@ -99,8 +98,7 @@ namespace xdp {
     // ****** Functions for information on the device for the current config ******
     XDP_CORE_EXPORT std::set<xrt_core::uuid> currentXclbinUUIDs() ;
     XDP_CORE_EXPORT std::vector<XclbinInfo*> getLoadedXclbins() const ;
-    XDP_CORE_EXPORT std::vector<XclbinInfo*> getAllLoadedXclbins() const ;
-    inline std::vector<ConfigInfo*> getLoadedConfig() const { return loadedConfigInfos ;}
+    inline std::vector<ConfigInfo*> getLoadedConfigs() const { return loadedConfigInfos ;}
     XDP_CORE_EXPORT ConfigInfo* currentConfig() const ;
     XDP_CORE_EXPORT void cleanCurrentXclbinInfo() ;
     inline bool isNoDMA() const { return isNoDMADevice ; }
@@ -111,7 +109,6 @@ namespace xdp {
 
     // ****** Functions for information on the currently loaded xclbin *******
     XDP_CORE_EXPORT XclbinInfo* currentXclbin() ;
-    XDP_CORE_EXPORT void addXclbin(XclbinInfo* xclbin) ;
     XDP_CORE_EXPORT bool hasDMAMonitor() ;
     XDP_CORE_EXPORT bool hasDMABypassMonitor() ;
     XDP_CORE_EXPORT bool hasKDMAMonitor() ;

@@ -37,29 +37,22 @@ namespace xdp {
 
     this->usesTs2mm = other.usesTs2mm ;
     this->usesFifo = other.usesFifo ;
-    
     this->hasFloatingAIMWithTrace = other.hasFloatingAIMWithTrace ;
     this->hasFloatingASMWithTrace = other.hasFloatingASMWithTrace ;
-
     this->hasMemoryAIM = other.hasMemoryAIM ;
 
-    // Compute unit information
     std::map<int32_t, ComputeUnitInstance*> cus ;
     for(auto &cu : other.cus)
       this->cus[cu.first] = new ComputeUnitInstance(*cu.second) ;
 
-
-    // Memory information
     std::map<int32_t, Memory*> memoryInfo ;
     for (auto &mi : other.memoryInfo)
       this->memoryInfo[mi.first] = new Memory(*mi.second) ;
 
-    // Information on all our Monitor IPs (including shell monitors)
     this->ams = std::vector<Monitor*>(other.ams.begin(), other.ams.end()) ;
     this->aims = std::vector<Monitor*>(other.aims.begin(), other.aims.end()) ;
     this->asms = std::vector<Monitor*>(other.asms.begin(), other.asms.end()) ;
 
-    // HLS deadlock diagnosis registers
     this->ip_metadata_section = std::make_unique<ip_metadata>(*other.ip_metadata_section) ;
   
     return *this ;

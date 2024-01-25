@@ -79,7 +79,7 @@ namespace xdp {
       xclbinAvailable = true;
     
     if (!xclbinAvailable) {
-      for(auto &xclbin : loadedConfigInfos.back()->currentXclbins) {
+      for(auto xclbin : loadedConfigInfos.back()->currentXclbins) {
         if(xclbin->type == xclbinQueryType) {
           xclbinAvailable = true;
           break;
@@ -97,10 +97,12 @@ namespace xdp {
           if(xclbinQueryType == XCLBIN_AIE_ONLY)
           {
             requiredXclbinInfo->aie = xclbin->aie;
+            requiredXclbinInfo->pl.valid = false ;
           }
           else
           {
             requiredXclbinInfo->pl = xclbin->pl;
+            requiredXclbinInfo->aie.valid = false ;
           }
           requiredXclbinInfo->uuid = xclbin->uuid ;
           requiredXclbinInfo->name = xclbin->name ; // TODO: Check of deviceIntf . which intf shall we use?
@@ -114,8 +116,9 @@ namespace xdp {
   ConfigInfo* DeviceInfo::createConfig(XclbinInfo* xclbin)
   {
     ConfigInfo* config = nullptr;
+
     // Check if loaded history has same UUID.
-    if (loadedConfigInfos.back()->containsXclbin(xclbin->uuid)) {
+    if (!loadedConfigInfos.empty() && loadedConfigInfos.back()->containsXclbin(xclbin->uuid)) {
       // TODO: log an info message stating it's same xclbin load.
       return config;
     }
@@ -139,10 +142,12 @@ namespace xdp {
     XclbinInfo *missingXclbin = nullptr;
     if (currentXclbinType == XCLBIN_AIE_ONLY)
     {
+      xclbin->pl.valid = false ;
       missingXclbin = createXclbinFromLastConfig(XCLBIN_PL_ONLY);
     }
     else
     {
+      xclbin->aie.valid = false ;
       missingXclbin = createXclbinFromLastConfig(XCLBIN_AIE_ONLY);
     }
 
@@ -163,27 +168,9 @@ namespace xdp {
     return config;
   }
 
-  //TODO: Check if this is needed?? 
-  void DeviceInfo::addXclbin(XclbinInfo* xclbin)
-  {
-    if (loadedConfigInfos.size() > 0) {
-      if (loadedConfigInfos.back()->currentConfig()->deviceIntf != nullptr) {
-        // delete loadedConfigInfos.back()->currentConfig()->deviceIntf ;
-        // loadedConfigInfos.back()->currentConfig()->deviceIntf = nullptr ;
-        std::cout << "AIE_R3: not deleting the deviceIntf for now. \n";
-      }
-      loadedConfigInfos.push_back(new ConfigInfo(xclbin)) ;
-      std::cout << "AIE_R3: added a ConfigInfo for first time. \n";
-    }else {
-      std::cout << "AIE_R3: This is mix ConfigInfo of prev & new xclbin. \n";
-      loadedConfigInfos.push_back(new ConfigInfo(xclbin)) ;
-    }
-    std::cout << "AIE_R3: total size of loadedConfigInfo: "<< loadedConfigInfos.size() <<".\n";
-  }
-
   bool DeviceInfo::hasFloatingAIMWithTrace(XclbinInfo* xclbin) const
   {
-    auto loadedConfigs = getLoadedConfig() ;
+    auto loadedConfigs = getLoadedConfigs() ;
     for (auto cfg : loadedConfigs) {
       if (cfg->hasXclbin(xclbin))
         return cfg->hasFloatingAIMWithTrace(xclbin);
@@ -193,7 +180,7 @@ namespace xdp {
 
   bool DeviceInfo::hasFloatingASMWithTrace(XclbinInfo* xclbin) const
   {
-    auto loadedConfigs = getLoadedConfig() ;
+    auto loadedConfigs = getLoadedConfigs() ;
     for (auto cfg : loadedConfigs) {
       if (cfg->hasXclbin(xclbin))
         return cfg->hasFloatingASMWithTrace(xclbin);
@@ -203,7 +190,7 @@ namespace xdp {
 
   uint64_t DeviceInfo::getNumAM(XclbinInfo* xclbin) const
   {
-    auto loadedConfigs = getLoadedConfig() ;
+    auto loadedConfigs = getLoadedConfigs() ;
     for (auto cfg : loadedConfigs) {
       if (cfg->hasXclbin(xclbin))
         return cfg->getNumAM(xclbin);
@@ -214,7 +201,7 @@ namespace xdp {
   uint64_t DeviceInfo::getNumUserAMWithTrace(XclbinInfo* xclbin) const
   {
     uint64_t num = 0 ;
-    auto loadedConfigs = getLoadedConfig() ;
+    auto loadedConfigs = getLoadedConfigs() ;
     for (auto cfg : loadedConfigs) {
       if (cfg->hasXclbin(xclbin))
         num += cfg->getNumUserAMWithTrace(xclbin) ;
@@ -225,7 +212,7 @@ namespace xdp {
   uint64_t DeviceInfo::getNumAIM(XclbinInfo* xclbin) const
   {
     uint64_t num = 0 ;
-    auto loadedConfigs = getLoadedConfig() ;
+    auto loadedConfigs = getLoadedConfigs() ;
     for (auto cfg : loadedConfigs) {
       if (cfg->hasXclbin(xclbin))
         return cfg->getNumAIM(xclbin) ;
@@ -237,7 +224,7 @@ namespace xdp {
   uint64_t DeviceInfo::getNumUserAIM(XclbinInfo* xclbin) const
   {
     uint64_t num = 0 ;
-    auto loadedConfigs = getLoadedConfig() ;
+    auto loadedConfigs = getLoadedConfigs() ;
     for (auto cfg : loadedConfigs) {
       if (cfg->hasXclbin(xclbin))
         num += cfg->getNumUserAIM(xclbin) ;
@@ -248,7 +235,7 @@ namespace xdp {
   uint64_t DeviceInfo::getNumUserAIMWithTrace(XclbinInfo* xclbin) const
   {
     uint64_t num = 0 ;
-    auto loadedConfigs = getLoadedConfig() ;
+    auto loadedConfigs = getLoadedConfigs() ;
     for (auto cfg : loadedConfigs) {
       if (cfg->hasXclbin(xclbin))
         num += cfg->getNumUserAIMWithTrace(xclbin) ;
@@ -259,7 +246,7 @@ namespace xdp {
   uint64_t DeviceInfo::getNumASM(XclbinInfo* xclbin) const
   {
     uint64_t num = 0 ;
-    auto loadedConfigs = getLoadedConfig() ;
+    auto loadedConfigs = getLoadedConfigs() ;
     for (auto cfg : loadedConfigs) {
       if (cfg->hasXclbin(xclbin))
         return cfg->getNumASM(xclbin) ;
@@ -270,7 +257,7 @@ namespace xdp {
   uint64_t DeviceInfo::getNumUserASM(XclbinInfo* xclbin) const
   {
     uint64_t num = 0 ;
-    auto loadedConfigs = getLoadedConfig() ;
+    auto loadedConfigs = getLoadedConfigs() ;
     for (auto cfg : loadedConfigs) {
       if (cfg->hasXclbin(xclbin))
         num += cfg->getNumUserASM(xclbin) ;
@@ -281,7 +268,7 @@ namespace xdp {
   uint64_t DeviceInfo::getNumUserASMWithTrace(XclbinInfo* xclbin) const
   {
     uint64_t num = 0 ;
-    auto loadedConfigs = getLoadedConfig() ;
+    auto loadedConfigs = getLoadedConfigs() ;
     for (auto cfg : loadedConfigs) {
       if (cfg->hasXclbin(xclbin))
         num += cfg->getNumUserASMWithTrace(xclbin) ;
@@ -291,7 +278,7 @@ namespace xdp {
 
   uint64_t DeviceInfo::getNumNOC(XclbinInfo* xclbin) const
   {
-    auto loadedConfigs = getLoadedConfig() ;
+    auto loadedConfigs = getLoadedConfigs() ;
     for (auto cfg : loadedConfigs) {
       if (cfg->hasXclbin(xclbin))
         return cfg->getNumNOC(xclbin) ;
@@ -301,7 +288,7 @@ namespace xdp {
 
   Monitor* DeviceInfo::getAMonitor(XclbinInfo* xclbin, uint64_t slotId)
   {
-    auto loadedConfigs = getLoadedConfig() ;
+    auto loadedConfigs = getLoadedConfigs() ;
     for (auto cfg : loadedConfigs) {
       if (cfg->hasXclbin(xclbin))
         return cfg->getAMonitor(xclbin, slotId) ;
@@ -311,7 +298,7 @@ namespace xdp {
 
   Monitor* DeviceInfo::getAIMonitor(XclbinInfo* xclbin, uint64_t slotId)
   {
-    auto loadedConfigs = getLoadedConfig() ;
+    auto loadedConfigs = getLoadedConfigs() ;
     for (auto cfg : loadedConfigs) {
       if (cfg->hasXclbin(xclbin))
         return cfg->getAIMonitor(xclbin, slotId) ;
@@ -321,7 +308,7 @@ namespace xdp {
 
   Monitor* DeviceInfo::getASMonitor(XclbinInfo* xclbin, uint64_t slotId)
   {
-    auto loadedConfigs = getLoadedConfig() ;
+    auto loadedConfigs = getLoadedConfigs() ;
     for (auto cfg : loadedConfigs) {
       if (cfg->hasXclbin(xclbin))
         return cfg->getASMonitor(xclbin, slotId) ;
@@ -331,7 +318,7 @@ namespace xdp {
 
   NoCNode* DeviceInfo::getNOC(XclbinInfo* xclbin, uint64_t idx)
   {
-    auto loadedConfigs = getLoadedConfig() ;
+    auto loadedConfigs = getLoadedConfigs() ;
     for (auto cfg : loadedConfigs) {
       if (cfg->hasXclbin(xclbin))
         return cfg->getNOC(xclbin, idx) ;
@@ -341,7 +328,7 @@ namespace xdp {
 
   std::vector<Monitor*>* DeviceInfo::getAIMonitors(XclbinInfo* xclbin)
   {
-    auto loadedConfigs = getLoadedConfig() ;
+    auto loadedConfigs = getLoadedConfigs() ;
     for (auto cfg : loadedConfigs) {
       if (cfg->hasXclbin(xclbin))
         return cfg->getAIMonitors(xclbin) ;
@@ -351,7 +338,7 @@ namespace xdp {
 
   std::vector<Monitor*>* DeviceInfo::getASMonitors(XclbinInfo* xclbin)
   {
-    auto loadedConfigs = getLoadedConfig() ;
+    auto loadedConfigs = getLoadedConfigs() ;
     for (auto cfg : loadedConfigs) {
       if (cfg->hasXclbin(xclbin))
         return cfg->getASMonitors(xclbin) ;
@@ -362,7 +349,7 @@ namespace xdp {
   std::vector<Monitor*> DeviceInfo::getUserAIMsWithTrace(XclbinInfo* xclbin)
   {
     std::vector<Monitor*> constructed ;
-    auto loadedConfigs = getLoadedConfig() ;
+    auto loadedConfigs = getLoadedConfigs() ;
     for (auto cfg : loadedConfigs) {
       if (cfg->hasXclbin(xclbin))
         return cfg->getUserAIMsWithTrace(xclbin) ;
@@ -373,7 +360,7 @@ namespace xdp {
   std::vector<Monitor*> DeviceInfo::getUserASMsWithTrace(XclbinInfo* xclbin)
   {
     std::vector<Monitor*> constructed ;
-    auto loadedConfigs = getLoadedConfig() ;
+    auto loadedConfigs = getLoadedConfigs() ;
     for (auto cfg : loadedConfigs) {
       if (cfg->hasXclbin(xclbin))
         return cfg->getUserASMsWithTrace(xclbin) ;
@@ -469,33 +456,21 @@ namespace xdp {
   std::vector<XclbinInfo*> DeviceInfo::getLoadedXclbins() const
   {
       std::vector<XclbinInfo*> xclbins;
-      auto cfgs = getLoadedConfig();
+      auto cfgs = getLoadedConfigs();
       if (cfgs.empty())
         return xclbins;
-      auto cfg = getLoadedConfig().back();
+      auto cfg = getLoadedConfigs().back();
       for(auto &xclbin : cfg->currentXclbins)
         xclbins.push_back(xclbin);
       return xclbins ;
   }
 
- // Returns complete history of loaded Config xclbins. 
-  std::vector<XclbinInfo*> DeviceInfo::getAllLoadedXclbins() const
-  {
-      std::vector<XclbinInfo*> xclbins;
-      auto cfgs = getLoadedConfig();
-      for(auto cfg : cfgs) {
-        for(auto xclbin : cfg->currentXclbins)
-          xclbins.push_back(xclbin);
-      }
-      return xclbins ;
-  }
-
   ConfigInfo* DeviceInfo::currentConfig() const
   {
-    if(getLoadedConfig().empty())
+    if(getLoadedConfigs().empty())
       return nullptr ;
     
-    return getLoadedConfig().back() ;
+    return getLoadedConfigs().back() ;
   }
   
   // TODO: Change name to cleanCurrenConfig() 

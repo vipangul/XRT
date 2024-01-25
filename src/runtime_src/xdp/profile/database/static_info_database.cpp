@@ -2069,8 +2069,7 @@ namespace xdp {
       return devInfo;
     }
 
-    devInfo->createConfig(currentXclbin); // This could have PL_ONLY, AIE_ONLY or PL_AIE updated. commits this to currentXclbins of devInfo.
-    
+    devInfo->createConfig(currentXclbin);
     initializeProfileMonitors(devInfo, xrtXclbin);
     devInfo->isReady = true;
 
