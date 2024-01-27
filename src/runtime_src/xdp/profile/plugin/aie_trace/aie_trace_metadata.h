@@ -51,22 +51,30 @@ class AieTraceMetadata {
                                            const std::vector<std::string> graphMetricsSettings);
     
    public:
-    int getHardwareGen() {
-      if (metadataReader)
-        return metadataReader->getHardwareGeneration();
-      return 0;
-    }
-    uint16_t getRowOffset() {
-      if (metadataReader)
-        return metadataReader->getAIETileRowOffset();
-      return 0;
-    }
-    std::unordered_map<std::string, io_config> 
-    get_trace_gmios() {
-      if (metadataReader)
-        return metadataReader->getTraceGMIOs();
-      return {};
-    }
+    int getHardwareGen() ;
+    // int getHardwareGen() {
+    //   if ((VPDatabase::Instance()->getStaticInfo()).metadataReaderValid())
+    //     return (VPDatabase::Instance()->getStaticInfo()).getAIEMetadataReader()->getHardwareGeneration();
+    //   return 0;
+    // }
+
+    uint16_t getRowOffset() ;
+
+    // uint16_t getRowOffset() {
+    //   if ((VPDatabase::Instance()->getStaticInfo()).metadataReaderValid())
+    //     return (VPDatabase::Instance()->getStaticInfo()).getAIEMetadataReader()->getAIETileRowOffset();
+    //   return 0;
+    // }
+
+    std::unordered_map<std::string, io_config> get_trace_gmios() ;
+
+    // std::unordered_map<std::string, io_config> 
+    // get_trace_gmios() {
+    //   if ((VPDatabase::Instance()->getStaticInfo()).metadataReaderValid())
+    //     return (VPDatabase::Instance()->getStaticInfo()).getAIEMetadataReader()->getTraceGMIOs();
+    //   return {};
+    // }
+
     std::string getMetricString(uint8_t index) {
       if (index < metricSets[module_type::core].size())
         return metricSets[module_type::core][index];
@@ -130,7 +138,6 @@ class AieTraceMetadata {
     
     std::string counterScheme;
     std::string metricSet;
-    std::unique_ptr<aie::BaseFiletypeImpl> metadataReader;
     std::map<tile_type, std::string> configMetrics;
     std::map<tile_type, uint8_t> configChannel0;
     std::map<tile_type, uint8_t> configChannel1;

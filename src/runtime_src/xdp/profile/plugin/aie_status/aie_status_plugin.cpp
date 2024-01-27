@@ -410,8 +410,9 @@ namespace xdp {
     }
 
     // Grab AIE metadata
-    filetype = (db->getStaticInfo()).getAIEMetadataReader(handle); 
-    auto hwGen = filetype->getHardwareGeneration();
+    // filetype = (db->getStaticInfo()).getAIEMetadataReader(); 
+    // auto hwGen = filetype->getHardwareGeneration();
+    auto hwGen =  (VPDatabase::Instance()->getStaticInfo()).getAIEMetadataReader()->getHardwareGeneration();
 
     // Update list of tiles to debug
     getTilesForStatus();

@@ -1045,15 +1045,6 @@ namespace xdp {
     return aieDevice ;
   }
 
-  std::unique_ptr<xdp::aie::BaseFiletypeImpl>
-  VPStaticDatabase::getAIEMetadataReader(void* handle)
-  {
-    if(aieMeta.empty()) {
-      return nullptr;
-    }
-    return xdp::aie::determineFileType(aieMeta);
-  }
-
   // ************************************************************************
   // ***** Functions for information from a specific xclbin on a device *****
   uint64_t VPStaticDatabase::getNumAM(uint64_t deviceId, XclbinInfo* xclbin)
@@ -2070,6 +2061,12 @@ namespace xdp {
   // Populate the aieMeta from Xclbin. 
   void VPStaticDatabase::readAIEMetadata(uint64_t deviceId, xrt::xclbin xrtXclbin)
   { 
+    #ifdef XDP_CLIENT_BUILD
+      metadataReader = aie::readAIEMetadata("aie_control_config.json", aie_meta);
+      xrt_core::message::send(xrt_core::message::severity_level::debug, "XRT", "aieMeta read successfully!");
+      return ;
+    #endif
+
     auto data = xrt_core::xclbin_int::get_axlf_section(xrtXclbin, AIE_METADATA);
     if (!data.first || !data.second) {
       return;
@@ -2088,8 +2085,35 @@ namespace xdp {
     if (aieMeta.empty())
       return;
 
-    xrt_core::message::send(xrt_core::message::severity_level::info, "XRT", "aieMeta read successfully!");
+    metadataReader = xdp::aie::determineFileType(aieMeta);
+    xrt_core::message::send(xrt_core::message::severity_level::debug, "XRT", "aieMeta read successfully!");
   }
+
+  bool VPStaticDatabase::metadataReaderValid()
+  {
+    return metadataReader != nullptr ;
+  }
+
+  // std::unique_ptr<xdp::aie::BaseFiletypeImpl>
+  // VPStaticDatabase::getAIEMetadataReader()
+  // {
+  //   // if(aieMeta.empty()) {
+  //   //   return nullptr;
+  //   // }
+  //   // return xdp::aie::determineFileType(aieMeta);
+  //   return metadataReader;
+  // }
+
+  xdp::aie::BaseFiletypeImpl*
+  VPStaticDatabase::getAIEMetadataReader()
+  {
+    // if(aieMeta.empty()) {
+    //   return nullptr;
+    // }
+    // return xdp::aie::determineFileType(aieMeta);
+    return metadataReader.get();
+  }
+
 
   void VPStaticDatabase::setAIEGeneration(uint64_t deviceId, xrt::xclbin xrtXclbin) {
     std::lock_guard<std::mutex> lock(deviceLock) ;

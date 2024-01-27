@@ -71,16 +71,17 @@ namespace xdp {
       xrt_core::message::send(severity_level::warning, "XRT", AIE_TRACE_DUMP_INTERVAL_WARN_MSG);
     }
 
-    #ifdef XDP_CLIENT_BUILD
+    // #ifdef XDP_CLIENT_BUILD
 
-    metadataReader = aie::readAIEMetadata("aie_control_config.json", aie_meta);
+    // metadataReader = aie::readAIEMetadata("aie_control_config.json", aie_meta);
     
-    #else
-      VPDatabase* db = VPDatabase::Instance();
-      metadataReader = (db->getStaticInfo()).getAIEMetadataReader(handle);
-    #endif
+    // #else
+    //   VPDatabase* db = VPDatabase::Instance();
+    //   metadataReader = (db->getStaticInfo()).getAIEMetadataReader();
+    // #endif
 
-    if (metadataReader == nullptr) {
+    // if (metadataReader == nullptr) {
+    if ( !(VPDatabase::Instance()->getStaticInfo()).metadataReaderValid()) {
       std::stringstream msg;
       msg << "Metadatareader reader couldn't be created.";
       xrt_core::message::send(severity_level::error, "XRT", msg.str());
@@ -88,7 +89,7 @@ namespace xdp {
     }
     
     // Catch when compile-time trace is specified (e.g., --event-trace=functions)
-    auto compilerOptions = metadataReader->getAIECompilerOptions();
+    auto compilerOptions = (VPDatabase::Instance()->getStaticInfo()).getAIEMetadataReader()->getAIECompilerOptions();
     setRuntimeMetrics(compilerOptions.event_trace == "runtime");
 
     if (!getRuntimeMetrics()) {
@@ -309,11 +310,11 @@ namespace xdp {
     uint16_t rowOffset = (type == module_type::mem_tile) ? 1 : getRowOffset();
     auto tileName = (type == module_type::mem_tile) ? "memory" : "aie";
 
-    auto allValidGraphs = metadataReader->getValidGraphs();
-    auto allValidKernels = metadataReader->getValidKernels();
+    auto allValidGraphs = (VPDatabase::Instance()->getStaticInfo()).getAIEMetadataReader()->getValidGraphs();
+    auto allValidKernels = (VPDatabase::Instance()->getStaticInfo()).getAIEMetadataReader()->getValidKernels();
 
     std::set<tile_type> allValidTiles;
-    auto validTilesVec = metadataReader->getTiles("all", type, "all");
+    auto validTilesVec = (VPDatabase::Instance()->getStaticInfo()).getAIEMetadataReader()->getTiles("all", type, "all");
     std::unique_copy(validTilesVec.begin(), validTilesVec.end(), std::inserter(allValidTiles, allValidTiles.end()), 
                      tileCompare);
 
@@ -355,7 +356,7 @@ namespace xdp {
       }
 
       processed.insert(i);
-      auto tiles = metadataReader->getTiles(graphMetrics[i][0], type, graphMetrics[i][1]);
+      auto tiles = (VPDatabase::Instance()->getStaticInfo()).getAIEMetadataReader()->getTiles(graphMetrics[i][0], type, graphMetrics[i][1]);
       for (auto &e : tiles) {
         configMetrics[e] = graphMetrics[i][2];
       }
@@ -393,7 +394,7 @@ namespace xdp {
         continue;
       }
 
-      auto tiles = metadataReader->getTiles(graphMetrics[i][0], type, graphMetrics[i][1]);
+      auto tiles = (VPDatabase::Instance()->getStaticInfo()).getAIEMetadataReader()->getTiles(graphMetrics[i][0], type, graphMetrics[i][1]);
       for (auto &e : tiles) {
         configMetrics[e] = graphMetrics[i][2];
       }
@@ -446,7 +447,7 @@ namespace xdp {
         continue;
 
       processed.insert(i);
-      auto tiles = metadataReader->getTiles(metrics[i][0], type, "all");
+      auto tiles = (VPDatabase::Instance()->getStaticInfo()).getAIEMetadataReader()->getTiles(metrics[i][0], type, "all");
       for (auto &e : tiles) {
         configMetrics[e] = metrics[i][1];
       }
@@ -653,8 +654,8 @@ namespace xdp {
     if ((metricsSettings.empty()) && (graphMetricsSettings.empty()))
       return;
 
-    auto allValidGraphs = metadataReader->getValidGraphs();
-    auto allValidPorts  = metadataReader->getValidPorts();
+    auto allValidGraphs = (VPDatabase::Instance()->getStaticInfo()).getAIEMetadataReader()->getValidGraphs();
+    auto allValidPorts  = (VPDatabase::Instance()->getStaticInfo()).getAIEMetadataReader()->getValidPorts();
     
     // STEP 1 : Parse per-graph or per-kernel settings
 
@@ -690,7 +691,7 @@ namespace xdp {
         continue;
       }
 
-      auto tiles = metadataReader->getInterfaceTiles(graphMetrics[i][0], graphMetrics[i][1], graphMetrics[i][2]);
+      auto tiles = (VPDatabase::Instance()->getStaticInfo()).getAIEMetadataReader()->getInterfaceTiles(graphMetrics[i][0], graphMetrics[i][1], graphMetrics[i][2]);
       for (auto &e : tiles) {
         configMetrics[e] = graphMetrics[i][2];
       }
@@ -728,7 +729,7 @@ namespace xdp {
         continue;
       }
 
-      auto tiles = metadataReader->getInterfaceTiles(graphMetrics[i][0], graphMetrics[i][1], graphMetrics[i][2]);
+      auto tiles = (VPDatabase::Instance()->getStaticInfo()).getAIEMetadataReader()->getInterfaceTiles(graphMetrics[i][0], graphMetrics[i][1], graphMetrics[i][2]);
       for (auto &e : tiles) {
         configMetrics[e] = graphMetrics[i][2];
       }
@@ -777,7 +778,7 @@ namespace xdp {
 
       processed.insert(i);
       uint8_t channelId = (metrics[i].size() < 3) ? 0 : static_cast<uint8_t>(std::stoul(metrics[i][2]));
-      auto tiles = metadataReader->getInterfaceTiles(metrics[i][0], "all", metrics[i][1], channelId);
+      auto tiles = (VPDatabase::Instance()->getStaticInfo()).getAIEMetadataReader()->getInterfaceTiles(metrics[i][0], "all", metrics[i][1], channelId);
 
       for (auto& t : tiles) {
         configMetrics[t] = metrics[i][1];
@@ -827,7 +828,7 @@ namespace xdp {
       }
 
       processed.insert(i);
-      auto tiles = metadataReader->getInterfaceTiles(metrics[i][0], "all", metrics[i][2],
+      auto tiles = (VPDatabase::Instance()->getStaticInfo()).getAIEMetadataReader()->getInterfaceTiles(metrics[i][0], "all", metrics[i][2],
                                           channelId, true, minCol, maxCol);
 
       for (auto& t : tiles) {
@@ -873,7 +874,7 @@ namespace xdp {
           }
         }
 
-        auto tiles = metadataReader->getInterfaceTiles(metrics[i][0], "all", metrics[i][1],
+        auto tiles = (VPDatabase::Instance()->getStaticInfo()).getAIEMetadataReader()->getInterfaceTiles(metrics[i][0], "all", metrics[i][1],
                                             channelId, true, col, col);
 
         for (auto& t : tiles) {
@@ -919,11 +920,30 @@ namespace xdp {
     }
   }
 
+  int AieTraceMetadata::getHardwareGen() {
+    if ((VPDatabase::Instance()->getStaticInfo()).metadataReaderValid())
+      return (VPDatabase::Instance()->getStaticInfo()).getAIEMetadataReader()->getHardwareGeneration();
+    return 0;
+  }
+
+  uint16_t AieTraceMetadata::getRowOffset() {
+    if ((VPDatabase::Instance()->getStaticInfo()).metadataReaderValid())
+      return (VPDatabase::Instance()->getStaticInfo()).getAIEMetadataReader()->getAIETileRowOffset();
+    return 0;
+  }
+
+  std::unordered_map<std::string, io_config> 
+  AieTraceMetadata::get_trace_gmios() {
+    if ((VPDatabase::Instance()->getStaticInfo()).metadataReaderValid())
+      return (VPDatabase::Instance()->getStaticInfo()).getAIEMetadataReader()->getTraceGMIOs();
+    return {};
+  }
+
   aie::driver_config 
   AieTraceMetadata::getAIEConfigMetadata() 
   {
-    if (metadataReader)
-      return metadataReader->getDriverConfig();
+    if ((VPDatabase::Instance()->getStaticInfo()).metadataReaderValid())
+      return (VPDatabase::Instance()->getStaticInfo()).getAIEMetadataReader()->getDriverConfig();
     return {};
   }
   

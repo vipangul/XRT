@@ -91,7 +91,6 @@ class AieProfileMetadata {
     std::vector<std::map<tile_type, std::string>> configMetrics;
     std::map<tile_type, uint8_t> configChannel0;
     std::map<tile_type, uint8_t> configChannel1;
-    std::unique_ptr<aie::BaseFiletypeImpl> metadataReader;
 
   public:
     AieProfileMetadata(uint64_t deviceID, void* handle);
@@ -121,9 +120,8 @@ class AieProfileMetadata {
     std::string getModuleName(int module) { return moduleNames[module]; }
     int getNumCountersMod(int module){ return numCountersMod[module]; }
     module_type getModuleType(int module) { return moduleTypes[module]; }
-
-    uint16_t getAIETileRowOffset() { return metadataReader->getAIETileRowOffset();}
-    int getHardwareGen() { return metadataReader->getHardwareGeneration();}
+    uint16_t getAIETileRowOffset();
+    int getHardwareGen();
 
     double getClockFreqMhz() {return clockFreqMhz;}
     int getNumModules() {return NUM_MODULES;}
