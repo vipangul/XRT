@@ -2104,16 +2104,16 @@ namespace xdp {
   //   return metadataReader;
   // }
 
-  xdp::aie::BaseFiletypeImpl*
-  VPStaticDatabase::getAIEMetadataReader()
+  const xdp::aie::BaseFiletypeImpl*
+  VPStaticDatabase::getAIEMetadataReader() const
   {
     // if(aieMeta.empty()) {
     //   return nullptr;
     // }
     // return xdp::aie::determineFileType(aieMeta);
+    xrt_core::message::send(xrt_core::message::severity_level::info, "XRT", "AIE metadataReader requested");
     return metadataReader.get();
   }
-
 
   void VPStaticDatabase::setAIEGeneration(uint64_t deviceId, xrt::xclbin xrtXclbin) {
     std::lock_guard<std::mutex> lock(deviceLock) ;
