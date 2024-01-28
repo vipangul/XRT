@@ -33,10 +33,6 @@ namespace xdp {
   using severity_level = xrt_core::message::severity_level;
   namespace pt = boost::property_tree;
 
-  // auto getMetadataReder = [&](VPDatabase* db) {
-  //     return (VPDatabase::Instance()->getStaticInfo()).getAIEMetadataReader();
-  // } ;
-
   AieProfileMetadata::AieProfileMetadata(uint64_t deviceID, void* handle) :
       deviceID(deviceID)
     , handle(handle)
@@ -44,12 +40,6 @@ namespace xdp {
     xrt_core::message::send(severity_level::info,
                             "XRT", "Parsing AIE Profile Metadata.");
     VPDatabase* db = VPDatabase::Instance();
-
-    // #ifdef XDP_CLIENT_BUILD
-    //   metadataReader = aie::readAIEMetadata("aie_control_config.json", aie_meta);
-    // #else
-    //   metadataReader = (VPDatabase::Instance()->getStaticInfo()).getAIEMetadataReader();
-    // #endif
 
     if ( !(db->getStaticInfo()).metadataReaderValid()) {
       xrt_core::message::send(severity_level::error,

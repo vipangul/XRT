@@ -71,16 +71,6 @@ namespace xdp {
       xrt_core::message::send(severity_level::warning, "XRT", AIE_TRACE_DUMP_INTERVAL_WARN_MSG);
     }
 
-    // #ifdef XDP_CLIENT_BUILD
-
-    // metadataReader = aie::readAIEMetadata("aie_control_config.json", aie_meta);
-    
-    // #else
-    //   VPDatabase* db = VPDatabase::Instance();
-    //   metadataReader = (db->getStaticInfo()).getAIEMetadataReader();
-    // #endif
-
-    // if (metadataReader == nullptr) {
     if ( !(VPDatabase::Instance()->getStaticInfo()).metadataReaderValid()) {
       std::stringstream msg;
       msg << "Metadatareader reader couldn't be created.";

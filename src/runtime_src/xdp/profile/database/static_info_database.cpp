@@ -2058,7 +2058,6 @@ namespace xdp {
     }
   }
 
-  // Populate the aieMeta from Xclbin. 
   void VPStaticDatabase::readAIEMetadata(uint64_t deviceId, xrt::xclbin xrtXclbin)
   { 
     #ifdef XDP_CLIENT_BUILD
@@ -2094,23 +2093,9 @@ namespace xdp {
     return metadataReader != nullptr ;
   }
 
-  // std::unique_ptr<xdp::aie::BaseFiletypeImpl>
-  // VPStaticDatabase::getAIEMetadataReader()
-  // {
-  //   // if(aieMeta.empty()) {
-  //   //   return nullptr;
-  //   // }
-  //   // return xdp::aie::determineFileType(aieMeta);
-  //   return metadataReader;
-  // }
-
   const xdp::aie::BaseFiletypeImpl*
   VPStaticDatabase::getAIEMetadataReader() const
   {
-    // if(aieMeta.empty()) {
-    //   return nullptr;
-    // }
-    // return xdp::aie::determineFileType(aieMeta);
     xrt_core::message::send(xrt_core::message::severity_level::info, "XRT", "AIE metadataReader requested");
     return metadataReader.get();
   }

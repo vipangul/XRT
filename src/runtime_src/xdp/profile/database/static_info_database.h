@@ -343,7 +343,6 @@ namespace xdp {
                                   void* devHandle) ;
     XDP_CORE_EXPORT void readAIEMetadata(uint64_t deviceId, xrt::xclbin xrtXclbin);
     XDP_CORE_EXPORT bool metadataReaderValid();
-    // XDP_CORE_EXPORT std::unique_ptr<aie::BaseFiletypeImpl> getAIEMetadataReader();
     XDP_CORE_EXPORT const aie::BaseFiletypeImpl* getAIEMetadataReader() const;
 
     // ************************************************************************

@@ -49,41 +49,18 @@ class AieTraceMetadata {
                                   module_type type);
     void getConfigMetricsForInterfaceTiles(const std::vector<std::string>& metricsSettings,
                                            const std::vector<std::string> graphMetricsSettings);
-    
-   public:
     int getHardwareGen() ;
-    // int getHardwareGen() {
-    //   if ((VPDatabase::Instance()->getStaticInfo()).metadataReaderValid())
-    //     return (VPDatabase::Instance()->getStaticInfo()).getAIEMetadataReader()->getHardwareGeneration();
-    //   return 0;
-    // }
-
     uint16_t getRowOffset() ;
-
-    // uint16_t getRowOffset() {
-    //   if ((VPDatabase::Instance()->getStaticInfo()).metadataReaderValid())
-    //     return (VPDatabase::Instance()->getStaticInfo()).getAIEMetadataReader()->getAIETileRowOffset();
-    //   return 0;
-    // }
-
     std::unordered_map<std::string, io_config> get_trace_gmios() ;
-
-    // std::unordered_map<std::string, io_config> 
-    // get_trace_gmios() {
-    //   if ((VPDatabase::Instance()->getStaticInfo()).metadataReaderValid())
-    //     return (VPDatabase::Instance()->getStaticInfo()).getAIEMetadataReader()->getTraceGMIOs();
-    //   return {};
-    // }
-
+    xdp::aie::driver_config getAIEConfigMetadata();
+   
+   public:
     std::string getMetricString(uint8_t index) {
       if (index < metricSets[module_type::core].size())
         return metricSets[module_type::core][index];
       else
         return metricSets[module_type::core][0];
     }
-
-    xdp::aie::driver_config getAIEConfigMetadata();
-
 
     bool getUseDelay(){return useDelay;}
     bool getUseUserControl(){return useUserControl;}
