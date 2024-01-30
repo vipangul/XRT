@@ -91,6 +91,7 @@ class AieProfileMetadata {
     std::vector<std::map<tile_type, std::string>> configMetrics;
     std::map<tile_type, uint8_t> configChannel0;
     std::map<tile_type, uint8_t> configChannel1;
+    const aie::BaseFiletypeImpl* mMetadataReader = nullptr;
 
   public:
     AieProfileMetadata(uint64_t deviceID, void* handle);

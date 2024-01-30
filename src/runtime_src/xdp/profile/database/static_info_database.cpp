@@ -2061,8 +2061,8 @@ namespace xdp {
   void VPStaticDatabase::readAIEMetadata(uint64_t deviceId, xrt::xclbin xrtXclbin)
   { 
     #ifdef XDP_CLIENT_BUILD
-      metadataReader = aie::readAIEMetadata("aie_control_config.json", aie_meta);
-      xrt_core::message::send(xrt_core::message::severity_level::debug, "XRT", "aieMeta read successfully!");
+      mMetadataReader = aie::readAIEMetadata("aie_control_config.json", aie_meta);
+      xrt_core::message::send(xrt_core::message::severity_level::debug, "XRT", "AIE metadata read successfully!");
       return ;
     #endif
 
@@ -2074,30 +2074,30 @@ namespace xdp {
     std::stringstream aie_stream;
     aie_stream.write(data.first, data.second);
     try {
-      boost::property_tree::read_json(aie_stream, aieMeta);
+      boost::property_tree::read_json(aie_stream, mAieMeta);
     } catch (const std::exception& e) {
       std::string msg("Error: invalid AIE_METADATA json detected: ");
       msg += e.what();
       xrt_core::message::send(xrt_core::message::severity_level::info, "XRT", msg);
     }
 
-    if (aieMeta.empty())
+    if (mAieMeta.empty())
       return;
 
-    metadataReader = xdp::aie::determineFileType(aieMeta);
-    xrt_core::message::send(xrt_core::message::severity_level::debug, "XRT", "aieMeta read successfully!");
+    mMetadataReader = xdp::aie::determineFileType(mAieMeta);
+    xrt_core::message::send(xrt_core::message::severity_level::debug, "XRT", "AIE metadata read successfully!");
   }
 
-  bool VPStaticDatabase::metadataReaderValid()
+  bool VPStaticDatabase::mMetadataReaderValid()
   {
-    return metadataReader != nullptr ;
+    return mMetadataReader != nullptr ;
   }
 
   const xdp::aie::BaseFiletypeImpl*
-  VPStaticDatabase::getAIEMetadataReader() const
+  VPStaticDatabase::getAIEmMetadataReader() const
   {
-    xrt_core::message::send(xrt_core::message::severity_level::info, "XRT", "AIE metadataReader requested");
-    return metadataReader.get();
+    xrt_core::message::send(xrt_core::message::severity_level::info, "XRT", "AIE mMetadataReader requested");
+    return mMetadataReader.get();
   }
 
   void VPStaticDatabase::setAIEGeneration(uint64_t deviceId, xrt::xclbin xrtXclbin) {
@@ -2105,11 +2105,11 @@ namespace xdp {
     if (deviceInfo.find(deviceId) == deviceInfo.end())
       return;
 
-    if (aieMeta.empty())
+    if (mAieMeta.empty())
       return;
 
     try {
-      auto hwGen = aieMeta.get_child("aie_metadata.driver_config.hw_gen").get_value<uint8_t>();
+      auto hwGen = mAieMeta.get_child("aie_metadata.driver_config.hw_gen").get_value<uint8_t>();
       deviceInfo[deviceId]->setAIEGeneration(hwGen);
     } catch(...) {
       return;
@@ -2126,11 +2126,11 @@ namespace xdp {
     if (!xclbin)
       return;
 
-    if (aieMeta.empty())
+    if (mAieMeta.empty())
        return;
 
     try {
-      auto dev_node = aieMeta.get_child("aie_metadata.DeviceData");
+      auto dev_node = mAieMeta.get_child("aie_metadata.DeviceData");
       xclbin->aie.clockRateAIEMHz = dev_node.get<double>("AIEFrequency");
     } catch(...) {
       return;

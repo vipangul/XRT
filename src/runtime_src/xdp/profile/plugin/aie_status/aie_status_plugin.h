@@ -62,8 +62,7 @@ namespace xdp {
   private:
     static bool live;
     uint32_t mPollingInterval;
-    boost::property_tree::ptree mAieMeta;
-    std::unique_ptr<aie::BaseFiletypeImpl> filetype;
+    const aie::BaseFiletypeImpl* mMetadataReader = nullptr;
 
     // Thread control flags for each device handle
     std::map<void*,std::atomic<bool>> mThreadCtrlMap;
