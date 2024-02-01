@@ -2001,7 +2001,7 @@ namespace xdp {
     currentXclbin->uuid = xrtXclbin.get_uuid();
     currentXclbin->pl.clockRatePLMHz = findClockRate(xrtXclbin) ; 
 
-    readAIEMetadata(deviceId, xrtXclbin);
+    readAIEMetadata(xrtXclbin);
     setDeviceNameFromXclbin(deviceId, xrtXclbin);
     setAIEGeneration(deviceId, xrtXclbin);
 
@@ -2058,7 +2058,7 @@ namespace xdp {
     }
   }
 
-  void VPStaticDatabase::readAIEMetadata(uint64_t deviceId, xrt::xclbin xrtXclbin)
+  void VPStaticDatabase::readAIEMetadata(xrt::xclbin xrtXclbin)
   { 
     #ifdef XDP_CLIENT_BUILD
       mMetadataReader = aie::readAIEMetadata("aie_control_config.json", aie_meta);
