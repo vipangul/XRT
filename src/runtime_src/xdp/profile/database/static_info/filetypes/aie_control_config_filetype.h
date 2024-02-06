@@ -38,7 +38,7 @@ class AIEControlConfigFiletype : public xdp::aie::BaseFiletypeImpl {
         aiecompiler_options
         getAIECompilerOptions() const override;
 
-        uint16_t getAIETileRowOffset() const override;
+        uint8_t getAIETileRowOffset() const override;
 
         std::vector<std::string>
         getValidGraphs() const override;
@@ -70,8 +70,8 @@ class AIEControlConfigFiletype : public xdp::aie::BaseFiletypeImpl {
                           const std::string& metricStr = "channels",
                           int16_t channelId = -1,
                           bool useColumn = false, 
-                          uint32_t minCol = 0, 
-                          uint32_t maxCol = 0) const override; 
+                          uint8_t minCol = 0, 
+                          uint8_t maxCol = 0) const override; 
 
         std::vector<tile_type>
         getMemoryTiles(const std::string& graphName,

@@ -162,7 +162,7 @@ namespace xdp {
   }
 
   // Resolve metrics for AIE or MEM tiles
-  void AieProfileMetadata::getConfigMetricsForTiles(int moduleIdx, const std::vector<std::string>& metricsSettings,
+  void AieProfileMetadata::getConfigMetricsForTiles(const int moduleIdx, const std::vector<std::string>& metricsSettings,
       const std::vector<std::string>& graphMetricsSettings, const module_type mod)
   {
     if ((metricsSettings.empty()) && (graphMetricsSettings.empty()))
@@ -175,7 +175,7 @@ namespace xdp {
       return;
     }
     
-    uint16_t rowOffset  = (mod == module_type::mem_tile) ? 1 : mMetadataReader->getAIETileRowOffset();
+    uint8_t rowOffset  = (mod == module_type::mem_tile) ? 1 : metadataReader->getAIETileRowOffset();
     std::string modName = (mod == module_type::core) ? "aie" 
                         : ((mod == module_type::dma) ? "aie_memory" : "memory_tile");
 
@@ -237,8 +237,8 @@ namespace xdp {
       if (graphMetrics[i].size() == 5) {
         try {
           for (auto& e : tiles) {
-            configChannel0[e] = static_cast<uint8_t>(std::stoul(graphMetrics[i][3]));
-            configChannel1[e] = static_cast<uint8_t>(std::stoul(graphMetrics[i][4]));
+            configChannel0[e] = aie::convertStringToUint8(graphMetrics[i][3]);
+            configChannel1[e] = aie::convertStringToUint8(graphMetrics[i][4]);
           }
         }
         catch (...) {
@@ -279,8 +279,8 @@ namespace xdp {
       if (graphMetrics[i].size() == 5) {
         try {
           for (auto& e : tiles) {
-            configChannel0[e] = static_cast<uint8_t>(std::stoul(graphMetrics[i][3]));
-            configChannel1[e] = static_cast<uint8_t>(std::stoul(graphMetrics[i][4]));
+            configChannel0[e] = aie::convertStringToUint8(graphMetrics[i][3]);
+            configChannel1[e] = aie::convertStringToUint8(graphMetrics[i][4]);
           }
         }
         catch (...) {
@@ -337,7 +337,7 @@ namespace xdp {
       if (metrics[i].size() == 3) {
         try {
           for (auto& e : tiles) {
-            configChannel0[e] = static_cast<uint8_t>(std::stoul(metrics[i][2]));
+            configChannel0[e] = aie::convertStringToUint8((metrics[i][2]));
           }
         }
         catch (...) {
@@ -351,8 +351,8 @@ namespace xdp {
       if (metrics[i].size() == 4) {
         try {
           for (auto& e : tiles) {
-            configChannel0[e] = static_cast<uint8_t>(std::stoul(metrics[i][2]));
-            configChannel1[e] = static_cast<uint8_t>(std::stoul(metrics[i][3]));
+            configChannel0[e] = aie::convertStringToUint8(metrics[i][2]);
+            configChannel1[e] = aie::convertStringToUint8(metrics[i][3]);
           }
         }
         catch (...) {
@@ -368,8 +368,8 @@ namespace xdp {
       if ((metrics[i].size() != 3) && (metrics[i].size() != 5))
         continue;
 
-      uint16_t minRow = 0, minCol = 0;
-      uint16_t maxRow = 0, maxCol = 0;
+      uint8_t minRow = 0, minCol = 0;
+      uint8_t maxRow = 0, maxCol = 0;
 
       try {
         for (size_t j = 0; j < metrics[i].size(); ++j) {
@@ -379,13 +379,13 @@ namespace xdp {
 
         std::vector<std::string> minTile;
         boost::split(minTile, metrics[i][0], boost::is_any_of(","));
-        minCol = static_cast<uint16_t>(std::stoul(minTile[0]));
-        minRow = static_cast<uint16_t>(std::stoul(minTile[1])) + rowOffset;
+        minCol = aie::convertStringToUint8(minTile[0]);
+        minRow = aie::convertStringToUint8(minTile[1]) + rowOffset;
 
         std::vector<std::string> maxTile;
         boost::split(maxTile, metrics[i][1], boost::is_any_of(","));
-        maxCol = static_cast<uint16_t>(std::stoul(maxTile[0]));
-        maxRow = static_cast<uint16_t>(std::stoul(maxTile[1])) + rowOffset;
+        maxCol = aie::convertStringToUint8(maxTile[0]);
+        maxRow = aie::convertStringToUint8(maxTile[1]) + rowOffset;
       }
       catch (...) {
         xrt_core::message::send(severity_level::warning, "XRT",
@@ -408,8 +408,8 @@ namespace xdp {
 
       if (metrics[i].size() == 5) {
         try {
-          channel0 = static_cast<uint8_t>(std::stoul(metrics[i][3]));
-          channel1 = static_cast<uint8_t>(std::stoul(metrics[i][4]));
+          channel0 = aie::convertStringToUint8(metrics[i][3]);
+          channel1 = aie::convertStringToUint8(metrics[i][4]);
         }
         catch (...) {
           std::stringstream msg;
@@ -418,8 +418,8 @@ namespace xdp {
         }
       }
 
-      for (uint16_t col = minCol; col <= maxCol; ++col) {
-        for (uint16_t row = minRow; row <= maxRow; ++row) {
+      for (uint8_t col = minCol; col <= maxCol; ++col) {
+        for (uint8_t row = minRow; row <= maxRow; ++row) {
           tile_type tile;
           tile.col = col;
           tile.row = row;
@@ -450,8 +450,8 @@ namespace xdp {
       if ((metrics[i][0].compare("all") == 0) || (metrics[i].size() == 3) || (metrics[i].size() == 5))
         continue;
 
-      uint16_t col = 0;
-      uint16_t row = 0;
+      uint8_t col = 0;
+      uint8_t row = 0;
 
       try {
         boost::replace_all(metrics[i][0], "{", "");
@@ -459,8 +459,8 @@ namespace xdp {
 
         std::vector<std::string> tilePos;
         boost::split(tilePos, metrics[i][0], boost::is_any_of(","));
-        col = static_cast<uint16_t>(std::stoul(tilePos[0]));
-        row = static_cast<uint16_t>(std::stoul(tilePos[1])) + rowOffset;
+        col = aie::convertStringToUint8(tilePos[0]);
+        row = aie::convertStringToUint8(tilePos[1]) + rowOffset;
       }
       catch (...) {
         std::stringstream msg;
@@ -487,8 +487,8 @@ namespace xdp {
       // Grab channel numbers (if specified; MEM tiles only)
       if (metrics[i].size() == 4) {
         try {
-          configChannel0[tile] = static_cast<uint8_t>(std::stoul(metrics[i][2]));
-          configChannel1[tile] = static_cast<uint8_t>(std::stoul(metrics[i][3]));
+          configChannel0[tile] = aie::convertStringToUint8(metrics[i][2]);
+          configChannel1[tile] = aie::convertStringToUint8(metrics[i][3]);
         }
         catch (...) {
           std::stringstream msg;
@@ -511,8 +511,8 @@ namespace xdp {
       }
 
       // Ensure requested metric set is supported (if not, use default)
-      if (std::find(metricStrings[mod].begin(), metricStrings[mod].end(), tileMetric.second) ==
-          metricStrings[mod].end()) {
+      if (std::find(metricStrings.at(mod).begin(), metricStrings.at(mod).end(), tileMetric.second) ==
+          metricStrings.at(mod).end()) {
         if (showWarning) {
           std::stringstream msg;
           msg << "Unable to find " << moduleNames[moduleIdx] << " metric set " << tileMetric.second
@@ -532,7 +532,7 @@ namespace xdp {
   }
 
   // Resolve Interface metrics
-  void AieProfileMetadata::getConfigMetricsForInterfaceTiles(int moduleIdx,
+  void AieProfileMetadata::getConfigMetricsForInterfaceTiles(const int moduleIdx,
       const std::vector<std::string>& metricsSettings,
       const std::vector<std::string> graphMetricsSettings)
   {
@@ -585,8 +585,8 @@ namespace xdp {
       if (graphMetrics[i].size() > 3) {
         try {
           for (auto& e : tiles) {
-            configChannel0[e] = static_cast<uint8_t>(std::stoi(graphMetrics[i][3]));
-            configChannel1[e] = static_cast<uint8_t>(std::stoi(graphMetrics[i].back()));
+            configChannel0[e] = aie::convertStringToUint8(graphMetrics[i][3]);
+            configChannel1[e] = aie::convertStringToUint8(graphMetrics[i].back());
           }
         }
         catch (...) {
@@ -643,8 +643,8 @@ namespace xdp {
       if (graphMetrics[i].size() > 3) {
         try {
           for (auto& e : tiles) {
-            configChannel0[e] = static_cast<uint8_t>(std::stoi(graphMetrics[i][3]));
-            configChannel1[e] = static_cast<uint8_t>(std::stoi(graphMetrics[i].back()));
+            configChannel0[e] = aie::convertStringToUint8(graphMetrics[i][3]);
+            configChannel1[e] = aie::convertStringToUint8(graphMetrics[i].back());
           }
         }
         catch (...) {
@@ -677,12 +677,12 @@ namespace xdp {
       if (metrics[i][0].compare("all") != 0)
         continue;
 
-      uint8_t channelId = (metrics[i].size() < 3) ? 0 : static_cast<uint8_t>(std::stoul(metrics[i][2]));
-      auto tiles = mMetadataReader->getInterfaceTiles("all", "all", metrics[i][1], channelId);
+      uint8_t channelId = (metrics[i].size() < 3) ? 0 : aie::convertStringToUint8(metrics[i][2]);
+      auto tiles = metadataReader->getInterfaceTiles("all", "all", metrics[i][1], channelId);
 
       for (auto& t : tiles) {
         configMetrics[moduleIdx][t] = metrics[i][1];
-        configChannel0[t] = static_cast<uint8_t>(channelId);;
+        configChannel0[t] = channelId;
       }
     } // Pass 1
 
@@ -691,20 +691,20 @@ namespace xdp {
       if ((metrics[i][0].compare("all") == 0) || (metrics[i].size() < 3))
         continue;
 
-      uint32_t maxCol = 0;
+      uint8_t maxCol = 0;
 
       try {
-        maxCol = std::stoi(metrics[i][1]);
+        maxCol = aie::convertStringToUint8(metrics[i][1]);
       }
       catch (std::invalid_argument const&) {
         // maxColumn is not an integer i.e either 1st style or wrong format, skip for now
         continue;
       }
 
-      uint32_t minCol = 0;
+      uint8_t minCol = 0;
 
       try {
-        minCol = std::stoi(metrics[i][0]);
+        minCol = aie::convertStringToUint8(metrics[i][0]);
       }
       catch (std::invalid_argument const&) {
         // 2nd style but expected min column is not an integer, give warning and skip
@@ -719,7 +719,7 @@ namespace xdp {
 
       if (metrics[i].size() == 4) {
         try {
-          channelId = static_cast<uint8_t>(std::stoul(metrics[i][3]));
+          channelId = aie::convertStringToUint8(metrics[i][3]);
         }
         catch (std::invalid_argument const&) {
           // Expected channel Id is not an integer, give warning and ignore
@@ -744,15 +744,15 @@ namespace xdp {
       if ((metrics[i].size() == 4) || (metrics[i].size() < 2) || (metrics[i][0].compare("all") == 0))
         continue;
 
-      uint32_t col = 0;
+      uint8_t col = 0;
 
       try {
-        col = std::stoi(metrics[i][1]);
+        col = aie::convertStringToUint8(metrics[i][1]);
       }
       catch (std::invalid_argument const&) {
         // max column is not a number, so the expected single column specification. Handle this here
         try {
-          col = std::stoi(metrics[i][0]);
+          col = aie::convertStringToUint8(metrics[i][0]);
         }
         catch (std::invalid_argument const&) {
           // Expected column specification is not a number. Give warning and skip
@@ -766,7 +766,7 @@ namespace xdp {
 
         if (metrics[i].size() == 3) {
           try {
-            channelId = static_cast<uint8_t>(std::stoul(metrics[i][2]));
+            channelId = aie::convertStringToUint8(metrics[i][2]);
           }
           catch (std::invalid_argument const&) {
             // Expected channel Id is not an integer, give warning and ignore
@@ -799,7 +799,7 @@ namespace xdp {
       }
 
       // Ensure requested metric set is supported (if not, use default)
-      auto metricVec = metricStrings[module_type::shim];
+      auto metricVec = metricStrings.at(module_type::shim);
 
       if (std::find(metricVec.begin(), metricVec.end(), tileMetric.second) == metricVec.end()) {
         if (showWarning) {
@@ -821,7 +821,7 @@ namespace xdp {
 
   uint8_t AieProfileMetadata::getMetricSetIndex(std::string metricString, module_type mod)
   {
-    auto stringVector = metricStrings[mod];
+    auto stringVector = metricStrings.at(mod);
     auto itr = std::find(stringVector.begin(), stringVector.end(), metricString);
 
     if (itr != stringVector.cend()) {
