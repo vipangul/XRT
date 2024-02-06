@@ -2061,7 +2061,7 @@ namespace xdp {
   void VPStaticDatabase::readAIEMetadata(xrt::xclbin xrtXclbin)
   { 
     #ifdef XDP_CLIENT_BUILD
-      mMetadataReader = aie::readAIEMetadata("aie_control_config.json", aie_meta);
+      metadataReader = aie::readAIEMetadata("aie_control_config.json", aie_meta);
       xrt_core::message::send(xrt_core::message::severity_level::debug, "XRT", "AIE metadata read successfully!");
       return ;
     #endif
@@ -2084,20 +2084,20 @@ namespace xdp {
     if (mAieMeta.empty())
       return;
 
-    mMetadataReader = xdp::aie::determineFileType(mAieMeta);
+    metadataReader = xdp::aie::determineFileType(mAieMeta);
     xrt_core::message::send(xrt_core::message::severity_level::debug, "XRT", "AIE metadata read successfully!");
   }
 
-  bool VPStaticDatabase::mMetadataReaderValid()
+  bool VPStaticDatabase::metadataReaderValid()
   {
-    return mMetadataReader != nullptr ;
+    return metadataReader != nullptr ;
   }
 
   const xdp::aie::BaseFiletypeImpl*
-  VPStaticDatabase::getAIEmMetadataReader() const
+  VPStaticDatabase::getAIEmetadataReader() const
   {
-    xrt_core::message::send(xrt_core::message::severity_level::info, "XRT", "AIE mMetadataReader requested");
-    return mMetadataReader.get();
+    xrt_core::message::send(xrt_core::message::severity_level::info, "XRT", "AIE metadataReader requested");
+    return metadataReader.get();
   }
 
   void VPStaticDatabase::setAIEGeneration(uint64_t deviceId, xrt::xclbin xrtXclbin) {

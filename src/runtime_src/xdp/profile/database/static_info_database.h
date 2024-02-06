@@ -110,7 +110,7 @@ namespace xdp {
     void* aieDevice = nullptr ; // xaiefal::XAieDev
     std::function<void (void*)> deallocateAieDevice = nullptr ;
     boost::property_tree::ptree mAieMeta; // stores AIE_METADATA
-    std::unique_ptr<aie::BaseFiletypeImpl> mMetadataReader = nullptr;
+    std::unique_ptr<aie::BaseFiletypeImpl> metadataReader = nullptr;
 
     bool resetDeviceInfo(uint64_t deviceId, const std::shared_ptr<xrt_core::device>& device);
 
@@ -342,8 +342,8 @@ namespace xdp {
                                   std::function<void (void*)> deallocate,
                                   void* devHandle) ;
     XDP_CORE_EXPORT void readAIEMetadata(xrt::xclbin xrtXclbin);
-    XDP_CORE_EXPORT bool mMetadataReaderValid();
-    XDP_CORE_EXPORT const aie::BaseFiletypeImpl* getAIEmMetadataReader() const;
+    XDP_CORE_EXPORT bool metadataReaderValid();
+    XDP_CORE_EXPORT const aie::BaseFiletypeImpl* getAIEmetadataReader() const;
 
     // ************************************************************************
     // ***** Functions for information from a specific xclbin on a device *****

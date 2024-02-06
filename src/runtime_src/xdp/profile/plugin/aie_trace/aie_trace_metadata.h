@@ -131,7 +131,7 @@ class AieTraceMetadata {
     std::map<tile_type, std::string> configMetrics;
     std::map<tile_type, uint8_t> configChannel0;
     std::map<tile_type, uint8_t> configChannel1;
-    const aie::BaseFiletypeImpl* mMetadataReader = nullptr;
+    const aie::BaseFiletypeImpl* metadataReader = nullptr;
 
     std::map<module_type, std::string> defaultSets {
       { module_type::core,     "functions"},
