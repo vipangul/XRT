@@ -62,14 +62,8 @@ AIEControlConfigFiletype::getAIECompilerOptions() const
     return aiecompiler_options;
 }
 
-<<<<<<< HEAD
-uint16_t 
-AIEControlConfigFiletype::getAIETileRowOffset() const
-{
-=======
 uint8_t 
-AIEControlConfigFiletype::getAIETileRowOffset() {
->>>>>>> origin
+AIEControlConfigFiletype::getAIETileRowOffset() const {
     return xdp::aie::getAIETileRowOffset(aie_meta, "aie_metadata.driver_config.aie_tile_row_start");
 }
 
@@ -217,13 +211,8 @@ AIEControlConfigFiletype::getInterfaceTiles(const std::string& graphName,
                                             const std::string& metricStr,
                                             int16_t channelId,
                                             bool useColumn,
-<<<<<<< HEAD
-                                            uint32_t minCol,
-                                            uint32_t maxCol) const
-=======
                                             uint8_t minCol,
-                                            uint8_t maxCol)
->>>>>>> origin
+                                            uint8_t maxCol) const
 {
     std::vector<tile_type> tiles;
 
