@@ -838,14 +838,4 @@ namespace xdp {
     return metadataReader->getDriverConfig();
   }
   
-  uint16_t AieProfileMetadata::getAIETileRowOffset() 
-  { 
-    return metadataReader->getAIETileRowOffset();
-  }
-  
- int AieProfileMetadata::getHardwareGen()
- { 
-   return metadataReader->getHardwareGeneration();
- }
-
 }  // namespace xdp

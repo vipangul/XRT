@@ -122,7 +122,7 @@ class AieProfileMetadata {
     int getNumCountersMod(const int module){ return numCountersMod[module]; }
     module_type getModuleType(const int module) { return moduleTypes[module]; }
 
-    uint8_t getAIETileRowOffset() { return metadataReader->getAIETileRowOffset();}
+    uint8_t getAIETileRowOffset() const { return metadataReader->getAIETileRowOffset();}
     int getHardwareGen() { return metadataReader->getHardwareGeneration();}
 
     double getClockFreqMhz() {return clockFreqMhz;}

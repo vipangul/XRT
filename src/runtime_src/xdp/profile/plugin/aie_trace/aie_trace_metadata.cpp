@@ -786,13 +786,8 @@ namespace xdp {
         continue;
 
       processed.insert(i);
-<<<<<<< HEAD
-      uint8_t channelId = (metrics[i].size() < 3) ? 0 : static_cast<uint8_t>(std::stoul(metrics[i][2]));
-      auto tiles = metadataReader->getInterfaceTiles(metrics[i][0], "all", metrics[i][1], channelId);
-=======
       uint8_t channelId = (metrics[i].size() < 3) ? 0 : aie::convertStringToUint8(metrics[i][2]);
       auto tiles = metadataReader->getInterfaceTiles(metrics[i][0], "all", metrics[i][1], channelId);
->>>>>>> origin
 
       for (auto& t : tiles) {
         configMetrics[t] = metrics[i][1];
@@ -940,7 +935,7 @@ namespace xdp {
     return 0;
   }
 
-  uint16_t AieTraceMetadata::getRowOffset() {
+  uint8_t AieTraceMetadata::getRowOffset() {
     if ((VPDatabase::Instance()->getStaticInfo()).metadataReaderValid())
       return metadataReader->getAIETileRowOffset();
     return 0;

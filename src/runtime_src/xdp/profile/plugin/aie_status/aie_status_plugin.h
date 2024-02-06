@@ -63,6 +63,7 @@ namespace xdp {
     static bool live;
     uint32_t mPollingInterval;
     const aie::BaseFiletypeImpl* metadataReader = nullptr;
+    std::shared_ptr<xrt_core::device> mXrtCoreDevice;
 
     // Thread control flags for each device handle
     std::map<void*,std::atomic<bool>> mThreadCtrlMap;
