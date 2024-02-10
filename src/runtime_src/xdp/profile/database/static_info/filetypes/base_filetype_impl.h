@@ -18,6 +18,7 @@
 #define BASE_FILETYPE_DOT_H
 
 #include <boost/property_tree/ptree.hpp>
+#include <boost/property_tree/json_parser.hpp>
 #include "xdp/profile/database/static_info/aie_constructs.h"
 
 namespace xdp::aie {
@@ -83,6 +84,9 @@ class BaseFiletypeImpl {
         getTiles(const std::string& graph_name,
                  module_type type, 
                  const std::string& kernel_name) const = 0;
+        
+        virtual void
+        dumpAieMeta(std::string plugin_name) const = 0;
 };
 
 }

@@ -190,6 +190,10 @@ namespace xdp::aie {
       std::string graphName = graph.second.get<std::string>("name");
       graphs.push_back(graphName);
     }
+    xrt_core::message::send(severity_level::warning, "XRT", "metadataReader->getValidGraphs(): " );
+    for(auto name : graphs) {
+      xrt_core::message::send(severity_level::warning, "XRT", "\t " + name );
+    }
     return graphs;
   }
 

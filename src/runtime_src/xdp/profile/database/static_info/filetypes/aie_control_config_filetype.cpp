@@ -105,6 +105,7 @@ AIEControlConfigFiletype::getValidKernels() const
         xrt_core::message::send(severity_level::info, "XRT", getMessage("TileMapping.AIEKernelToTileMapping"));
         return {};
     }
+    xrt_core::message::send(severity_level::info, "XRT", "metadataReader found key: TileMapping.AIEKernelToTileMapping");
 
     for (auto const &mapping : kernelToTileMapping.get()) {
         std::vector<std::string> names;
@@ -113,6 +114,11 @@ AIEControlConfigFiletype::getValidKernels() const
         std::unique_copy(names.begin(), names.end(), std::back_inserter(kernels));
     }
 
+    xrt_core::message::send(severity_level::warning, "XRT", "metadataReader->getValidKernels(): " );
+    for(auto name : kernels) {
+      xrt_core::message::send(severity_level::warning, "XRT", "\t " + name );
+    }
+ 
     return kernels;
 }
 
@@ -477,4 +483,13 @@ AIEControlConfigFiletype::getTiles(const std::string& graph_name,
     }
     return tiles;
 }
+
+void
+AIEControlConfigFiletype::dumpAieMeta(std::string plugin_name) const
+{
+  std::string filename = "debug_" + plugin_name + "_aie_control.json"; 
+  boost::property_tree::json_parser::write_json(filename, aie_meta);
+  xrt_core::message::send(severity_level::info, "XRT", "AIE_Meta as JSON file saved successfully.");
+}
+
 }

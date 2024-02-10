@@ -30,7 +30,7 @@
 #include "xdp/profile/plugin/vp_base/vp_base_plugin.h"
 
 namespace xdp {
-  using severity_level = xrt_core::message::severity_level;
+  // using severity_level = xrt_core::message::severity_level;
   namespace pt = boost::property_tree;
 
   AieProfileMetadata::AieProfileMetadata(uint64_t deviceID, void* handle) :
@@ -47,6 +47,8 @@ namespace xdp {
                             "XRT", "Error parsing AIE Profiling Metadata.");
       return;
     }
+    std::string name = "aie_profile_start";
+    metadataReader->dumpAieMeta(name);
 
     // Verify settings from xrt.ini
     checkSettings();
