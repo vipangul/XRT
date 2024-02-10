@@ -190,20 +190,11 @@ namespace xdp::aie {
       std::string graphName = graph.second.get<std::string>("name");
       graphs.push_back(graphName);
     }
+    xrt_core::message::send(severity_level::warning, "XRT", "metadataReader->getValidGraphs(): " );
+    for(auto name : graphs) {
+      xrt_core::message::send(severity_level::warning, "XRT", "\t " + name );
+    }
     return graphs;
-  }
-
-  /****************************************************************************
-   * Read AIE metadata from axlf section
-   ***************************************************************************/
-  std::unique_ptr<xdp::aie::BaseFiletypeImpl>
-  readAIEMetadata(const char* data, size_t size, pt::ptree& aie_project)
-  {
-    std::stringstream aie_stream;
-    aie_stream.write(data,size);
-    pt::read_json(aie_stream, aie_project);
-
-    return determineFileType(aie_project);
   }
 
   /****************************************************************************

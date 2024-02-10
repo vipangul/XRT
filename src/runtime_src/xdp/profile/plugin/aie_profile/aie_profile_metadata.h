@@ -22,6 +22,7 @@
 #include <vector>
 
 #include "core/common/device.h"
+#include "core/common/message.h"
 #include "core/include/xrt/xrt_hw_context.h"
 #include "xdp/config.h"
 #include "xdp/profile/database/static_info/aie_constructs.h"
@@ -31,6 +32,7 @@
 
 namespace xdp {
 
+using severity_level = xrt_core::message::severity_level;
 constexpr unsigned int NUM_CORE_COUNTERS = 4;
 constexpr unsigned int NUM_MEMORY_COUNTERS = 2;
 constexpr unsigned int NUM_SHIM_COUNTERS = 2;
@@ -91,8 +93,7 @@ class AieProfileMetadata {
     std::vector<std::map<tile_type, std::string>> configMetrics;
     std::map<tile_type, uint8_t> configChannel0;
     std::map<tile_type, uint8_t> configChannel1;
-    boost::property_tree::ptree aie_meta;
-    std::unique_ptr<aie::BaseFiletypeImpl> metadataReader;
+    const aie::BaseFiletypeImpl* metadataReader = nullptr;
 
   public:
     AieProfileMetadata(uint64_t deviceID, void* handle);
@@ -123,8 +124,16 @@ class AieProfileMetadata {
     int getNumCountersMod(const int module){ return numCountersMod[module]; }
     module_type getModuleType(const int module) { return moduleTypes[module]; }
 
-    uint8_t getAIETileRowOffset() { return metadataReader->getAIETileRowOffset();}
-    int getHardwareGen() { return metadataReader->getHardwareGeneration();}
+    uint8_t getAIETileRowOffset() const { 
+      auto offset = metadataReader->getAIETileRowOffset();
+      xrt_core::message::send(severity_level::warning, "XRT", std::to_string(offset));
+      return offset;
+    }
+    int getHardwareGen() {
+      auto hwGen = metadataReader->getHardwareGeneration();
+      xrt_core::message::send(severity_level::warning, "XRT", std::to_string(hwGen));
+      return hwGen;
+    }
 
     double getClockFreqMhz() {return clockFreqMhz;}
     int getNumModules() {return NUM_MODULES;}

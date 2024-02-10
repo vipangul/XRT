@@ -32,23 +32,26 @@ AIEControlConfigFiletype::AIEControlConfigFiletype(boost::property_tree::ptree& 
 : BaseFiletypeImpl(aie_project) {}
 
 std::string
-AIEControlConfigFiletype::getMessage(std::string secName)
+AIEControlConfigFiletype::getMessage(std::string secName) const
 {
     return "Ignoring AIE metadata section " + secName + " since not found.";
 }
 
 driver_config
-AIEControlConfigFiletype::getDriverConfig() {
+AIEControlConfigFiletype::getDriverConfig() const
+{
     return xdp::aie::getDriverConfig(aie_meta, "aie_metadata.driver_config");
 }
 
 int 
-AIEControlConfigFiletype::getHardwareGeneration() {
+AIEControlConfigFiletype::getHardwareGeneration() const
+{
     return xdp::aie::getHardwareGeneration(aie_meta, "aie_metadata.driver_config.hw_gen");
 }
 
 aiecompiler_options
-AIEControlConfigFiletype::getAIECompilerOptions() {
+AIEControlConfigFiletype::getAIECompilerOptions() const
+{
     aiecompiler_options aiecompiler_options;
     aiecompiler_options.broadcast_enable_core = 
         aie_meta.get("aie_metadata.aiecompiler_options.broadcast_enable_core", false);
@@ -60,17 +63,19 @@ AIEControlConfigFiletype::getAIECompilerOptions() {
 }
 
 uint8_t 
-AIEControlConfigFiletype::getAIETileRowOffset() {
+AIEControlConfigFiletype::getAIETileRowOffset() const {
     return xdp::aie::getAIETileRowOffset(aie_meta, "aie_metadata.driver_config.aie_tile_row_start");
 }
 
 std::vector<std::string>
-AIEControlConfigFiletype::getValidGraphs() {
+AIEControlConfigFiletype::getValidGraphs() const
+{
     return xdp::aie::getValidGraphs(aie_meta, "aie_metadata.graphs");
 }
 
 std::vector<std::string>
-AIEControlConfigFiletype::getValidPorts() {
+AIEControlConfigFiletype::getValidPorts() const
+{
     auto ios = getAllIOs();
     if (ios.empty()) {
         xrt_core::message::send(severity_level::info, "XRT", "No valid ports found.");
@@ -90,7 +95,8 @@ AIEControlConfigFiletype::getValidPorts() {
 }
 
 std::vector<std::string>
-AIEControlConfigFiletype::getValidKernels() {
+AIEControlConfigFiletype::getValidKernels() const
+{
     std::vector<std::string> kernels;
 
     // Grab all kernel to tile mappings
@@ -99,6 +105,7 @@ AIEControlConfigFiletype::getValidKernels() {
         xrt_core::message::send(severity_level::info, "XRT", getMessage("TileMapping.AIEKernelToTileMapping"));
         return {};
     }
+    xrt_core::message::send(severity_level::info, "XRT", "metadataReader found key: TileMapping.AIEKernelToTileMapping");
 
     for (auto const &mapping : kernelToTileMapping.get()) {
         std::vector<std::string> names;
@@ -107,16 +114,22 @@ AIEControlConfigFiletype::getValidKernels() {
         std::unique_copy(names.begin(), names.end(), std::back_inserter(kernels));
     }
 
+    xrt_core::message::send(severity_level::warning, "XRT", "metadataReader->getValidKernels(): " );
+    for(auto name : kernels) {
+      xrt_core::message::send(severity_level::warning, "XRT", "\t " + name );
+    }
+ 
     return kernels;
 }
 
 std::unordered_map<std::string, io_config>
-AIEControlConfigFiletype::getTraceGMIOs(){
+AIEControlConfigFiletype::getTraceGMIOs() const
+{
     return getChildGMIOs("aie_metadata.TraceGMIOs");
 }
 
 std::unordered_map<std::string, io_config> 
-AIEControlConfigFiletype::getPLIOs()
+AIEControlConfigFiletype::getPLIOs() const
 {
     auto pliosMetadata = aie_meta.get_child_optional("aie_metadata.PLIOs");
     if (!pliosMetadata) {
@@ -146,13 +159,13 @@ AIEControlConfigFiletype::getPLIOs()
 }
 
 std::unordered_map<std::string, io_config>
-AIEControlConfigFiletype::getGMIOs()
+AIEControlConfigFiletype::getGMIOs() const
 {
     return getChildGMIOs("aie_metadata.GMIOs");
 }
 
 std::unordered_map<std::string, io_config>
-AIEControlConfigFiletype::getAllIOs()
+AIEControlConfigFiletype::getAllIOs() const
 {
     auto ios = getPLIOs();
     auto gmios = getGMIOs();
@@ -161,7 +174,7 @@ AIEControlConfigFiletype::getAllIOs()
 }
 
 std::unordered_map<std::string, io_config>
-AIEControlConfigFiletype::getChildGMIOs( const std::string& childStr)
+AIEControlConfigFiletype::getChildGMIOs( const std::string& childStr) const
 {
     auto gmiosMetadata = aie_meta.get_child_optional(childStr);
     if (!gmiosMetadata) {
@@ -205,7 +218,7 @@ AIEControlConfigFiletype::getInterfaceTiles(const std::string& graphName,
                                             int16_t channelId,
                                             bool useColumn,
                                             uint8_t minCol,
-                                            uint8_t maxCol)
+                                            uint8_t maxCol) const
 {
     std::vector<tile_type> tiles;
 
@@ -274,7 +287,7 @@ AIEControlConfigFiletype::getInterfaceTiles(const std::string& graphName,
 
 std::vector<tile_type>
 AIEControlConfigFiletype::getMemoryTiles(const std::string& graph_name,
-                                         const std::string& buffer_name)
+                                         const std::string& buffer_name) const
 {
     if (getHardwareGeneration() == 1) 
         return {};
@@ -316,7 +329,7 @@ AIEControlConfigFiletype::getMemoryTiles(const std::string& graph_name,
 
 // Find all AIE tiles in a graph that use the core (kernel_name = all)
 std::vector<tile_type> 
-AIEControlConfigFiletype::getAIETiles(const std::string& graph_name)
+AIEControlConfigFiletype::getAIETiles(const std::string& graph_name) const
 {
     auto graphsMetadata = aie_meta.get_child_optional("aie_metadata.graphs");
     if (!graphsMetadata) {
@@ -374,7 +387,7 @@ AIEControlConfigFiletype::getAIETiles(const std::string& graph_name)
 
 // Find all AIE tiles in a graph that use core and/or memories (kernel_name = all)
 std::vector<tile_type>
-AIEControlConfigFiletype::getAllAIETiles(const std::string& graph_name)
+AIEControlConfigFiletype::getAllAIETiles(const std::string& graph_name) const
 {
     std::vector<tile_type> tiles;
     tiles = getEventTiles(graph_name, module_type::core);
@@ -385,7 +398,7 @@ AIEControlConfigFiletype::getAllAIETiles(const std::string& graph_name)
 
 std::vector<tile_type>
 AIEControlConfigFiletype::getEventTiles(const std::string& graph_name,
-                                        module_type type)
+                                        module_type type) const
 {
     if ((type == module_type::shim) || (type == module_type::mem_tile))
         return {};
@@ -431,7 +444,7 @@ AIEControlConfigFiletype::getEventTiles(const std::string& graph_name,
 std::vector<tile_type>
 AIEControlConfigFiletype::getTiles(const std::string& graph_name,
                                    module_type type,
-                                   const std::string& kernel_name)
+                                   const std::string& kernel_name) const
 {
     if (type == module_type::mem_tile)
         return getMemoryTiles(graph_name, kernel_name);
@@ -470,4 +483,13 @@ AIEControlConfigFiletype::getTiles(const std::string& graph_name,
     }
     return tiles;
 }
+
+void
+AIEControlConfigFiletype::dumpAieMeta(std::string plugin_name) const
+{
+  std::string filename = "debug_" + plugin_name + "_aie_control.json"; 
+  boost::property_tree::json_parser::write_json(filename, aie_meta);
+  xrt_core::message::send(severity_level::info, "XRT", "AIE_Meta as JSON file saved successfully.");
+}
+
 }

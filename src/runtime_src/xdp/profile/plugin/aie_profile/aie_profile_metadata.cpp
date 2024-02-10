@@ -30,7 +30,7 @@
 #include "xdp/profile/plugin/vp_base/vp_base_plugin.h"
 
 namespace xdp {
-  using severity_level = xrt_core::message::severity_level;
+  // using severity_level = xrt_core::message::severity_level;
   namespace pt = boost::property_tree;
 
   AieProfileMetadata::AieProfileMetadata(uint64_t deviceID, void* handle) :
@@ -39,21 +39,16 @@ namespace xdp {
   {
     xrt_core::message::send(severity_level::info,
                             "XRT", "Parsing AIE Profile Metadata.");
+    VPDatabase* db = VPDatabase::Instance();
 
-    #ifdef XDP_CLIENT_BUILD
-      metadataReader = aie::readAIEMetadata("aie_control_config.json", aie_meta);
-    #else
-      auto device = xrt_core::get_userpf_device(handle);
-      auto data = device->get_axlf_section(AIE_METADATA);
-
-      metadataReader = aie::readAIEMetadata(data.first, data.second, aie_meta);
-    #endif
-
-    if (metadataReader == nullptr) {
+    metadataReader = (db->getStaticInfo()).getAIEmetadataReader();
+    if (!metadataReader) {
       xrt_core::message::send(severity_level::error,
                             "XRT", "Error parsing AIE Profiling Metadata.");
       return;
     }
+    std::string name = "aie_profile_start";
+    metadataReader->dumpAieMeta(name);
 
     // Verify settings from xrt.ini
     checkSettings();
@@ -64,7 +59,6 @@ namespace xdp {
 
     // Setup Config Metrics
     // Get AIE clock frequency
-    VPDatabase* db = VPDatabase::Instance();
     clockFreqMhz = (db->getStaticInfo()).getClockRateMHz(deviceID, false);
 
     // Tile-based metrics settings
@@ -845,5 +839,5 @@ namespace xdp {
   {
     return metadataReader->getDriverConfig();
   }
-
+  
 }  // namespace xdp

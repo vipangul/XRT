@@ -71,21 +71,13 @@ namespace xdp {
       xrt_core::message::send(severity_level::warning, "XRT", AIE_TRACE_DUMP_INTERVAL_WARN_MSG);
     }
 
-    #ifdef XDP_CLIENT_BUILD
-
-    metadataReader = aie::readAIEMetadata("aie_control_config.json", aie_meta);
-    
-    #else
-
-    auto device = xrt_core::get_userpf_device(handle);
-    auto data = device->get_axlf_section(AIE_METADATA);
-
-    metadataReader = aie::readAIEMetadata(data.first, data.second, aie_meta);
-
-    #endif
-
-    if (metadataReader == nullptr)
+    metadataReader = (VPDatabase::Instance()->getStaticInfo()).getAIEmetadataReader();
+    if (!metadataReader) {
+      std::stringstream msg;
+      msg << "metadataReader reader couldn't be created.";
+      xrt_core::message::send(severity_level::error, "XRT", msg.str());
       return;
+    }
     
     // Catch when compile-time trace is specified (e.g., --event-trace=functions)
     auto compilerOptions = metadataReader->getAIECompilerOptions();
@@ -937,10 +929,29 @@ namespace xdp {
     }
   }
 
+  int AieTraceMetadata::getHardwareGen() {
+    if ((VPDatabase::Instance()->getStaticInfo()).metadataReaderValid())
+      return metadataReader->getHardwareGeneration();
+    return 0;
+  }
+
+  uint8_t AieTraceMetadata::getRowOffset() {
+    if ((VPDatabase::Instance()->getStaticInfo()).metadataReaderValid())
+      return metadataReader->getAIETileRowOffset();
+    return 0;
+  }
+
+  std::unordered_map<std::string, io_config> 
+  AieTraceMetadata::get_trace_gmios() {
+    if ((VPDatabase::Instance()->getStaticInfo()).metadataReaderValid())
+      return metadataReader->getTraceGMIOs();
+    return {};
+  }
+
   aie::driver_config 
   AieTraceMetadata::getAIEConfigMetadata() 
   {
-    if (metadataReader)
+    if ((VPDatabase::Instance()->getStaticInfo()).metadataReaderValid())
       return metadataReader->getDriverConfig();
     return {};
   }
