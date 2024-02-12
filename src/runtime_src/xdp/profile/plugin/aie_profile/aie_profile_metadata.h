@@ -126,12 +126,12 @@ class AieProfileMetadata {
 
     uint8_t getAIETileRowOffset() const {
       auto offset = metadataReader->getAIETileRowOffset();
-      xrt_core::message::send(severity_level::info, "XRT", "\t offset: " + std::to_string(offset));
+      // xrt_core::message::send(severity_level::info, "XRT", "\t aie_metadata.driver_config.aie_tile_row_start offset: " + std::to_string(offset));
       return offset;
     }
     int getHardwareGen() {
       auto hwGen = metadataReader->getHardwareGeneration();
-      xrt_core::message::send(severity_level::info, "XRT", "\t hwGen: " + std::to_string(hwGen));
+      xrt_core::message::send(severity_level::info, "XRT", "\t aie_metadata.driver_config.hw_gen: " + std::to_string(hwGen));
       return hwGen;
     }
 

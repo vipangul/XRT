@@ -67,19 +67,59 @@ namespace xdp {
     metricsConfig.push_back(xrt_core::config::get_aie_profile_settings_tile_based_aie_memory_metrics());
     metricsConfig.push_back(xrt_core::config::get_aie_profile_settings_tile_based_interface_tile_metrics());
     metricsConfig.push_back(xrt_core::config::get_aie_profile_settings_tile_based_memory_tile_metrics());
+    xrt_core::message::send(severity_level::info, "XRT", "Print metricsConfig vec of size: " + std::to_string(metricsConfig.size()));
+    for(auto setting : metricsConfig)
+      xrt_core::message::send(severity_level::info, "XRT", "value: " + setting); 
+
 
     // Graph-based metrics settings
     std::vector<std::string> graphMetricsConfig;
+    std::string val = "";
+
     graphMetricsConfig.push_back(xrt_core::config::get_aie_profile_settings_graph_based_aie_metrics());
+    // val = xrt_core::config::get_aie_profile_settings_graph_based_aie_metrics();
+    // if(val=="")
+    //   xrt_core::message::send(severity_level::warning, "XRT", "Parse_config: no AIE_profile_settings.graph_based_aie_metrics");
+    // else
+    //   graphMetricsConfig.push_back(val);
+
     graphMetricsConfig.push_back(xrt_core::config::get_aie_profile_settings_graph_based_aie_memory_metrics());
+    // val = xrt_core::config::get_aie_profile_settings_graph_based_aie_memory_metrics();
+    // if(val=="")
+    //   xrt_core::message::send(severity_level::warning, "XRT", "Parse_config: no AIE_profile_settings.graph_based_aie_memory_metric");
+    // else
+    //   graphMetricsConfig.push_back(val);
+
+
     graphMetricsConfig.push_back(xrt_core::config::get_aie_profile_settings_graph_based_interface_tile_metrics());
+    // val = xrt_core::config::get_aie_profile_settings_graph_based_interface_tile_metrics();
+    // if(val=="")
+    //   xrt_core::message::send(severity_level::warning, "XRT", "Parse_config: no AIE_profile_settings.graph_based_interface_tile_metrics");
+    // else
+    //   graphMetricsConfig.push_back(val);
+
     graphMetricsConfig.push_back(xrt_core::config::get_aie_profile_settings_graph_based_memory_tile_metrics());
+    // val = xrt_core::config::get_aie_profile_settings_graph_based_memory_tile_metrics();
+    // if(val=="")
+    //   xrt_core::message::send(severity_level::warning, "XRT", "Parse_config: no AIE_profile_settings.graph_based_memory_tile_metricss");
+    // else
+    //   graphMetricsConfig.push_back(val);
+
+
+    xrt_core::message::send(severity_level::info, "XRT", "Print graphMetricsConfig vec of size: " + std::to_string(graphMetricsConfig.size()));
+    for(auto setting : graphMetricsConfig)
+      xrt_core::message::send(severity_level::info, "XRT", "value: " + setting); 
 
     // Process all module types
     for (int module = 0; module < NUM_MODULES; ++module) {
       auto type = moduleTypes[module];
       auto metricsSettings = getSettingsVector(metricsConfig[module]);
       auto graphMetricsSettings = getSettingsVector(graphMetricsConfig[module]);
+
+      xrt_core::message::send(severity_level::info, "XRT", "Print graphMetricSettings of size: " + std::to_string(graphMetricsSettings.size()) 
+                                                            + "for module no: "+ std::to_string(module));
+      for(auto setting : graphMetricsSettings)
+        xrt_core::message::send(severity_level::info, "XRT", "value: " + setting); 
 
       if (type == module_type::shim)
         getConfigMetricsForInterfaceTiles(module, metricsSettings, graphMetricsSettings);
@@ -531,6 +571,10 @@ namespace xdp {
     for (auto& t : offTiles) {
       configMetrics[moduleIdx].erase(t);
     }
+
+    for(auto cm_map : configMetrics)
+      xrt_core::message::send(severity_level::warning, "XRT", "debug_parder: getConfigTiles has tiles map of size:"
+                                                              + std::to_string(cm_map.size()));
   }
 
   // Resolve Interface metrics

@@ -114,7 +114,7 @@ AIEControlConfigFiletype::getValidKernels() const
         std::unique_copy(names.begin(), names.end(), std::back_inserter(kernels));
     }
 
-    xrt_core::message::send(severity_level::info, "XRT", "metadataReader->getValidKernels(): " );
+    xrt_core::message::send(severity_level::info, "XRT", "metadataReader->getValidKernels() result: " );
     for(auto name : kernels) {
       xrt_core::message::send(severity_level::info, "XRT", "\t kernal_name:" + name );
     }
@@ -282,6 +282,8 @@ AIEControlConfigFiletype::getInterfaceTiles(const std::string& graphName,
         xrt_core::message::send(severity_level::warning, "XRT", msg);
     }
 
+    xrt_core::message::send(severity_level::warning, "XRT", "debug_parder: getInterfaceTiles() returns tilEs of size:"
+                                                            + std::to_string(tiles.size()));
     return tiles;
 }
 
@@ -414,6 +416,7 @@ AIEControlConfigFiletype::getEventTiles(const std::string& graph_name,
 
     std::vector<tile_type> tiles;
     auto rowOffset = getAIETileRowOffset();
+    xrt_core::message::send(severity_level::info, "XRT", "debug_parser: rowOffset: " + std::to_string(rowOffset));
 
     for (auto& graph : graphsMetadata.get()) {
         auto currGraph = graph.second.get<std::string>("name");
@@ -435,6 +438,13 @@ AIEControlConfigFiletype::getEventTiles(const std::string& graph_name,
         xdp::aie::throwIfError(count < num_tiles,"rows < num_tiles");
     }
 
+    xrt_core::message::send(severity_level::info, "XRT", "debug_parser: total tiles: " + std::to_string(tiles.size()));
+    for(auto tile : tiles)
+    {
+        xrt_core::message::send(severity_level::info, "XRT", "debug_parser: tile.row:" + std::to_string(tile.row) +
+                                                             "& tile.col: " + std::to_string(tile.col));
+    }
+
     return tiles;
 }
 
@@ -446,14 +456,21 @@ AIEControlConfigFiletype::getTiles(const std::string& graph_name,
                                    module_type type,
                                    const std::string& kernel_name) const
 {
-    if (type == module_type::mem_tile)
+    if (type == module_type::mem_tile) {
+        xrt_core::message::send(severity_level::info, "XRT", "debug_parser: *module_type:mem_tile received");
         return getMemoryTiles(graph_name, kernel_name);
-    if ((type == module_type::dma) && (kernel_name.compare("all") == 0))
-        return getAllAIETiles(graph_name);
+    }
+    if ((type == module_type::dma) && (kernel_name.compare("all") == 0)) {
+        xrt_core::message::send(severity_level::info, "XRT", "debug_parser: module_type:dma & kernel_name:all received");
+        auto rc = getAllAIETiles(graph_name);
+        xrt_core::message::send(severity_level::info, "XRT", "debug_parser: **returning tile vec: " + std::to_string(rc.size()));
+        return rc;
+    }
 
     // Now search by graph-kernel pairs
     auto kernelToTileMapping = aie_meta.get_child_optional("aie_metadata.TileMapping.AIEKernelToTileMapping");
     if (!kernelToTileMapping && (kernel_name.compare("all") == 0))
+        xrt_core::message::send(severity_level::info, "XRT", "debug_parser: ***aie_metadata.TileMapping.AIEKernelToTileMapping is not available in json");
         return getAIETiles(graph_name);
     if (!kernelToTileMapping) {
         xrt_core::message::send(severity_level::info, "XRT", getMessage("TileMapping.AIEKernelToTileMapping"));
@@ -462,13 +479,18 @@ AIEControlConfigFiletype::getTiles(const std::string& graph_name,
 
     std::vector<tile_type> tiles;
     auto rowOffset = getAIETileRowOffset();
+    xrt_core::message::send(severity_level::info, "XRT", "debug_parser: rowOffset:" + std::to_string(rowOffset));
+
 
     for (auto const &mapping : kernelToTileMapping.get()) {
         auto currGraph = mapping.second.get<std::string>("graph");
         if ((currGraph.find(graph_name) == std::string::npos)
-            && (graph_name.compare("all") != 0))
+            && (graph_name.compare("all") != 0)) {
+            xrt_core::message::send(severity_level::info, "XRT", "debug_parser: GraphName: "+ graph_name + "not found in "+ currGraph);
             continue;
+        }
         if (kernel_name.compare("all") != 0) {
+            xrt_core::message::send(severity_level::info, "XRT", "debug_parser: kernel_name: "+ kernel_name + "is value all.");
             std::vector<std::string> names;
             std::string functionStr = mapping.second.get<std::string>("function");
             boost::split(names, functionStr, boost::is_any_of("."));
@@ -479,8 +501,11 @@ AIEControlConfigFiletype::getTiles(const std::string& graph_name,
         tile_type tile;
         tile.col = mapping.second.get<uint8_t>("column");
         tile.row = mapping.second.get<uint8_t>("row") + rowOffset;
+        xrt_core::message::send(severity_level::info, "XRT", "debug_parser: tile.col: "+ std::to_string(tile.col) + " & tile.row: "+ std::to_string(tile.col));
         tiles.emplace_back(std::move(tile));
     }
+
+    xrt_core::message::send(severity_level::info, "XRT", "debug_parser: ****returning tiles of size: "+ std::to_string(tiles.size()));
     return tiles;
 }
 

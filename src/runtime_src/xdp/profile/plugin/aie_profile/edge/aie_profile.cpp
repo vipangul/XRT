@@ -374,22 +374,33 @@ namespace xdp {
     auto configChannel1 = metadata->getConfigChannel1();
 
     for (int module = 0; module < metadata->getNumModules(); ++module) {
-      auto configMetrics = metadata->getConfigMetrics(module);
-      if (configMetrics.empty())
+      xrt_core::message::send(severity_level::debug, "XRT", "debug_parser: processing module: "+std::to_string(module));
+      auto configMetrics = metadata->getConfigMetrics(module); // TODO_V : check this func()
+      if (configMetrics.empty()) {
+        xrt_core::message::send(severity_level::warning, "XRT", "debug_parser: empty configMetrics ");
         continue;
+      }
       
       int numTileCounters[metadata->getNumCountersMod(module)+1] = {0};
       XAie_ModuleType mod = aie::profile::getFalModuleType(module);
       
       // Iterate over tiles and metrics to configure all desired counters
+      xrt_core::message::send(severity_level::warning, "XRT", "debug_parser: configMetrics size: " + std::to_string(configMetrics.size()));
       for (auto& tileMetric : configMetrics) {
         auto tile        = tileMetric.first;
         auto col         = tile.col;
         auto row         = tile.row;
         auto subtype     = tile.subtype;
+        xrt_core::message::send(severity_level::warning, "XRT", "debug_parser: L1 configMetrics size: " 
+                                                                "col:"+ std::to_string(col) +
+                                                                "row:"+ std::to_string(row) +
+                                                                "subtype:"+ std::to_string(subtype));
+
         auto type        = aie::getModuleType(row, mod);
-        if (!aie::profile::isValidType(type, mod))
+        if (!aie::profile::isValidType(type, mod)) {
+          xrt_core::message::send(severity_level::warning, "XRT", "debug_parser:  not a valid tile type: " + std::to_string(static_cast<int>(type)));
           continue;
+        }
 
         auto& metricSet  = tileMetric.second;
         auto loc         = XAie_TileLoc(col, row);
@@ -406,6 +417,11 @@ namespace xdp {
                          : ((type == module_type::dma)  ? memoryEndEvents[metricSet]
                          : ((type == module_type::shim) ? shimEndEvents[metricSet]
                          : memTileEndEvents[metricSet]));
+
+        // xrt_core::message::send(severity_level::warning, "XRT", "debug_parser: L2 configMetrics size: " 
+        //                                                         "col:"+ std::to_string(col) +
+        //                                                         "row:"+ std::to_string(row) +
+        //                                                         "subtype:"+ std::to_string(subtype));
 
         int numCounters  = 0;
         auto numFreeCtr  = stats.getNumRsc(loc, mod, XAIE_PERFCNT_RSC);
@@ -424,9 +440,15 @@ namespace xdp {
         aie::profile::configEventSelections(aieDevInst, loc, type, metricSet, channel0);
         configStreamSwitchPorts(aieDevInst, tileMetric.first, xaieTile, loc, type, numFreeCtr, 
                                 metricSet, channel0, channel1, startEvents, endEvents);
+        xrt_core::message::send(severity_level::warning, "XRT", "debug_parser: L3 configMetrics size: " 
+                                                                "col:"+ std::to_string(col) +
+                                                                "row:"+ std::to_string(row) +
+                                                                "subtype:"+ std::to_string(subtype));
 
         // Request and configure all available counters for this tile
         for (int i=0; i < numFreeCtr; ++i) {
+          xrt_core::message::send(severity_level::warning, "XRT", "debug_parser: counter_no: " + std::to_string(i)); 
+
           auto startEvent    = startEvents.at(i);
           auto endEvent      = endEvents.at(i);
           uint8_t resetEvent = 0;
@@ -469,6 +491,10 @@ namespace xdp {
           numCounters++;
         }
 
+        xrt_core::message::send(severity_level::warning, "XRT", "debug_parser: L4 configMetrics size: " 
+                                                                "col:"+ std::to_string(col) +
+                                                                "row:"+ std::to_string(row) +
+                                                                "subtype:"+ std::to_string(subtype));
         std::stringstream msg;
         msg << "Reserved " << numCounters << " counters for profiling AIE tile (" << col << "," 
             << row << ") using metric set " << metricSet << ".";

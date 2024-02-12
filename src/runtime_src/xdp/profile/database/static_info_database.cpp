@@ -2062,6 +2062,8 @@ namespace xdp {
   {
     #ifdef XDP_CLIENT_BUILD
       metadataReader = aie::readAIEMetadata("aie_control_config.json", aie_meta);
+      if(metdataReader.empty())
+        xrt_core::message::send(xrt_core::message::severity_level::error, "XRT", "AIE metadata read failed for client!");
       xrt_core::message::send(xrt_core::message::severity_level::debug, "XRT", "AIE metadata read successfully!");
       return ;
     #endif

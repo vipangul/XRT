@@ -341,6 +341,7 @@ namespace xdp {
     XDP_CORE_EXPORT void* getAieDevice(std::function<void* (void*)> allocate,
                                   std::function<void (void*)> deallocate,
                                   void* devHandle) ;
+
     XDP_CORE_EXPORT void readAIEMetadata(xrt::xclbin xrtXclbin);
     XDP_CORE_EXPORT bool metadataReaderValid();
     XDP_CORE_EXPORT const aie::BaseFiletypeImpl* getAIEmetadataReader() const;
