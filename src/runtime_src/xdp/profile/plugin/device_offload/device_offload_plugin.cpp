@@ -371,6 +371,7 @@ namespace xdp {
       //  and we are reading nothing but 0's
       if (nonZero(results))
       {
+        // TODO: Recheck this flow, looks fine today.
         DeviceInfo* deviceInfo = (db->getStaticInfo()).getDeviceInfo(deviceId);
         if (deviceInfo != nullptr) {
           (db->getDynamicInfo()).setCounterResults(deviceId, deviceInfo->currentXclbinUUID(), results) ;
@@ -458,6 +459,8 @@ namespace xdp {
 
   void DeviceOffloadPlugin::clearOffloader(uint64_t deviceId)
   {
+    std::cout << "AIE_R3: HALDeviceoffloadPlugin::clearOffloader(). \n";
+
     if(offloaders.find(deviceId) == offloaders.end()) {
       return;
     }

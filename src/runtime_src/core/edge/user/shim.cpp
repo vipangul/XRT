@@ -505,6 +505,8 @@ int
 shim::
 xclLoadXclBin(const xclBin *buffer)
 {
+  std::string msg = "AIE_RELOAD: edge xclLoadXclBin.\n";
+  std::cout << msg ;
   auto top = reinterpret_cast<const axlf*>(buffer);
   auto ret = xclLoadAxlf(top);
 
@@ -512,6 +514,7 @@ xclLoadXclBin(const xclBin *buffer)
     mKernelClockFreq = xrt_core::xclbin::get_kernel_freq(top);
 
   xclLog(XRT_INFO, "%s: return %d", __func__, ret);
+  // xclLog(XRT_INFO, "-----------------------------------------------\n");
   return ret;
 }
 
@@ -685,6 +688,8 @@ int
 shim::
 xclLoadAxlf(const axlf *buffer)
 {
+  std::cout<<"AIE_RELOAD: calling edge xclLeadAxlf(). \n";
+  xclLog(XRT_INFO, "%s: AIE_RELOAD: calling edge: ", __func__);
   int ret = 0;
   unsigned int flags = DRM_ZOCL_PLATFORM_BASE;
   int off = 0;
@@ -2183,6 +2188,8 @@ xclImportBO(xclDeviceHandle handle, int fd, unsigned flags)
 static int
 xclLoadXclBinImpl(xclDeviceHandle handle, const xclBin *buffer, bool meta)
 {
+  std::cout<<"AIE_RELOAD: xclLoadXclBinImpl() calling prifiling wrapper. \n";
+
   return xdp::hal::profiling_wrapper("xclLoadXclbin", [handle, buffer, meta] {
 
   try {
@@ -2217,8 +2224,27 @@ xclLoadXclBinImpl(xclDeviceHandle handle, const xclBin *buffer, bool meta)
 #endif
 
     /* If PDI is the only section, return here */
-    if (xrt_core::xclbin::is_pdi_only(buffer))
+    if (xrt_core::xclbin::is_pdi_only(buffer)) {
+
+        std::cout<<"AIE_RELOAD:  pdi_only xclbin. \n";
+        #ifndef __HWEM__
+          xdp::hal::update_device(handle);
+          xdp::aie::update_device(handle);
+        #endif
+        xdp::aie::ctr::update_device(handle);
+        xdp::aie::sts::update_device(handle);
+        
+        #ifndef __HWEM__
+        xdp::pl_deadlock::update_device(handle);
+
+        START_DEVICE_PROFILING_CB(handle);
+        #else
+        xdp::hal::hw_emu::update_device(handle);
+        #endif
+
         return 0;
+    }
+    // TODO: add updateDevice here.
 
     // Skipping if only loading xclbin metadata
     if (!meta) {

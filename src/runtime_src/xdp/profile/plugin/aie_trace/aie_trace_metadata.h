@@ -52,22 +52,7 @@ class AieTraceMetadata {
     xdp::aie::driver_config getAIEConfigMetadata();
 
    public:
-    int getHardwareGen() {
-      if (metadataReader)
-        return metadataReader->getHardwareGeneration();
-      return 0;
-    }
-    uint8_t getRowOffset() {
-      if (metadataReader)
-        return metadataReader->getAIETileRowOffset();
-      return 0;
-    }
-    std::unordered_map<std::string, io_config> 
-    get_trace_gmios() {
-      if (metadataReader)
-        return metadataReader->getTraceGMIOs();
-      return {};
-    }
+
     std::string getMetricString(uint8_t index) {
       if (index < metricSets[module_type::core].size())
         return metricSets[module_type::core][index];

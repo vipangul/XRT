@@ -22,6 +22,7 @@
 #include <vector>
 
 #include "core/common/device.h"
+#include "core/common/message.h"
 #include "core/include/xrt/xrt_hw_context.h"
 #include "xdp/config.h"
 #include "xdp/profile/database/static_info/aie_constructs.h"
@@ -31,6 +32,7 @@
 
 namespace xdp {
 
+using severity_level = xrt_core::message::severity_level;
 constexpr unsigned int NUM_CORE_COUNTERS = 4;
 constexpr unsigned int NUM_MEMORY_COUNTERS = 2;
 constexpr unsigned int NUM_SHIM_COUNTERS = 2;

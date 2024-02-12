@@ -925,10 +925,29 @@ namespace xdp {
     }
   }
 
+  int AieTraceMetadata::getHardwareGen() {
+    if ((VPDatabase::Instance()->getStaticInfo()).metadataReaderValid())
+      return metadataReader->getHardwareGeneration();
+    return 0;
+  }
+
+  uint8_t AieTraceMetadata::getRowOffset() {
+    if ((VPDatabase::Instance()->getStaticInfo()).metadataReaderValid())
+      return metadataReader->getAIETileRowOffset();
+    return 0;
+  }
+
+  std::unordered_map<std::string, io_config>
+  AieTraceMetadata::get_trace_gmios() {
+    if ((VPDatabase::Instance()->getStaticInfo()).metadataReaderValid())
+      return metadataReader->getTraceGMIOs();
+    return {};
+  }
+
   aie::driver_config 
   AieTraceMetadata::getAIEConfigMetadata() 
   {
-    if (metadataReader)
+    if ((VPDatabase::Instance()->getStaticInfo()).metadataReaderValid())
       return metadataReader->getDriverConfig();
     return {};
   }
