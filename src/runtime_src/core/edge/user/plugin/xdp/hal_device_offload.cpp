@@ -1,5 +1,6 @@
 
 #include <functional>
+#include <iostream>
 
 #include "hal_device_offload.h"
 #include "core/common/module_loader.h"
@@ -55,6 +56,7 @@ namespace device_offload {
   {
     if (device_offload::update_device_cb != nullptr)
     {
+      std::cout << "AIE_R3: device_offload::device_update(). \n";
       device_offload::update_device_cb(handle) ;
     }
   }

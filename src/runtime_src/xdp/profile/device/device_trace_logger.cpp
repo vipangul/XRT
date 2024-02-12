@@ -20,6 +20,7 @@
 #include "xdp/profile/database/static_info/pl_constructs.h"
 #include "xdp/profile/device/device_trace_logger.h"
 #include "xdp/profile/plugin/vp_base/utility.h"
+#include "xdp/profile/database/static_info/xclbin_info.h"
 
 #include "core/common/message.h"
 #include "experimental/xrt_profile.h"
@@ -41,7 +42,12 @@ namespace xdp {
     traceClockRateMHz = db->getStaticInfo().getClockRateMHz(deviceId);
     clockTrainSlope = 1000.0/traceClockRateMHz;
 
-    xclbin = (db->getStaticInfo()).getCurrentlyLoadedXclbin(devId);
+    ConfigInfo* config = (db->getStaticInfo()).getCurrentlyLoadedConfig(devId);
+    XclbinInfo* xclbin = config->getPlXclbin();
+    if(!xclbin) {
+      std::cout<<"Error: PL xclbin not available, Unable to initialize device trace. \n";
+      return;
+    }
 
     // Use the total number of Accelerator Monitors for the size
     auto numAM = (db->getStaticInfo()).getNumAM(deviceId, xclbin);

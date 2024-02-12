@@ -28,6 +28,9 @@
 
 #include "core/common/system.h"
 #include "core/common/device.h"
+#include "xdp/profile/database/static_info/aie_util.h"
+#include "xdp/profile/database/static_info/xclbin_types.h"
+#include "xdp/profile/database/static_info/filetypes/base_filetype_impl.h"
 
 #include "xdp/config.h"
 
@@ -49,14 +52,19 @@ namespace xdp {
   struct NoCNode ;
   class aie_cfg_tile ;
 
+  // // Forward declarations of XclbinType & ConfigType
+  // enum XclbinInfoType ;
+  // enum ConfigInfoType ;
+
   // Forward declarations of device and xclbin contents
   struct DeviceInfo ;
+  struct ConfigInfo ;
   struct XclbinInfo ;
 
   //Forward declaration of XDP's device structure
   class Device;
 
-  // The VPStaticDatabase contains information that is expected to not change
+    // The VPStaticDatabase contains information that is expected to not change
   //  throughout the execution of the program.  For device information,
   //  we keep track of the structure of the hardware in all the xclbins
   //  that are loaded per device.  While each part of the hardware can only
@@ -107,6 +115,8 @@ namespace xdp {
     void* aieDevInst = nullptr ; // XAie_DevInst
     void* aieDevice = nullptr ; // xaiefal::XAieDev
     std::function<void (void*)> deallocateAieDevice = nullptr ;
+    boost::property_tree::ptree aieMeta; // stores AIE_METADATA
+    std::unique_ptr<aie::BaseFiletypeImpl> metadataReader = nullptr;
 
     bool resetDeviceInfo(uint64_t deviceId, const std::shared_ptr<xrt_core::device>& device);
 
@@ -136,14 +146,13 @@ namespace xdp {
     void initializeXrtIP(XclbinInfo* xclbin);
 
     void setDeviceNameFromXclbin(uint64_t deviceId, xrt::xclbin xrtXclbin);
-    void setAIEGeneration(uint64_t deviceId, xrt::xclbin xrtXclbin) ;
-    void setAIEClockRateMHz(uint64_t deviceId, xrt::xclbin xrtXclbin) ;
+    void setAIEGeneration(uint64_t deviceId) ;
+    void setAIEClockRateMHz(uint64_t deviceId) ;
     bool initializeStructure(XclbinInfo*, xrt::xclbin);
     bool initializeProfileMonitors(DeviceInfo*, xrt::xclbin);
     double findClockRate(xrt::xclbin);
     DeviceInfo* updateDevice(uint64_t deviceId, xrt::xclbin xrtXclbin) ;
-
-    
+    XclbinInfoType getXclbinType(xrt::xclbin& xclbin);
 
   public:
     VPStaticDatabase(VPDatabase* d) ;
@@ -241,10 +250,10 @@ namespace xdp {
     // If any compute unit on any xclbin on any device has stall enabled,
     //  then we output a table of stall information.
     XDP_CORE_EXPORT bool hasStallInfo() ;
-    XDP_CORE_EXPORT XclbinInfo* getCurrentlyLoadedXclbin(uint64_t deviceId) ;
+    XDP_CORE_EXPORT ConfigInfo* getCurrentlyLoadedConfig(uint64_t deviceId) ;
     XDP_CORE_EXPORT void deleteCurrentlyUsedDeviceInterface(uint64_t deviceId) ;
     XDP_CORE_EXPORT bool isDeviceReady(uint64_t deviceId) ;
-    XDP_CORE_EXPORT double getClockRateMHz(uint64_t deviceId, bool PL = true) ;
+    XDP_CORE_EXPORT double getClockRateMHz(uint64_t deviceId, bool PL = true) ; // TODO: gothrough xclbins 
     XDP_CORE_EXPORT void setDeviceName(uint64_t deviceId, const std::string& name) ; 
     XDP_CORE_EXPORT std::string getDeviceName(uint64_t deviceId) ;
     XDP_CORE_EXPORT DeviceIntf* getDeviceIntf(uint64_t deviceId) ;
@@ -259,8 +268,9 @@ namespace xdp {
     XDP_CORE_EXPORT void setKernelMaxWriteBW(uint64_t deviceId, double bw) ;
     XDP_CORE_EXPORT double getKernelMaxWriteBW(uint64_t deviceId) ;
     XDP_CORE_EXPORT std::string getXclbinName(uint64_t deviceId) ;
-    XDP_CORE_EXPORT std::vector<XclbinInfo*> getLoadedXclbins(uint64_t deviceId) ;
-    XDP_CORE_EXPORT ComputeUnitInstance* getCU(uint64_t deviceId, int32_t cuId) ;
+    // XDP_CORE_EXPORT std::vector<XclbinInfo*> getLoadedXclbins(uint64_t deviceId) ;
+    XDP_CORE_EXPORT std::vector<ConfigInfo*> getLoadedConfigs(uint64_t deviceId) ;
+    XDP_CORE_EXPORT ComputeUnitInstance* getCU(uint64_t deviceId, int32_t cuId) ;  // TODO: 
     XDP_CORE_EXPORT Memory* getMemory(uint64_t deviceId, int32_t memId) ;
     // Reseting device information whenever a new xclbin is added
     XDP_CORE_EXPORT void updateDevice(uint64_t deviceId, void* devHandle) ;
@@ -273,7 +283,8 @@ namespace xdp {
 
     // *********************************************************
     // ***** Functions related to AIE specific information *****
-    XDP_CORE_EXPORT uint8_t getAIEGeneration(uint64_t deviceId) ;
+
+    XDP_CORE_EXPORT uint8_t getAIEGeneration(uint64_t deviceId) ; //TODO: make it iterate over all available AIE xclbins.
     XDP_CORE_EXPORT void setIsAIECounterRead(uint64_t deviceId, bool val) ;
     XDP_CORE_EXPORT bool isAIECounterRead(uint64_t deviceId) ;
     XDP_CORE_EXPORT void setIsGMIORead(uint64_t deviceId, bool val) ;
@@ -337,6 +348,10 @@ namespace xdp {
     XDP_CORE_EXPORT void* getAieDevice(std::function<void* (void*)> allocate,
                                   std::function<void (void*)> deallocate,
                                   void* devHandle) ;
+
+    XDP_CORE_EXPORT void readAIEMetadata(xrt::xclbin xrtXclbin);
+    XDP_CORE_EXPORT bool metadataReaderValid();
+    XDP_CORE_EXPORT const aie::BaseFiletypeImpl* getAIEmetadataReader() const;
 
     // ************************************************************************
     // ***** Functions for information from a specific xclbin on a device *****

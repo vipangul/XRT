@@ -295,6 +295,7 @@ register_xclbin(const xclbin& xclbin)
   });
 }
 
+// TODO : Check how this API would work with multiple xclbins.
 uuid
 device::
 get_xclbin_uuid() const

@@ -1679,10 +1679,11 @@ int
 shim::
 xclLoadXclBin(const xclBin *buffer)
 {
+  std::cout<<"AIE_RELOAD:  pcie xclLoadXclBin() \n";
   // Retrieve any profiling information still on this device from any previous
   // configuration before the device is reconfigured with the new xclbin (when
   // profiling is enabled).
-  xdp::flush_device(this);
+  xdp::flush_device(this); // TODO: check if this is not flushing the device.
 
   auto top = reinterpret_cast<const axlf*>(buffer);
   if (auto ret = xclLoadAxlf(top)) {
