@@ -2064,8 +2064,11 @@ namespace xdp {
       metadataReader = aie::readAIEMetadata("aie_control_config.json", aie_meta);
       if(!metdataReader)
         xrt_core::message::send(xrt_core::message::severity_level::error, "XRT", "AIE metadata read failed for client!");
-      xrt_core::message::send(xrt_core::message::severity_level::debug, "XRT", "AIE metadata read successfully!");
+      xrt_core::message::send(xrt_core::message::severity_level::debug, "XRT", "AIE metadata read successfully on client!");
+      std::string name = "aie_profile_stat_db";
+      metadataReader->dumpAieMeta(name);
       return ;
+
     #endif
 
     auto data = xrt_core::xclbin_int::get_axlf_section(xrtXclbin, AIE_METADATA);
