@@ -35,6 +35,7 @@ file(GLOB XDP_CORE_FILES
     PRIVATE 
     XDP_CLIENT_BUILD=1
   )
+  endif()
 
 add_library(xdp_core SHARED ${XDP_CORE_FILES})
 add_dependencies(xdp_core xrt_coreutil)
