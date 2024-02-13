@@ -211,7 +211,16 @@ namespace xdp::aie {
       return nullptr;
     }
 
-    pt::read_json(filename, aie_project);
+    try {
+      pt::read_json(filename, aie_project);
+    }
+    catch(const std::exception& e)
+    {
+      std::stringstream msg;
+      msg << "Exception while reading the aie_config_control.json"<< std::string(e.what()) ;
+      xrt_core::message::send(severity_level::warning, "XRT", msg.str());
+      return nullptr;
+    }
    
 
     return determineFileType(aie_project);
