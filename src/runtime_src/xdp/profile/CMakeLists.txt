@@ -30,18 +30,18 @@ file(GLOB XDP_CORE_FILES
   "${PROFILE_DIR}/writer/vp_base/*.cpp"
   )
 
-  if (XDP_CLIENT_BUILD_CMAKE STREQUAL "yes")
-  target_compile_definitions(xdp_core
-    PRIVATE 
-    XDP_CLIENT_BUILD=1
-  )
-  endif()
-
 add_library(xdp_core SHARED ${XDP_CORE_FILES})
 add_dependencies(xdp_core xrt_coreutil)
 target_link_libraries(xdp_core PRIVATE xrt_coreutil)
 
 set_target_properties(xdp_core PROPERTIES VERSION ${XRT_VERSION_STRING} SOVERSION ${XRT_SOVERSION})
+
+if (XDP_CLIENT_BUILD_CMAKE STREQUAL "yes")
+  target_compile_definitions(xdp_core
+    PRIVATE 
+    XDP_CLIENT_BUILD=1
+  )
+endif()
 
 install (TARGETS xdp_core
   LIBRARY DESTINATION ${XRT_INSTALL_LIB_DIR} ${XRT_NAMELINK_SKIP}
