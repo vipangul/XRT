@@ -2061,7 +2061,7 @@ namespace xdp {
   void VPStaticDatabase::readAIEMetadata(xrt::xclbin xrtXclbin)
   {
     #ifdef XDP_CLIENT_BUILD
-      metadataReader = aie::readAIEMetadata("aie_control_config.json", aie_meta);
+      metadataReader = aie::readAIEMetadata("aie_control_config.json", mAieMeta);
       if(!metadataReader)
         xrt_core::message::send(xrt_core::message::severity_level::error, "XRT", "AIE metadata read failed for client!");
       xrt_core::message::send(xrt_core::message::severity_level::debug, "XRT", "AIE metadata read successfully on client!");
