@@ -169,6 +169,17 @@ namespace xdp {
     }
   }
 
+  XclbinInfo::XclbinInfo(XclbinInfoType xclbinType) : type(xclbinType)
+  {
+      if(xclbinType == XclbinInfoType::XCLBIN_PL_ONLY) {
+        pl.valid  = true;
+        aie.valid = false;
+      } else if(xclbinType == XclbinInfoType::XCLBIN_AIE_ONLY) {
+        pl.valid  = false;
+        aie.valid = true;
+      }
+  }
+
   XclbinInfo::~XclbinInfo()
   {
     if (deviceIntf)
@@ -187,14 +198,9 @@ namespace xdp {
 
   ConfigInfo::~ConfigInfo()
   {
-    for(auto cfg : currentXclbins)
-      delete cfg;
+    for(auto xclbin : currentXclbins)
+      delete xclbin;
   }
-
-  // XclbinInfo* ConfigInfo::currentConfig()
-  // {
-  //   return currentXclbins.empty() ? nullptr : currentXclbins.back() ;
-  // }
 
   xrt_core::uuid ConfigInfo::getConfigUuid()
   {

@@ -345,8 +345,11 @@ namespace xdp {
       VTFEventType eventType = deviceEvent->getEventType();
       if (XCLBIN_END == eventType) {
         // If we hit the end of an xclbin's execution, then increment xclbins
-        config = loadedConfigs[++configIndex];
-        xclbin = config->getPlXclbin();
+        configIndex++;
+        if(configIndex < static_cast<int>(loadedConfigs.size())) {
+          config = loadedConfigs[configIndex];
+          xclbin = config->getPlXclbin();
+        }
         // TODO_V: Check if expect invalid PL xclbin here?
 
       } else if (KERNEL == eventType) {

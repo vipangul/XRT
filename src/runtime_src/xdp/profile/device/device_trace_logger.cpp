@@ -45,7 +45,7 @@ namespace xdp {
     clockTrainSlope = 1000.0/traceClockRateMHz;
 
     ConfigInfo* config = (db->getStaticInfo()).getCurrentlyLoadedConfig(devId);
-    XclbinInfo* xclbin = config->getPlXclbin();
+    xclbin = config->getPlXclbin();
     if(!xclbin) {
       std::cout<<"Error: PL xclbin not available, Unable to initialize device trace. \n";
       return;

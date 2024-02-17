@@ -242,7 +242,6 @@ namespace xdp::aie {
       return nullptr;
     }
    
-
     return determineFileType(aie_project);
   }
 

@@ -81,7 +81,7 @@ namespace xdp {
       {
         if(xclbin->type == xclbinQueryType || xclbin->type == XCLBIN_AIE_PL) {
           // Create a copy of required missing xclbinInfo.
-          requiredXclbinInfo = new XclbinInfo();
+          requiredXclbinInfo = new XclbinInfo(xclbinQueryType);
           if(xclbinQueryType == XCLBIN_AIE_ONLY)
           {
             requiredXclbinInfo->aie = xclbin->aie;
@@ -159,7 +159,7 @@ namespace xdp {
 
 
     loadedConfigInfos.push_back(config);
-    return config;
+    return config; //TODO_V : Do not return, not needed.
   }
 
   bool DeviceInfo::hasFloatingAIMWithTrace(XclbinInfo* xclbin) const
@@ -239,7 +239,6 @@ namespace xdp {
 
   uint64_t DeviceInfo::getNumASM(XclbinInfo* xclbin) const
   {
-    uint64_t num = 0 ;
     auto loadedConfigs = getLoadedConfigs() ;
     for (auto cfg : loadedConfigs) {
       if (cfg->hasXclbin(xclbin))

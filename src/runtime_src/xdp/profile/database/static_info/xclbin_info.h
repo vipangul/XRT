@@ -184,6 +184,7 @@ namespace xdp {
     // The configuration of the AIE portion of the design (if applicable)
     AIEInfo aie ;
 
+    XclbinInfo(XclbinInfoType xclbinType) ;
     ~XclbinInfo() ;
   } ;
 
