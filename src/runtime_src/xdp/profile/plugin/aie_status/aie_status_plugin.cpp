@@ -414,7 +414,6 @@ namespace xdp {
     // Grab AIE metadata
     metadataReader = (db->getStaticInfo()).getAIEmetadataReader();
     if (!metadataReader) {
-      xrt_core::message::send(severity_level::error, "XRT", "Metadata reader could not be created for AIE status");
       return;
     }
     auto hwGen =  metadataReader->getHardwareGeneration();
