@@ -70,9 +70,8 @@ namespace xdp {
     (db->getStaticInfo()).setDeviceName(deviceID, "win_device");
     
     metadataReader = (db->getStaticInfo()).getAIEmetadataReader();
-    if (!metadataReader) {
+    if (!metadataReader)
       return;
-    }
 
     auto context = xrt_core::hw_context_int::create_hw_context_from_implementation(handle);
     transactionHandler = std::make_unique<aie::ClientTransaction>(context, "AIE Debug");

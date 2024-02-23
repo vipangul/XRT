@@ -413,9 +413,8 @@ namespace xdp {
 
     // Grab AIE metadata
     metadataReader = (db->getStaticInfo()).getAIEmetadataReader();
-    if (!metadataReader) {
+    if (!metadataReader)
       return;
-    }
     auto hwGen =  metadataReader->getHardwareGeneration();
 
     // Update list of tiles to debug

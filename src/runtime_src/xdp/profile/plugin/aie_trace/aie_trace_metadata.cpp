@@ -72,9 +72,8 @@ namespace xdp {
     }
 
     metadataReader = (VPDatabase::Instance()->getStaticInfo()).getAIEmetadataReader();
-    if (!metadataReader) {
+    if (!metadataReader)
       return;
-    }
     
     // Catch when compile-time trace is specified (e.g., --event-trace=functions)
     auto compilerOptions = metadataReader->getAIECompilerOptions();
