@@ -226,6 +226,7 @@ void DeviceIntf::setDevice(xdp::Device *devHandle) {
   if (mDevice && mDevice != devHandle) {
     // ERROR : trying to set device when it is already populated with some other
     // device
+    xrt_core::message::send(xrt_core::message::severity_level::warning, "XRT", "DeviceIntf:setDevice(): deviceHandle is already set ");
     return;
   }
 
@@ -1061,6 +1062,9 @@ void DeviceIntf::configAmContext(const std::string &ctx_info) {
 
 size_t DeviceIntf::allocTraceBuf(uint64_t sz, uint8_t memIdx) {
   std::lock_guard<std::mutex> lock(traceLock);
+  if(!mDevice)
+    xrt_core::message::send(xrt_core::message::severity_level::error, "XRT", "DeviceIntf::allocTraceBuf(): mDevice handle is null");
+
   auto bufId = mDevice->alloc(sz, memIdx);
 
   if (bufId) {

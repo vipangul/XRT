@@ -22,6 +22,7 @@
 #include "xdp/profile/database/events/device_events.h"
 
 #include "core/common/time.h"
+#include "core/common/message.h"
 
 #include <iostream>
 
@@ -86,6 +87,9 @@ namespace xdp {
       return;
 
     issueId(event);
+    
+    xrt_core::message::send(xrt_core::message::severity_level::info, "XRT", "DynamicDB: new event received type: " + 
+                            std::to_string(event->getEventType()) + "& eventId: " + std::to_string(event->getEventId()));
 
     if (event->isDeviceEvent())
       addDeviceEvent(event->getDevice(), event);

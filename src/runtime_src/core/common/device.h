@@ -280,7 +280,15 @@ public:
 
   XRT_CORE_COMMON_EXPORT
   xrt::xclbin
-  get_xclbin(std::string& xclbin_id) const;
+  get_xclbin_new(const std::string& xclbin_id) const;
+
+  XRT_CORE_COMMON_EXPORT
+  xrt::xclbin
+  get_xclbin_last() const;
+
+  XRT_CORE_COMMON_EXPORT
+  xrt::xclbin
+  get_xclbin_first() const;
 
 
   // Get all slots that match xclbin uuid
@@ -312,6 +320,10 @@ public:
   XRT_CORE_COMMON_EXPORT
   uuid
   get_xclbin_uuid() const;
+
+  XRT_CORE_COMMON_EXPORT
+  uuid
+  get_latest_xclbin_uuid() const;
 
   /**
    * get_axlf_section() - Get section from currently loaded axlf
@@ -490,9 +502,11 @@ public:
   xclbin_map m_xclbins;                       // currently loaded xclbins (multi-slot)
   mutable std::mutex m_mutex;
   std::shared_ptr<usage_metrics::base_logger> m_usage_logger = usage_metrics::get_usage_metrics_logger();
+
   xrt::uuid m_xclbin_uuid;  // currently loading xclbin UUID 
   std::string m_xclbin_uuid_str; // Currently loading xclbin UUID str
   std::map<std::string, xrt::xclbin> m_xclbins_run; // currently all loaded xclbins for this single run.
+  std::vector<xrt::xclbin> m_xclbins_vec;
 };
 
 /**

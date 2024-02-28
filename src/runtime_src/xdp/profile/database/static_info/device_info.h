@@ -100,7 +100,7 @@ namespace xdp {
     // XDP_CORE_EXPORT std::vector<XclbinInfo*> getLoadedXclbins() const ;
     inline std::vector<ConfigInfo*> getLoadedConfigs() const { return loadedConfigInfos ;}
     XDP_CORE_EXPORT ConfigInfo* currentConfig() const ;
-    XDP_CORE_EXPORT void cleanCurrentXclbinInfo() ;
+    XDP_CORE_EXPORT void cleanCurrentXclbinInfo(XclbinInfoType type);
     inline bool isNoDMA() const { return isNoDMADevice ; }
     double getMaxClockRatePLMHz();
 

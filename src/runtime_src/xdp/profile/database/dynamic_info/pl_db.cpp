@@ -19,6 +19,7 @@
 #include "xdp/profile/database/database.h"
 #include "xdp/profile/database/dynamic_info/pl_db.h"
 #include "xdp/profile/database/events/vtf_event.h"
+#include "core/common/message.h"
 
 namespace xdp {
 
@@ -26,6 +27,8 @@ namespace xdp {
   {
     if (event == nullptr)
       return;
+    xrt_core::message::send(xrt_core::message::severity_level::info, "XRT", "PLDB: new event received type: " + 
+                            std::to_string(event->getEventType()) + "& eventId: " + std::to_string(event->getEventId()));
 
     bool overLimit = false;
     {

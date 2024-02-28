@@ -194,6 +194,7 @@ namespace xdp {
 
     if (devInterface->hasTs2mm()) {
 
+      xrt_core::message::send(xrt_core::message::severity_level::info, "XRT", "devInf: has TSMM available");
       size_t num_ts2mm = devInterface->getNumberTS2MM();
       trace_buffer_size = GetTS2MMBufSize();
 
@@ -234,6 +235,8 @@ namespace xdp {
           xrt_core::message::send(xrt_core::message::severity_level::warning, "XRT", msg);
         }
       }
+
+      xrt_core::message::send(xrt_core::message::severity_level::info, "XRT", "deviceOffloadPlugin: added deviceOffloader");
     }
 
     DeviceTraceLogger* logger = new DeviceTraceLogger(deviceId) ;

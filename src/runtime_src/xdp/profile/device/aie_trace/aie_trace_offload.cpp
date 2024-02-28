@@ -162,8 +162,9 @@ bool AIETraceOffload::initReadTrace()
   }
 
   checkCircularBufferSupport();
-
+  xrt_core::message::send(xrt_core::message::severity_level::info, "XRT", "AIETraceOffload::initReadTrace(): totalStreams: " + std::to_string(numStream));
   for(uint64_t i = 0; i < numStream ; ++i) {
+    xrt_core::message::send(xrt_core::message::severity_level::info, "XRT", "AIETraceOffload::initReadTrace(): allocTraceBuff streamNo: " + std::to_string(i));
     buffers[i].bufId = deviceIntf->allocTraceBuf(bufAllocSz, memIndex);
     if (!buffers[i].bufId) {
       bufferInitialized = false;

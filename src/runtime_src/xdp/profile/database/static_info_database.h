@@ -149,10 +149,10 @@ namespace xdp {
     void setAIEGeneration(uint64_t deviceId) ;
     void setAIEClockRateMHz(uint64_t deviceId) ;
     bool initializeStructure(XclbinInfo*, xrt::xclbin);
-    bool initializeProfileMonitors(DeviceInfo*, xrt::xclbin);
+    bool initializeProfileMonitors(DeviceInfo*, xrt::xclbin, std::shared_ptr<xrt_core::device> device);
     double findClockRate(xrt::xclbin);
     
-    DeviceInfo* updateDevice(uint64_t deviceId, xrt::xclbin xrtXclbin, bool clientBuild) ;
+    DeviceInfo* updateDevice(uint64_t deviceId, xrt::xclbin xrtXclbin, bool clientBuild, std::shared_ptr<xrt_core::device> device) ;
     XclbinInfoType getXclbinType(xrt::xclbin& xclbin);
 
   public:

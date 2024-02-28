@@ -107,6 +107,8 @@ namespace xdp {
                             int32_t memId);
     // Collect all compute units of a kernel
     std::vector<ComputeUnitInstance*> collectCUs(const std::string& kernelName);
+
+    std::string print() const;
   } ;
 
   // The AIEInfo struct keeps track of all of the information associated
@@ -157,6 +159,8 @@ namespace xdp {
 
     AIEInfo& operator=(const AIEInfo& other) ;
     ~AIEInfo() ;
+    
+    std::string print() const;
   } ;
 
   // The struct XclbinInfo contains all of the information and configuration
@@ -186,6 +190,7 @@ namespace xdp {
 
     XclbinInfo(XclbinInfoType xclbinType) ;
     ~XclbinInfo() ;
+    std::string print() const;
   } ;
 
   // The config struct stores multiple xclbins
@@ -262,8 +267,10 @@ namespace xdp {
     void addAIEMemTileEventResources(uint32_t numEvents,
                                               uint32_t numTiles) ;
     void addAIECfgTile(std::unique_ptr<aie_cfg_tile>&& tile) ;
-    void cleanCurrentXclbinInfos() ;
+    void cleanCurrentXclbinInfos(XclbinInfoType xclbinType) ;
     bool hasAIMNamed(const std::string& name) ;
+
+    void print(std::string callerLoc) const;
     
   } ;
 

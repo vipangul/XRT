@@ -87,6 +87,14 @@ get_xclbin_uuid() const
   return m_xclbin ? m_xclbin.get_uuid() : uuid{};
 }
 
+uuid
+device::
+get_latest_xclbin_uuid() const
+{
+  std::string msg = "AIE_RELOAD: device::get_latest_xclbin_uuid() is called for last loaded xclbin uuid: " + m_xclbin_uuid.to_string() + ".\n";
+  std::cout<<msg;
+  return m_xclbin_uuid;
+}
 // Registering an xclbin has one entry point (this one) only.
 // Shim level registering is not exposed to end-user application.
 // Naming of "record" as in record_xclbin is to compensate for
@@ -129,14 +137,17 @@ void
 device::
 load_xclbin(const xrt::xclbin& xclbin)
 {
-  std::string msg = "AIE_RELOAD: device::laod_xclbin() is called for xclbin_uuid: " + xclbin.get_uuid().to_string() + ".\n";
+  std::string msg = "AIE_RELOAD: device::load_xclbin() is called for xclbin_uuid: " + xclbin.get_uuid().to_string() + ".\n";
   std::cout<<msg;
 
   try {
     m_xclbin = xclbin;
+
     m_xclbin_uuid = xclbin.get_uuid();
     m_xclbin_uuid_str = xclbin.get_uuid().to_string();
     m_xclbins_run[m_xclbin_uuid_str] = xclbin ;
+    m_xclbins_vec.push_back(xclbin);
+
     load_axlf(xclbin.get_axlf());
   }
   catch (const std::exception&) {
@@ -192,24 +203,45 @@ get_xclbin(const uuid& xclbin_id) const
 
 xrt::xclbin
 device::
-get_xclbin(std::string& xclbin_id) const
+get_xclbin_new(const std::string& xclbin_id) const
 {
-  // Allow access to xclbin in process of loading via device::load_xclbin
-  if (!xclbin_id.empty() && xclbin_id == m_xclbin.get_uuid().to_string())
-    return m_xclbin;
-  
-  if (!xclbin_id.empty()) {
-    std::lock_guard lk(m_mutex);
-    if(m_xclbins_run.find(xclbin_id) != m_xclbins_run.end()) {
-      std::cout << "AIE_R3: fetching another xclbin from loaded xclbins.";
-      auto it = m_xclbins_run.find(xclbin_id);
-      return it->second;
-    }
+  std::lock_guard lk(m_mutex);
+  std::cout<<"Print all device xclbins of size: "<<m_xclbins_run.size()<<"\n";
+  for(auto it : m_xclbins_run)
+    std::cout << "AIE_R3: key: " << it.first << " value: "<< it.second.get_uuid().to_string() <<"\n";
+
+  if(m_xclbins_run.find(xclbin_id) != m_xclbins_run.end()) {
+    std::cout << "AIE_R3: fetching another xclbin from loaded xclbins.";
+    auto it = m_xclbins_run.find(xclbin_id);
+    return it->second;
   }
-    // Single xclbin case
+  // Single xclbin case
   return m_xclbin;
 }
 
+xrt::xclbin
+device::
+get_xclbin_last() const
+{
+  std::lock_guard lk(m_mutex);
+  std::cout<<"Print all device xclbins of size: "<<m_xclbins_vec.size()<<"\n";
+  for(auto it : m_xclbins_vec)
+    std::cout << "AIE_R3: : " << it.get_uuid().to_string() <<"\n";
+
+  return m_xclbins_vec.back();
+}
+
+xrt::xclbin
+device::
+get_xclbin_first() const
+{
+  std::lock_guard lk(m_mutex);
+  std::cout<<"Print all device xclbins of size: "<<m_xclbins_vec.size()<<"\n";
+  for(auto it : m_xclbins_vec)
+    std::cout << "AIE_R3: : " << it.get_uuid().to_string() <<"\n";
+
+  return m_xclbins_vec.front();
+}
 // Update cached xclbin data based on data queried from driver. This
 // function can be called by multiple threads. One entry point is
 // via register_axlf, another is through open_context.  For the latter,

@@ -1490,7 +1490,7 @@ namespace xdp {
     xrt::xclbin xrtXclbin = device->get_xclbin_last();
     std::cout<<"AIE_R3: device returned xclbin uuid: "<< xrtXclbin.get_uuid().to_string()<<"\n";
 
-    DeviceInfo* devInfo   = updateDevice(deviceId, xrtXclbin, device);
+    DeviceInfo* devInfo   = updateDevice(deviceId, xrtXclbin, false, device);
     if (device->is_nodma())
       devInfo->isNoDMADevice = true;
 
@@ -1503,7 +1503,7 @@ namespace xdp {
   void VPStaticDatabase::updateDeviceClient(uint64_t deviceId, std::shared_ptr<xrt_core::device> device)
   {
     xrt::xclbin xrtXclbin = device->get_xclbin(device->get_xclbin_uuid());
-    updateDevice(deviceId, xrtXclbin, device);
+    updateDevice(deviceId, xrtXclbin, true, device);
   }
 
   // Return true if we should reset the device information.
@@ -2319,12 +2319,12 @@ namespace xdp {
   {
     xrt::xclbin xrtXclbin = xrt::xclbin(xclbinFile);
 
-    updateDevice(deviceId, xrtXclbin, nullptr);
+    updateDevice(deviceId, xrtXclbin, false, nullptr);
   }
 
   // Methods using xrt::xclbin to retrive static information
 
-  DeviceInfo* VPStaticDatabase::updateDevice(uint64_t deviceId, xrt::xclbin xrtXclbin, std::shared_ptr<xrt_core::device> device)
+  DeviceInfo* VPStaticDatabase::updateDevice(uint64_t deviceId, xrt::xclbin xrtXclbin, bool clientBuild, std::shared_ptr<xrt_core::device> device)
   {    
     // We need to update the device, but if we had an xclbin previously loaded
     //  then we need to mark it
@@ -2352,7 +2352,6 @@ namespace xdp {
       devInfo->cleanCurrentXclbinInfo(xclbinType) ; // Do not clean if AIE_ONLY, it could be mix xclbins run. 
     }
 
-    XclbinInfoType type = getXclbinType(xrtXclbin);
     XclbinInfo* currentXclbin = new XclbinInfo(xclbinType) ;
     currentXclbin->uuid = xrtXclbin.get_uuid();
     // currentXclbin->type = getXclbinType(xrtXclbin);

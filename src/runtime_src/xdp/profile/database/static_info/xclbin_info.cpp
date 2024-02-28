@@ -21,6 +21,7 @@
 #include "xdp/profile/database/static_info/pl_constructs.h"
 #include "xdp/profile/database/static_info/xclbin_info.h"
 #include "xdp/profile/device/device_intf.h"
+#include "core/common/message.h"
 
 namespace xdp {
 
@@ -34,28 +35,59 @@ namespace xdp {
     this->kernelMaxReadBW  = other.kernelMaxReadBW ;
     this->kernelMaxWriteBW = other.kernelMaxWriteBW ;
     this->clockRatePLMHz = other.clockRatePLMHz ;
+    xrt_core::message::send(xrt_core::message::severity_level::info, "XRT", "completed doubles copy");
 
     this->usesTs2mm = other.usesTs2mm ;
     this->usesFifo = other.usesFifo ;
     this->hasFloatingAIMWithTrace = other.hasFloatingAIMWithTrace ;
     this->hasFloatingASMWithTrace = other.hasFloatingASMWithTrace ;
     this->hasMemoryAIM = other.hasMemoryAIM ;
+    xrt_core::message::send(xrt_core::message::severity_level::info, "XRT", "completed bool copy");
 
     std::map<int32_t, ComputeUnitInstance*> cus ;
     for(auto &cu : other.cus)
       this->cus[cu.first] = new ComputeUnitInstance(*cu.second) ;
+    xrt_core::message::send(xrt_core::message::severity_level::info, "XRT", "completed CU instance copy");
 
     std::map<int32_t, Memory*> memoryInfo ;
     for (auto &mi : other.memoryInfo)
       this->memoryInfo[mi.first] = new Memory(*mi.second) ;
-
+    xrt_core::message::send(xrt_core::message::severity_level::info, "XRT", "completed memoryInfo copy");
+    
     this->ams = std::vector<Monitor*>(other.ams.begin(), other.ams.end()) ;
+    xrt_core::message::send(xrt_core::message::severity_level::info, "XRT", "completed ams copy");
+    
     this->aims = std::vector<Monitor*>(other.aims.begin(), other.aims.end()) ;
+    xrt_core::message::send(xrt_core::message::severity_level::info, "XRT", "completed aims copy");
+    
     this->asms = std::vector<Monitor*>(other.asms.begin(), other.asms.end()) ;
+    xrt_core::message::send(xrt_core::message::severity_level::info, "XRT", "completed asms copy");
 
-    this->ip_metadata_section = std::make_unique<ip_metadata>(*other.ip_metadata_section) ;
+    if(other.ip_metadata_section)
+      this->ip_metadata_section = std::make_unique<ip_metadata>(*other.ip_metadata_section) ;
+    xrt_core::message::send(xrt_core::message::severity_level::info, "XRT", "completed ip_metadata_section copy");
   
     return *this ;
+  }
+
+  std::string PLInfo::print() const
+  {
+    std::stringstream ss;
+    ss << "PLINFO Dump: \n";
+    ss << "hostMaxReadBW: "<< hostMaxReadBW <<" \n";
+    ss << "hostMaxWriteBW: "<< hostMaxWriteBW <<"\n";
+    ss << "kernelMaxReadBW: "<< kernelMaxReadBW <<"\n";
+    ss << "kernelMaxWriteBW: "<< kernelMaxWriteBW <<"\n";
+    ss << "clockRatePLMHz: "<< clockRatePLMHz <<"\n";
+    
+    ss << "usesTs2mm: "<< usesTs2mm <<" \n";
+    ss << "usesFifo: "<< usesFifo <<"\n";
+    ss << "hasFloatingAIMWithTrace: "<< hasFloatingAIMWithTrace <<"\n";
+    ss << "hasFloatingASMWithTrace: "<< hasFloatingASMWithTrace <<"\n";
+    ss << "hasMemoryAIM: "<< hasMemoryAIM <<"\n";
+    ss << "----------- "<< "\n";
+    
+    return ss.str();
   }
 
   PLInfo::~PLInfo()
@@ -161,6 +193,20 @@ namespace xdp {
 
     return *this ;
   }
+  std::string AIEInfo::print() const
+  {
+    std::stringstream ss;
+    ss << "AIEINFO Dump: \n";
+    ss << "clockRateAIEMHz: "<< clockRateAIEMHz <<" \n";
+    ss << "numTracePLIO: "<< numTracePLIO <<"\n";
+    ss << "isGMIORead: "<< isGMIORead <<"\n";
+    ss << "isAIEcounterRead: "<< isAIEcounterRead <<"\n";
+
+    ss << "aieList.size(): "<<aieList.size()<<"\n";
+    ss << "gmioList.size(): "<<gmioList.size()<<"\n";
+   
+    return ss.str();
+  }
 
   AIEInfo::~AIEInfo()
   {
@@ -186,6 +232,16 @@ namespace xdp {
       delete deviceIntf ;
   }
 
+  std::string XclbinInfo::print() const
+  {
+    std::string op;
+    op += pl.print();
+    op += std::string("--------------\n");
+    op += aie.print();
+
+    return op;
+  }
+
   ConfigInfo::ConfigInfo() : type(CONFIG_AIE_PL)
   {
 
@@ -200,6 +256,20 @@ namespace xdp {
   {
     for(auto xclbin : currentXclbins)
       delete xclbin;
+  }
+
+  void ConfigInfo::print(std::string callerLoc) const
+  {
+    std::ofstream outfile("configInfo_dump.txt", std::ios::app);
+    if(!outfile.is_open()) {
+      xrt_core::message::send(xrt_core::message::severity_level::info, "XRT", "couldn't open the configInfo_dmp.txt");
+      return;
+    }
+    outfile<<"================================\n";
+    outfile<<callerLoc<<" : \n";
+    for(auto bin : currentXclbins) {
+        outfile<< bin->print();
+    }
   }
 
   xrt_core::uuid ConfigInfo::getConfigUuid()
@@ -248,9 +318,12 @@ namespace xdp {
   {
     for(auto xclbin : currentXclbins)
     {
+      // xrt_core::message::send(xrt_core::message::severity_level::info, "XRT", "getPlXclbin(): Is PL valid: " + std::to_string(xclbin->pl.valid) + 
+      //                         " & is AIE valid: " + std::to_string(xclbin->aie.valid));
       if(xclbin->pl.valid)
         return xclbin;
     }
+    // xrt_core::message::send(xrt_core::message::severity_level::info, "XRT", "getPlXclbin(): ----------------------------"); 
     return nullptr;
   }
 
@@ -530,6 +603,7 @@ namespace xdp {
       {
         if(xclbin->aie.valid)
         {
+          xrt_core::message::send(xrt_core::message::severity_level::info, "XRT", "added GMIO trace: "+ std::to_string(id));
           xclbin->aie.gmioList.push_back(new TraceGMIO(id, col, num, stream, len)) ;
           return ;
         }
@@ -652,8 +726,13 @@ namespace xdp {
       }
     }
 
-    void ConfigInfo::cleanCurrentXclbinInfos()
+    void ConfigInfo::cleanCurrentXclbinInfos(XclbinInfoType xclbinType)
     {
+      if(xclbinType == XCLBIN_AIE_ONLY)   {
+        xrt_core::message::send(xrt_core::message::severity_level::info, "XRT", "Skipping the current config clean for new xclbin");
+        return;
+      }
+
       for(auto xclbin : currentXclbins) {
         if(xclbin->aie.valid) {
           

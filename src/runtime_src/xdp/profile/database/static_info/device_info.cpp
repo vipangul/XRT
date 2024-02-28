@@ -21,6 +21,7 @@
 #include "xdp/profile/database/static_info/pl_constructs.h"
 #include "xdp/profile/database/static_info/xclbin_info.h"
 #include "xdp/profile/device/device_intf.h"
+#include "core/common/message.h"
 
 namespace xdp {
 
@@ -58,8 +59,10 @@ namespace xdp {
   XclbinInfo* DeviceInfo::createXclbinFromLastConfig(XclbinInfoType xclbinQueryType)
   {
     XclbinInfo* requiredXclbinInfo = nullptr;
-    if(loadedConfigInfos.empty())
+    if(loadedConfigInfos.empty()) {
+      xrt_core::message::send(xrt_core::message::severity_level::info, "XRT", "loaded config is empty.");
       return requiredXclbinInfo;
+    }
 
     bool xclbinAvailable = false;
     auto lastConfigType = loadedConfigInfos.back()->type;
@@ -76,6 +79,7 @@ namespace xdp {
     }
 
     if(xclbinAvailable) {
+      xrt_core::message::send(xrt_core::message::severity_level::info, "XRT", "Missing xclbin is available in config.");
       ConfigInfo* lastCfg = loadedConfigInfos.back();
       for(auto &xclbin : lastCfg->currentXclbins)
       {
@@ -84,11 +88,13 @@ namespace xdp {
           requiredXclbinInfo = new XclbinInfo(xclbinQueryType);
           if(xclbinQueryType == XCLBIN_AIE_ONLY)
           {
+            xrt_core::message::send(xrt_core::message::severity_level::info, "XRT", "Copying missing AIE xclbin");
             requiredXclbinInfo->aie = xclbin->aie;
             requiredXclbinInfo->pl.valid = false ;
           }
           else
           {
+            xrt_core::message::send(xrt_core::message::severity_level::info, "XRT", "Copying missing PL xclbin");
             requiredXclbinInfo->pl = xclbin->pl;
             requiredXclbinInfo->aie.valid = false ;
 
@@ -121,10 +127,12 @@ namespace xdp {
     config->addXclbin(xclbin);
 
     auto currentXclbinType = xclbin->type;
+    xrt_core::message::send(xrt_core::message::severity_level::info, "XRT", "current xclbin type: " + std::to_string(static_cast<int>(currentXclbinType)) );
 
     // Check if this itself is a complete xclbin (AIE+PL).
     if (currentXclbinType == XCLBIN_AIE_PL)
     {
+      xrt_core::message::send(xrt_core::message::severity_level::info, "XRT", "This is AIE + PL config already");
       loadedConfigInfos.push_back(config);
       return config;
     }
@@ -136,10 +144,12 @@ namespace xdp {
     if (currentXclbinType == XCLBIN_AIE_ONLY)
     {
       xclbin->pl.valid = false ;
+      xrt_core::message::send(xrt_core::message::severity_level::info, "XRT", "Quering for missing PL config from last config");
       missingXclbin = createXclbinFromLastConfig(XCLBIN_PL_ONLY);
     }
     else
     {
+      xrt_core::message::send(xrt_core::message::severity_level::info, "XRT", "Quering for missing AIE config from last config");
       xclbin->aie.valid = false ;
       missingXclbin = createXclbinFromLastConfig(XCLBIN_AIE_ONLY);
     }
@@ -147,6 +157,7 @@ namespace xdp {
     // If missing part of XclbinInfo is available. 
     if(missingXclbin)
     {
+      xrt_core::message::send(xrt_core::message::severity_level::info, "XRT", "Got the required xclbin from last config");
       config->addXclbin(missingXclbin);
       config->type = CONFIG_AIE_PL_FORMED;
     }
@@ -155,10 +166,17 @@ namespace xdp {
       // If missing part of XclbinInfo is not available.
       // This is same xclbin type load as previous xclbin.
       config->type = (currentXclbinType == XCLBIN_AIE_ONLY) ? CONFIG_AIE_ONLY : CONFIG_PL_ONLY ;
+      xrt_core::message::send(xrt_core::message::severity_level::info, "XRT", "Query didn't find missing config from last config");
+      xrt_core::message::send(xrt_core::message::severity_level::info, "XRT", "No missing config available for current config type: " + 
+                                              std::to_string(static_cast<int>(config->type)) + "for xclbin type: " + std::to_string(static_cast<int>(currentXclbinType)) );
     }
 
 
     loadedConfigInfos.push_back(config);
+    for(auto bin : loadedConfigInfos.back()->currentXclbins) {
+      xrt_core::message::send(xrt_core::message::severity_level::info, "XRT", "Back of loaded config? PL_Valid: " + std::to_string(bin->pl.valid)
+                              + "& AIE_valid: " + std::to_string(bin->aie.valid));
+    }
     return config; //TODO_V : Do not return, not needed.
   }
 
@@ -468,13 +486,13 @@ namespace xdp {
   }
   
   // TODO: Change name to cleanCurrenConfig() 
-  void DeviceInfo::cleanCurrentXclbinInfo()
+  void DeviceInfo::cleanCurrentXclbinInfo(XclbinInfoType type)
   {
     ConfigInfo* config = currentConfig() ;
     if (!config || config->currentXclbins.empty())
       return ;
 
-    config->cleanCurrentXclbinInfos() ;
+    config->cleanCurrentXclbinInfos(type) ;
   }
 
   double DeviceInfo::getMaxClockRatePLMHz()
