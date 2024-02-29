@@ -45,6 +45,11 @@ namespace xdp::aie {
   // the file
   XDP_CORE_EXPORT
   std::unique_ptr<BaseFiletypeImpl>
+  readAIEMetadata(const char* data, size_t size,
+                  boost::property_tree::ptree& aie_project);
+
+  XDP_CORE_EXPORT
+  std::unique_ptr<BaseFiletypeImpl>
   readAIEMetadata(const char* filename,
                   boost::property_tree::ptree& aie_project);
 

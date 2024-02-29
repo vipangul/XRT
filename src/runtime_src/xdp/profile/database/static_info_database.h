@@ -146,12 +146,12 @@ namespace xdp {
     void initializeXrtIP(XclbinInfo* xclbin);
 
     void setDeviceNameFromXclbin(uint64_t deviceId, xrt::xclbin xrtXclbin);
-    void setAIEGeneration(uint64_t deviceId) ;
-    void setAIEClockRateMHz(uint64_t deviceId) ;
+    void setAIEGeneration(uint64_t deviceId, xrt::xclbin xrtXclbin) ;
+    void setAIEClockRateMHz(uint64_t deviceId, xrt::xclbin xrtXclbin) ;
     bool initializeStructure(XclbinInfo*, xrt::xclbin);
     bool initializeProfileMonitors(DeviceInfo*, xrt::xclbin, std::shared_ptr<xrt_core::device> device);
     double findClockRate(xrt::xclbin);
-    
+
     DeviceInfo* updateDevice(uint64_t deviceId, xrt::xclbin xrtXclbin, bool clientBuild, std::shared_ptr<xrt_core::device> device) ;
     XclbinInfoType getXclbinType(xrt::xclbin& xclbin);
 
@@ -272,7 +272,7 @@ namespace xdp {
     XDP_CORE_EXPORT std::string getXclbinName(uint64_t deviceId) ;
     // XDP_CORE_EXPORT std::vector<XclbinInfo*> getLoadedXclbins(uint64_t deviceId) ;
     XDP_CORE_EXPORT std::vector<ConfigInfo*> getLoadedConfigs(uint64_t deviceId) ;
-    XDP_CORE_EXPORT ComputeUnitInstance* getCU(uint64_t deviceId, int32_t cuId) ;  // TODO: 
+    XDP_CORE_EXPORT ComputeUnitInstance* getCU(uint64_t deviceId, int32_t cuId) ;  // TODO:
     XDP_CORE_EXPORT Memory* getMemory(uint64_t deviceId, int32_t memId) ;
     // Reseting device information whenever a new xclbin is added
     XDP_CORE_EXPORT void updateDevice(uint64_t deviceId, void* devHandle) ;

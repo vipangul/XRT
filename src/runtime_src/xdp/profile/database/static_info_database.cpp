@@ -398,11 +398,11 @@ namespace xdp {
     ConfigInfo* config = deviceInfo[deviceId]->currentConfig() ;
     if (!config)
       return nullptr ;
-    
+
     XclbinInfo* xclbin = config->getPlXclbin();
     if(!xclbin)
       return nullptr;
-    
+
     return xclbin->deviceIntf ;
   }
 
@@ -457,11 +457,11 @@ namespace xdp {
     ConfigInfo* config = deviceInfo[deviceId]->currentConfig() ;
     if (!config)
       return ;
-    
+
     XclbinInfo* xclbin = config->getPlXclbin();
     if(!xclbin)
       return;
-    
+
     xclbin->pl.hostMaxReadBW = bw ;
   }
 
@@ -479,7 +479,7 @@ namespace xdp {
     XclbinInfo* xclbin = config->getPlXclbin();
     if(!xclbin)
       return 0.0;
- 
+
     return xclbin->pl.hostMaxReadBW ;
   }
 
@@ -497,7 +497,7 @@ namespace xdp {
     XclbinInfo* xclbin = config->getPlXclbin();
     if(!xclbin)
       return ;
- 
+
     xclbin->pl.hostMaxWriteBW = bw ;
   }
 
@@ -515,7 +515,7 @@ namespace xdp {
     XclbinInfo* xclbin = config->getPlXclbin();
     if(!xclbin)
       return 0.0;
- 
+
     return xclbin->pl.hostMaxWriteBW ;
   }
 
@@ -525,7 +525,7 @@ namespace xdp {
 
     if (deviceInfo.find(deviceId) == deviceInfo.end())
       return ;
-  
+
     ConfigInfo* config = deviceInfo[deviceId]->currentConfig() ;
     if (!config)
       return ;
@@ -533,7 +533,7 @@ namespace xdp {
     XclbinInfo* xclbin = config->getPlXclbin();
     if(!xclbin)
       return;
-      
+
     xclbin->pl.kernelMaxReadBW = bw ;
   }
 
@@ -551,7 +551,7 @@ namespace xdp {
     XclbinInfo* xclbin = config->getPlXclbin();
     if(!xclbin)
       return 0.0;
- 
+
     return xclbin->pl.kernelMaxReadBW ;
   }
 
@@ -569,7 +569,7 @@ namespace xdp {
     XclbinInfo* xclbin = config->getPlXclbin();
     if(!xclbin)
       return;
- 
+
     xclbin->pl.kernelMaxWriteBW = bw ;
   }
 
@@ -587,7 +587,7 @@ namespace xdp {
     XclbinInfo* xclbin = config->getPlXclbin();
     if(!xclbin)
       return 0.0;
- 
+
     return xclbin->pl.kernelMaxWriteBW ;
   }
 
@@ -805,7 +805,7 @@ namespace xdp {
     ConfigInfo* config = deviceInfo[deviceId]->currentConfig() ;
     if (!config)
       return false ;
-    
+
     XclbinInfo* xclbin = config->getAieXclbin();
     if (!xclbin)
       return false;
@@ -865,8 +865,8 @@ namespace xdp {
     XclbinInfo* xclbin = config->getAieXclbin();
     if (!xclbin)
       return nullptr;
-    
-    if (xclbin->aie.aieList.size()>0) 
+
+    if (xclbin->aie.aieList.size()>0)
         return xclbin->aie.aieList[idx] ;
     return nullptr;
   }
@@ -1531,7 +1531,7 @@ namespace xdp {
       // Are we attempting to load the same xclbin multiple times?
       auto xclbinUuids = config->getConfigUuids() ;
       std::cout<<"AIE_R3: device new xclbin_uuid: "<<device_uuid.to_string()<<" & stored devInfo config xclbin_uuid: "<<config->getConfigUuid().to_string()<<" .\n";
-      
+
       if(!xclbinUuids.empty() && std::find(xclbinUuids.begin(), xclbinUuids.end(), device_uuid) != xclbinUuids.end()) {
         std::cout<<"AIE_R3: currentXclbins uuids already contains this new xclbin uuid! \n ";
         // return false;
@@ -1727,7 +1727,7 @@ namespace xdp {
     XclbinInfo *xclbin = config->getPlXclbin();
     if(!xclbin)
       return;
-    
+
     //TODO_J: check if this is still needed?
     auto data = device->get_axlf_section(IP_METADATA);
     if (!data.first || !data.second)
@@ -1973,7 +1973,7 @@ namespace xdp {
 
     uint64_t index = static_cast<uint64_t>(debugIpData->m_index_lowbyte) |
       (static_cast<uint64_t>(debugIpData->m_index_highbyte) << 8);
-    
+
     XclbinInfo* xclbin = config->getPlXclbin();
     if (!xclbin) {
       xrt_core::message::send(xrt_core::message::severity_level::error, "XRT",
@@ -2119,7 +2119,7 @@ namespace xdp {
                               "Attempt to initialize an ASM without a loaded xclbin") ;
       return ;
     }
-    
+
     XclbinInfo* xclbin = config->getPlXclbin() ;
     if(!xclbin) {
       xrt_core::message::send(xrt_core::message::severity_level::error, "XRT",
@@ -2219,7 +2219,7 @@ namespace xdp {
     ConfigInfo* config = devInfo->currentConfig() ;
     if (!config)
       return ;
-  
+
     XclbinInfo* xclbin = config->getAieXclbin() ;
     if(!xclbin) {
       xrt_core::message::send(xrt_core::message::severity_level::warning, "XRT",
@@ -2265,7 +2265,7 @@ namespace xdp {
     ConfigInfo* config = devInfo->currentConfig() ;
     if (!config)
       return ;
-    
+
     XclbinInfo*  xclbin = config->getPlXclbin() ;
     if(!xclbin) {
       xrt_core::message::send(xrt_core::message::severity_level::error, "XRT",
@@ -2299,21 +2299,21 @@ namespace xdp {
 
     auto data = xrt_core::xclbin_int::get_axlf_section(xclbin, AIE_METADATA);
     if (data.first && data.second)
-        is_aie_available = true;  
+        is_aie_available = true;
 
     data = xrt_core::xclbin_int::get_axlf_section(xclbin, IP_LAYOUT);
     if (data.first && data.second)
-        is_pl_available = true;  
+        is_pl_available = true;
 
     if(is_aie_available && is_pl_available)
       return XCLBIN_AIE_PL;
     else if (is_aie_available)
       return XCLBIN_AIE_ONLY;
-    else 
+    else
       return XCLBIN_PL_ONLY;
   }
 
-  // This function is called from "trace_processor" tool 
+  // This function is called from "trace_processor" tool
   // The tool creates events from raw PL trace data
   void VPStaticDatabase::updateDevice(uint64_t deviceId, const std::string& xclbinFile)
   {
@@ -2325,7 +2325,7 @@ namespace xdp {
   // Methods using xrt::xclbin to retrive static information
 
   DeviceInfo* VPStaticDatabase::updateDevice(uint64_t deviceId, xrt::xclbin xrtXclbin, bool clientBuild, std::shared_ptr<xrt_core::device> device)
-  {    
+  {
     // We need to update the device, but if we had an xclbin previously loaded
     //  then we need to mark it
     if (deviceInfo.find(deviceId) != deviceInfo.end()) {
@@ -2349,20 +2349,20 @@ namespace xdp {
     } else {
       // This is a previously used device being reloaded with a new xclbin
       devInfo = itr->second.get();
-      devInfo->cleanCurrentXclbinInfo(xclbinType) ; // Do not clean if AIE_ONLY, it could be mix xclbins run. 
+      devInfo->cleanCurrentXclbinInfo(xclbinType) ; // Do not clean if AIE_ONLY, it could be mix xclbins run.
     }
 
     XclbinInfo* currentXclbin = new XclbinInfo(xclbinType) ;
     currentXclbin->uuid = xrtXclbin.get_uuid();
     // currentXclbin->type = getXclbinType(xrtXclbin);
 
-    currentXclbin->pl.clockRatePLMHz = findClockRate(xrtXclbin) ; 
+    currentXclbin->pl.clockRatePLMHz = findClockRate(xrtXclbin) ;
 
     setDeviceNameFromXclbin(deviceId, xrtXclbin);
-    readAIEMetadata(xrtXclbin);
-    setAIEGeneration(deviceId);
+    readAIEMetadata(xrtXclbin, clientBuild);
+    setAIEGeneration(deviceId, xrtXclbin);
     // Add aie clock to xclbin
-    setAIEClockRateMHz(deviceId);
+    setAIEClockRateMHz(deviceId, xrtXclbin);
 
     /* Configure AMs if context monitoring is supported
      * else disable alll AMs on this device
@@ -2424,17 +2424,6 @@ namespace xdp {
 
   void VPStaticDatabase::readAIEMetadataClient()
   {
-    #ifdef XDP_CLIENT_BUILD
-      metadataReader = aie::readAIEMetadata("aie_control_config.json", aie_meta);
-      if(!metadataReader)
-        xrt_core::message::send(xrt_core::message::severity_level::error, "XRT", "AIE metadata read failed for client!");
-
-      xrt_core::message::send(xrt_core::message::severity_level::debug, "XRT", "AIE metadata read successfully!");
-      return ;
-    #endif
-
-    auto data = xrt_core::xclbin_int::get_axlf_section(xrtXclbin, AIE_METADATA);
-    if (!data.first || !data.second) {
     metadataReader = aie::readAIEMetadata("aie_control_config.json", aieMetadata);
     if(!metadataReader) {
       xrt_core::message::send(xrt_core::message::severity_level::warning, "XRT", "AIE metadata read failed on client!");
@@ -2450,11 +2439,6 @@ namespace xdp {
       return;
     }
 
-    metadataReader = xdp::aie::determineFileType(aieMeta);
-    if(!metadataReader)
-      xrt_core::message::send(xrt_core::message::severity_level::warning, "XRT", "metadataReader create failed.");
-    xrt_core::message::send(xrt_core::message::severity_level::info, "XRT", "aieMeta read successfully!");
-  }
     auto data = xrt_core::xclbin_int::get_axlf_section(xrtXclbin, AIE_METADATA);
     if (!data.first || !data.second) {
       return;
@@ -2480,8 +2464,6 @@ namespace xdp {
       return;
 
     try {
-      auto hwGen = aieMeta.get_child("aie_metadata.driver_config.hw_gen").get_value<uint8_t>();
-      xrt_core::message::send(xrt_core::message::severity_level::info, "XRT", "read hwGen: " + std::to_string(hwGen));
       auto hwGen = aieMetadata.get_child("aie_metadata.driver_config.hw_gen").get_value<uint8_t>();
       deviceInfo[deviceId]->setAIEGeneration(hwGen);
       // std::cout<<"AIE_R3: set the AIEGeneration to value: "<< hwGen <<".\n";
@@ -2490,7 +2472,7 @@ namespace xdp {
     }
   }
 
-  void VPStaticDatabase::setAIEClockRateMHz(uint64_t deviceId) {
+  void VPStaticDatabase::setAIEClockRateMHz(uint64_t deviceId, xrt::xclbin xrtXclbin) {
     std::lock_guard<std::mutex> lock(deviceLock) ;
 
     if (deviceInfo.find(deviceId) == deviceInfo.end())
@@ -2586,8 +2568,8 @@ namespace xdp {
     if(ipLayoutSection == nullptr)
       return true;
 
-    // PL Specific 
-    createComputeUnits(currentXclbin, ipLayoutSection);
+    // PL Specific
+    createComputeUnits(currentXclbin, ipLayoutSection,systemMetadata.first, systemMetadata.second);
 
     // Step 2 -> Create the memory layout based on the MEM_TOPOLOGY section
     const mem_topology* memTopologySection =
@@ -2596,7 +2578,7 @@ namespace xdp {
     if(memTopologySection == nullptr)
       return false;
 
-    // PL Specific 
+    // PL Specific
     createMemories(currentXclbin, memTopologySection);
 
     // Step 3 -> Connect the CUs with the memory resources using the
@@ -2607,7 +2589,7 @@ namespace xdp {
     if(connectivitySection == nullptr)
       return true;
 
-    // PL Specific 
+    // PL Specific
     createConnections(currentXclbin, ipLayoutSection, memTopologySection,
                       connectivitySection);
 
@@ -2616,15 +2598,12 @@ namespace xdp {
     std::pair<const char*, size_t> embeddedMetadata =
        xrt_core::xclbin_int::get_axlf_section(xrtXclbin, EMBEDDED_METADATA);
 
-    // PL Specific 
+    // PL Specific
     annotateWorkgroupSize(currentXclbin, embeddedMetadata.first,
                           embeddedMetadata.second);
 
     // Step 5 -> Fill in the details like the name of the xclbin using
     //           the SYSTEM_METADATA section
-    std::pair<const char*, size_t> systemMetadata =
-       xrt_core::xclbin_int::get_axlf_section(xrtXclbin, SYSTEM_METADATA);
-
     setXclbinName(currentXclbin, systemMetadata.first, systemMetadata.second);
     updateSystemDiagram(systemMetadata.first, systemMetadata.second);
     addPortInfo(currentXclbin, systemMetadata.first, systemMetadata.second);
@@ -2645,7 +2624,7 @@ namespace xdp {
       auto xclbinType = getXclbinType(xrtXclbin);
       if(xclbinType == XCLBIN_AIE_ONLY) {
         xrt_core::message::send(xrt_core::message::severity_level::info, "XRT", "DEBUG_IP_LAYOUT missing in AIE_ONLY xclbin");
-        
+
         ConfigInfo* config = devInfo->currentConfig() ;
         auto aieXclbin = config->getAieXclbin();
         auto plXclbin = config->getPlXclbin();
