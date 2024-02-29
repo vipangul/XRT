@@ -1120,7 +1120,6 @@ namespace xdp {
       if(!xclbin)
         continue;
 
-      uint64_t AIMIndex = 0 ;
       for (auto monitor : xclbin->pl.aims)
       {
         if (monitor->name.find("Host to Device") != std::string::npos)
@@ -1243,7 +1242,6 @@ namespace xdp {
         if(!xclbin)
           continue;
 
-        uint64_t AIMIndex = 0 ;
         for (auto monitor : xclbin->pl.aims) {
           if (monitor->name.find("Peer to Peer") != std::string::npos) {
             
@@ -1288,7 +1286,6 @@ namespace xdp {
         if(!xclbin)
           continue;
 
-        uint64_t AIMIndex = 0 ;
         for (auto monitor : xclbin->pl.aims) {
           if (monitor->name.find("Peer to Peer") != std::string::npos) {
             // This is the monitor we are looking for
@@ -1413,7 +1410,6 @@ namespace xdp {
         if(!xclbin)
           continue;
 
-        uint64_t AIMIndex = 0;
         xdp::CounterResults values =
           db->getDynamicInfo().getCounterResults(device->deviceId,
                                                  config->getConfigUuid()) ;
@@ -1478,7 +1474,6 @@ namespace xdp {
         if(!xclbin)
           continue;
 
-        uint64_t AIMIndex = 0 ;
         for (auto monitor : xclbin->pl.aims) {
           if (monitor->name.find("Memory to Memory") != std::string::npos) {
             xdp::CounterResults values =
@@ -1519,7 +1514,6 @@ namespace xdp {
         if(!xclbin)
           continue;
 
-        uint64_t AIMIndex = 0 ;
         for (auto monitor : xclbin->pl.aims) {
           if (monitor->name.find("Memory to Memory") != std::string::npos) {
             // This is the monitor we are looking for
