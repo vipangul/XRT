@@ -140,13 +140,20 @@ namespace xdp {
 #ifdef XDP_CLIENT_BUILD
       return;
 #else
+      xrt_core::message::send(severity_level::info, "XRT", "AIE Profile : erasing found old handleToAIEData[handle]: " + std::to_string(handleToAIEData[handle].deviceID));
       handleToAIEData.erase(handle);
+      // xrt_core::message::send(severity_level::info, "XRT", "AIE Profile : skipping erase of old handleToAIEData.");
+      xrt_core::message::send(severity_level::info, "XRT", "AIE Profile : erased of old handleToAIEData.");
 #endif
     auto& AIEData = handleToAIEData[handle];
 
     AIEData.deviceID = deviceID;
     AIEData.metadata = std::make_shared<AieProfileMetadata>(deviceID, handle);
-
+    if(AIEData.metadata->aieMetadataEmpty())
+    {
+      xrt_core::message::send(severity_level::debug, "XRT", "AIE Profile : no AIE metadata available for this xclbin update, skipping updateAIEDevice()");
+      return;
+    }
 #ifdef XDP_CLIENT_BUILD
     AIEData.metadata->setHwContext(context);
     AIEData.implementation = std::make_unique<AieProfile_WinImpl>(db, AIEData.metadata);

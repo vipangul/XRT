@@ -844,7 +844,7 @@ namespace xdp {
             : ((type == module_type::shim) ? "interface" : "AIE");
         infoMsg << "Configuring " << tileName << " tile (" << +col << "," 
                 << +row << ") for trace using metric set " << metricSet;
-        xrt_core::message::send(severity_level::info, "XRT", infoMsg.str());
+        xrt_core::message::send(severity_level::debug, "XRT", infoMsg.str());
       }
 
       // Check Resource Availability

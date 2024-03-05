@@ -52,7 +52,7 @@ namespace xdp {
     VPDatabase* db = nullptr;
 
     /// @brief Trace metadata parsed from user settings
-    std::shared_ptr<AieTraceMetadata> metadata;
+    std::shared_ptr<AieTraceMetadata> metadata; // Debug around this.
 
   public:
     /// @brief Update device (e.g., after loading xclbin)

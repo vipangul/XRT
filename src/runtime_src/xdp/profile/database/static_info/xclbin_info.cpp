@@ -72,22 +72,26 @@ namespace xdp {
 
   std::string PLInfo::print() const
   {
-    std::stringstream ss;
-    ss << "PLINFO Dump: \n";
-    ss << "hostMaxReadBW: "<< hostMaxReadBW <<" \n";
-    ss << "hostMaxWriteBW: "<< hostMaxWriteBW <<"\n";
-    ss << "kernelMaxReadBW: "<< kernelMaxReadBW <<"\n";
-    ss << "kernelMaxWriteBW: "<< kernelMaxWriteBW <<"\n";
-    ss << "clockRatePLMHz: "<< clockRatePLMHz <<"\n";
-    
-    ss << "usesTs2mm: "<< usesTs2mm <<" \n";
-    ss << "usesFifo: "<< usesFifo <<"\n";
-    ss << "hasFloatingAIMWithTrace: "<< hasFloatingAIMWithTrace <<"\n";
-    ss << "hasFloatingASMWithTrace: "<< hasFloatingASMWithTrace <<"\n";
-    ss << "hasMemoryAIM: "<< hasMemoryAIM <<"\n";
-    ss << "----------- "<< "\n";
-    
-    return ss.str();
+    if(valid) {
+      std::stringstream ss;
+      ss << "PLINFO Dump: \n";
+      ss << "valid: "<< valid <<" \n";
+      ss << "hostMaxReadBW: "<< hostMaxReadBW <<" \n";
+      ss << "hostMaxWriteBW: "<< hostMaxWriteBW <<"\n";
+      ss << "kernelMaxReadBW: "<< kernelMaxReadBW <<"\n";
+      ss << "kernelMaxWriteBW: "<< kernelMaxWriteBW <<"\n";
+      ss << "clockRatePLMHz: "<< clockRatePLMHz <<"\n";
+      
+      ss << "usesTs2mm: "<< usesTs2mm <<" \n";
+      ss << "usesFifo: "<< usesFifo <<"\n";
+      ss << "hasFloatingAIMWithTrace: "<< hasFloatingAIMWithTrace <<"\n";
+      ss << "hasFloatingASMWithTrace: "<< hasFloatingASMWithTrace <<"\n";
+      ss << "hasMemoryAIM: "<< hasMemoryAIM <<"\n";
+      ss << "----------- "<< "\n";
+      return ss.str();
+    } else {
+      return "NotValid";
+    }
   }
 
   PLInfo::~PLInfo()
@@ -196,15 +200,20 @@ namespace xdp {
   std::string AIEInfo::print() const
   {
     std::stringstream ss;
-    ss << "AIEINFO Dump: \n";
-    ss << "clockRateAIEMHz: "<< clockRateAIEMHz <<" \n";
-    ss << "numTracePLIO: "<< numTracePLIO <<"\n";
-    ss << "isGMIORead: "<< isGMIORead <<"\n";
-    ss << "isAIEcounterRead: "<< isAIEcounterRead <<"\n";
+    if(valid) {
+      ss << "AIEINFO Dump: \n";
+      ss << "valid: "<< valid <<" \n";
+      ss << "clockRateAIEMHz: "<< clockRateAIEMHz <<" \n";
+      ss << "numTracePLIO: "<< numTracePLIO <<"\n";
+      ss << "isGMIORead: "<< isGMIORead <<"\n";
+      ss << "isAIEcounterRead: "<< isAIEcounterRead <<"\n";
 
-    ss << "aieList.size(): "<<aieList.size()<<"\n";
-    ss << "gmioList.size(): "<<gmioList.size()<<"\n";
-   
+      ss << "aieList.size(): "<<aieList.size()<<"\n";
+      ss << "gmioList.size(): "<<gmioList.size()<<"\n";
+    } else {
+      ss << "numTracePLIO: "<< numTracePLIO <<"\n";
+      ss<< ":NotValid\n";
+    }
     return ss.str();
   }
 

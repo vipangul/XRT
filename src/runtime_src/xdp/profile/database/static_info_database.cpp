@@ -1168,6 +1168,8 @@ namespace xdp {
     XclbinInfo* xclbin = config->getAieXclbin();
     if (!xclbin)
       return 0;
+    
+    xrt_core::message::send(xrt_core::message::severity_level::info, "XRT", " getNumTracePLIO() xclbin->pl: \n" + xclbin->pl.print() + " Back AIE xclbin->aie" + xclbin->aie.print());
 
     return xclbin->aie.numTracePLIO ;
   }
@@ -1480,7 +1482,7 @@ namespace xdp {
      * in the static data base. So, no need to read the xclbin information again.
      */
     if (!resetDeviceInfo(deviceId, device)) {
-      std::cout<<"AIE_R3: REVERT: reset device info wants to skip this updateDevice(). But continuing... \n";
+      std::cout<<"AIE_R3: REVERT: reset device info wants to skip this updateDevice().\n";
       return;
     }
 
@@ -1534,7 +1536,7 @@ namespace xdp {
 
       if(!xclbinUuids.empty() && std::find(xclbinUuids.begin(), xclbinUuids.end(), device_uuid) != xclbinUuids.end()) {
         std::cout<<"AIE_R3: currentXclbins uuids already contains this new xclbin uuid! \n ";
-        // return false;
+        return false;
       }
     }
     return true;
@@ -2383,6 +2385,16 @@ namespace xdp {
 
     initializeProfileMonitors(devInfo, xrtXclbin, device);
     xrt_core::message::send(xrt_core::message::severity_level::info, "XRT", "Initialized profile monitors for new xclbin");
+
+    for(auto bin : devInfo->loadedConfigInfos.back()->currentXclbins) {
+      xrt_core::message::send(xrt_core::message::severity_level::info, "XRT", "Back of loaded config? PL_Valid: " + std::to_string(bin->pl.valid)
+                              + "& AIE_valid: " + std::to_string(bin->aie.valid));
+      if(bin->pl.valid)
+        xrt_core::message::send(xrt_core::message::severity_level::info, "XRT", "Back PL xclbin->pl: \n" + bin->pl.print());
+      // if(bin->aie.valid)
+        xrt_core::message::send(xrt_core::message::severity_level::info, "XRT", "Back AIE xclbin->aie" + bin->aie.print());
+    }
+
     devInfo->isReady = true;
 
     xrt_core::message::send(xrt_core::message::severity_level::info, "XRT", "updateDevice completed for new xclbin.");
@@ -2623,15 +2635,16 @@ namespace xdp {
     if(debugIpLayoutSection == nullptr) {
       auto xclbinType = getXclbinType(xrtXclbin);
       if(xclbinType == XCLBIN_AIE_ONLY) {
-        xrt_core::message::send(xrt_core::message::severity_level::info, "XRT", "DEBUG_IP_LAYOUT missing in AIE_ONLY xclbin");
+        xrt_core::message::send(xrt_core::message::severity_level::info, "XRT", "DEBUG_IP_LAYOUT missing in AIE_ONLY xclbin, returning....");
+      
+        // ConfigInfo* config = devInfo->currentConfig() ;
+        // auto aieXclbin = config->getAieXclbin();
+        // auto plXclbin = config->getPlXclbin();
+        // aieXclbin->aie.numTracePLIO = plXclbin->aie.numTracePLIO;
 
-        ConfigInfo* config = devInfo->currentConfig() ;
-        auto aieXclbin = config->getAieXclbin();
-        auto plXclbin = config->getPlXclbin();
-        aieXclbin->aie.numTracePLIO = plXclbin->aie.numTracePLIO;
+        // std::string caller = std::string(__FILE__) +":" + std::to_string(__LINE__) +" - "+ std::string(__FUNCTION__) ;
+        // config->print(caller);
 
-        std::string caller = std::string(__FILE__) +":" + std::to_string(__LINE__) +" - "+ std::string(__FUNCTION__) ;
-        config->print(caller);
     //     // get the it's previous PL DEBUG IP Layout
     //     xrt::xclbin plXclbin = device->get_xclbin_first();
     //     debugIpLayoutSection =

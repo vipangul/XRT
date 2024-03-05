@@ -28,6 +28,7 @@
 #include "xdp/profile/database/static_info/filetypes/base_filetype_impl.h"
 
 #include "core/common/device.h"
+#include "core/common/message.h"
 #include "core/common/system.h"
 #include "core/include/xrt/xrt_hw_context.h"
 
@@ -106,6 +107,52 @@ class AieTraceMetadata {
     xrt::hw_context getHwContext(){return hwContext;}
     void setHwContext(xrt::hw_context c) {
       hwContext = std::move(c);
+    }
+    bool aieMetadataEmpty() { return metadataReader==nullptr; }
+    void dumpAieMeta(std::string caller) {
+      if(!metadataReader) {
+        xrt_core::message::send(xrt_core::message::severity_level::debug, "XRT", "Metadareader is null, can't dump it for : " + caller);
+        return;
+      }
+      metadataReader->dumpAieMeta(caller);
+    }
+
+    std::string print() {
+      std::stringstream ss;
+      ss << "AIE Trace metadata Print: \n";
+      ss << "useDelay: "<< useDelay <<"\n";
+      ss << "useUserControl: "<< useUserControl <<"\n";
+      ss << "useGraphIterator: "<< useGraphIterator <<"\n";
+      ss << "useOneDelayCtr: "<< useOneDelayCtr <<"\n";
+      ss << "isValidMetrics: "<< isValidMetrics <<"\n";
+      ss << "runtimeMetrics: "<< runtimeMetrics <<"\n";
+      ss << "continuousTrace: "<< continuousTrace <<"\n";
+      ss << "invalidXclbinMetadata: "<< invalidXclbinMetadata <<"\n";
+
+      ss << "pollingInterval: "<< pollingInterval <<"\n";
+      ss << "iterationCount: "<< iterationCount <<"\n";
+      ss << "delayCycles: "<< delayCycles <<"\n";
+      ss << "deviceID: "<< deviceID <<"\n";
+      ss << "numAIETraceOutput: "<< numAIETraceOutput <<"\n";
+      ss << "offloadIntervalUs: "<< offloadIntervalUs <<"\n";
+      ss << "aie_trace_file_dump_int_s: "<< aie_trace_file_dump_int_s <<"\n";
+      
+      ss << "counterScheme: "<< counterScheme <<"\n";
+      ss << "metricSet: "<< metricSet <<"\n";
+      
+      ss << "configMetrics: \n";
+      for(auto elm : configMetrics)
+        ss << "\t" << elm.first.print() <<" : "<<elm.second <<"\n";
+      
+      ss << "configChannel0: \n";
+      for(auto elm : configChannel0)
+        ss << "\t" << elm.first.print() <<" : "<<elm.second <<"\n";
+
+      ss << "configChannel1: \n";
+      for(auto elm : configChannel1)
+        ss << "\t" << elm.first.print() <<" : "<<elm.second <<"\n";
+      
+      return ss.str();
     }
 
   private:

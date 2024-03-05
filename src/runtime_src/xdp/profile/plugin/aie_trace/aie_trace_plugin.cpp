@@ -109,6 +109,8 @@ void AieTracePluginUnified::updateAIEDevice(void *handle) {
   auto device = xrt_core::hw_context_int::get_core_device(context);
 #else
   auto device = xrt_core::get_userpf_device(handle);
+  if(!device)
+    xrt_core::message::send(severity_level::info, "XRT", "AIE Trace got null device from xrt::core.");
 #endif
 
   // Clean out old data every time xclbin gets updated
@@ -156,8 +158,10 @@ void AieTracePluginUnified::updateAIEDevice(void *handle) {
   if (deviceIntf == nullptr)
     deviceIntf = db->getStaticInfo().createDeviceIntf(deviceID, new ClientDevice(handle));
 #else
-  if (deviceIntf == nullptr)
+  if (deviceIntf == nullptr) {
     deviceIntf = db->getStaticInfo().createDeviceIntf(deviceID, new HalDevice(handle));
+    xrt_core::message::send(severity_level::info, "XRT", "AIE Trace plugin created deviceIntf");
+  }
 #endif
 
   // Create gmio metadata
@@ -171,6 +175,8 @@ void AieTracePluginUnified::updateAIEDevice(void *handle) {
         (db->getStaticInfo())
             .addTraceGMIO(deviceID, gmio.id, gmio.shimColumn, gmio.channelNum,
                           gmio.streamId, gmio.burstLength);
+        
+        xrt_core::message::send(severity_level::info, "XRT", "AIE Trace plugin has added GMIO Traces.");
       }
     }
 

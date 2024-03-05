@@ -22,6 +22,7 @@
 #include <map>
 #include <string>
 #include <vector>
+#include <sstream>
 #include "xdp/profile/device/tracedefs.h"
 
 namespace xdp::aie {
@@ -76,6 +77,13 @@ enum class module_type {
     bool operator<(const tile_type &tile) const {
       return (col < tile.col) || ((col == tile.col) && (row < tile.row));
     }
+
+    std::string print() const {
+      std::stringstream ss;
+      ss << "tile_type: "<< row << ":" << col << ":" <<subtype;
+      return ss.str();
+    }
+
   };
 
   struct io_config

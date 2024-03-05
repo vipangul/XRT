@@ -96,6 +96,7 @@ class AieProfileMetadata {
     const aie::BaseFiletypeImpl* metadataReader = nullptr;
 
   public:
+
     AieProfileMetadata(uint64_t deviceID, void* handle);
 
     uint64_t getDeviceID() {return deviceID;}
@@ -124,14 +125,22 @@ class AieProfileMetadata {
     int getNumCountersMod(const int module){ return numCountersMod[module]; }
     module_type getModuleType(const int module) { return moduleTypes[module]; }
 
-    uint8_t getAIETileRowOffset() const { return metadataReader->getAIETileRowOffset(); }
-    int getHardwareGen() const { return metadataReader->getHardwareGeneration(); }
+    uint8_t getAIETileRowOffset() const { return metadataReader == nullptr ? 0 : metadataReader->getAIETileRowOffset(); }
+    int getHardwareGen() const { return  metadataReader == nullptr ? 0 : metadataReader->getHardwareGeneration(); }
 
     double getClockFreqMhz() {return clockFreqMhz;}
     int getNumModules() {return NUM_MODULES;}
     xrt::hw_context getHwContext(){return hwContext;}
     void setHwContext(xrt::hw_context c) {
       hwContext = std::move(c);
+    }
+    bool aieMetadataEmpty() { return metadataReader==nullptr; }
+    void dumpAieMeta(std::string caller) {
+      if(!metadataReader) {
+        xrt_core::message::send(xrt_core::message::severity_level::debug, "XRT", "Metadareader is null, can't dump it for : " + caller);
+        return;
+      }
+      metadataReader->dumpAieMeta(caller);
     }
 };
 

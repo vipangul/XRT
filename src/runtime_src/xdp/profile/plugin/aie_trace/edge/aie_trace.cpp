@@ -286,6 +286,11 @@ namespace xdp {
    ***************************************************************************/
   bool AieTrace_EdgeImpl::setMetricsSettings(uint64_t deviceId, void* handle)
   {
+    std::string jsonFile = "AieTrace_EdgeImpl_setMetricsSettings_" + std::to_string(rand()%10)+ "_";
+    xrt_core::message::send(xrt_core::message::severity_level::info, "XRT", "Dumping metric settings for aie_trace plugin file: " + jsonFile);
+    metadata->dumpAieMeta(jsonFile);
+    metadata->print();
+    
     if (!metadata->getIsValidMetrics()) {
       std::string msg("AIE trace metrics were not specified in xrt.ini. AIE event trace will not be available.");
       xrt_core::message::send(severity_level::warning, "XRT", msg);

@@ -111,6 +111,8 @@ namespace xdp {
       getConfigMetricsForInterfaceTiles(shimTileMetricsSettings, shimGraphMetricsSettings);
       setTraceStartControl(compilerOptions.graph_iterator_event);
     }
+
+    xrt_core::message::send(severity_level::info, "XRT", "AIE_Metdata: \n "+ print());
   }
 
   // **************************************************************************
@@ -281,6 +283,7 @@ namespace xdp {
   // **************************************************************************
 
   // Resolve metrics for AIE or memory tiles 
+  // Debug Here
   void
   AieTraceMetadata::getConfigMetricsForTiles(std::vector<std::string>& metricsSettings,
                                              std::vector<std::string>& graphMetricsSettings,
@@ -303,8 +306,12 @@ namespace xdp {
 
     std::set<tile_type> allValidTiles;
     auto validTilesVec = metadataReader->getTiles("all", type, "all");
+
     std::unique_copy(validTilesVec.begin(), validTilesVec.end(), 
                      std::inserter(allValidTiles, allValidTiles.end()), tileCompare);
+    
+    for(auto tile : validTilesVec)
+      std::cout<<"Vinod_allValidTiles: tilemetric: "<<std::to_string(tile.col)<<" : "<<std::to_string(tile.row)<<"\n";
 
     // STEP 1 : Parse per-graph and/or per-kernel settings
 
@@ -603,6 +610,8 @@ namespace xdp {
     auto memSets = metricSets[module_type::mem_tile];
 
     for (auto &tileMetric : configMetrics) {
+
+      std::cout<<"Vinod: tilemetric: "<<std::to_string(tileMetric.first.col)<<" : "<<std::to_string(tileMetric.first.row)<<"->"<<tileMetric.second<<"\n";
       // Ignore other types of tiles
       if (allValidTiles.find(tileMetric.first) == allValidTiles.end())
         continue;
@@ -650,6 +659,8 @@ namespace xdp {
     for (auto &t : offTiles) {
       configMetrics.erase(t);
     }
+
+    
   }
 
   // Resolve metrics for interface tiles

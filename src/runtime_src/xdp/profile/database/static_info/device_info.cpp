@@ -96,12 +96,18 @@ namespace xdp {
           {
             xrt_core::message::send(xrt_core::message::severity_level::info, "XRT", "Copying missing PL xclbin");
             requiredXclbinInfo->pl = xclbin->pl;
+            xrt_core::message::send(xrt_core::message::severity_level::info, "XRT", "Src  PL xclbin->pl: \n" + xclbin->pl.print());
+            xrt_core::message::send(xrt_core::message::severity_level::info, "XRT", "Dest PL Requiredxclbin->pl: \n" + requiredXclbinInfo->pl.print());
+
             requiredXclbinInfo->aie.valid = false ;
 
             // Update & delete deviceIntf from previous config
-            requiredXclbinInfo->deviceIntf = new DeviceIntf();
-            delete xclbin->deviceIntf;
-            xclbin->deviceIntf = nullptr;
+            // requiredXclbinInfo->deviceIntf = new DeviceIntf();
+            // delete xclbin->deviceIntf;
+            // xclbin->deviceIntf = nullptr;
+
+            // requiredXclbinInfo->deviceIntf = xclbin->deviceIntf;
+
           }
           requiredXclbinInfo->uuid = xclbin->uuid ;
           requiredXclbinInfo->name = xclbin->name ;
@@ -158,6 +164,10 @@ namespace xdp {
     if(missingXclbin)
     {
       xrt_core::message::send(xrt_core::message::severity_level::info, "XRT", "Got the required xclbin from last config");
+      config->currentXclbins.back()->aie.numTracePLIO = loadedConfigInfos.size() == 0 ? 0 : loadedConfigInfos.back()->currentXclbins.back()->aie.numTracePLIO;
+      xrt_core::message::send(xrt_core::message::severity_level::info, "XRT", "Prev numTracePLIOs: " + std::to_string(loadedConfigInfos.back()->currentXclbins.back()->aie.numTracePLIO));
+      xrt_core::message::send(xrt_core::message::severity_level::info, "XRT", "Now numTracePLIOs: "  + std::to_string(config->currentXclbins.back()->aie.numTracePLIO));
+
       config->addXclbin(missingXclbin);
       config->type = CONFIG_AIE_PL_FORMED;
     }
@@ -173,10 +183,6 @@ namespace xdp {
 
 
     loadedConfigInfos.push_back(config);
-    for(auto bin : loadedConfigInfos.back()->currentXclbins) {
-      xrt_core::message::send(xrt_core::message::severity_level::info, "XRT", "Back of loaded config? PL_Valid: " + std::to_string(bin->pl.valid)
-                              + "& AIE_valid: " + std::to_string(bin->aie.valid));
-    }
     return config; //TODO_V : Do not return, not needed.
   }
 
