@@ -47,7 +47,7 @@ namespace xdp {
   {
     XclbinInfo* requiredXclbinInfo = nullptr;
     if (loadedConfigInfos.empty()) {
-      xrt_core::message::send(xrt_core::message::severity_level::info, "XRT", "loaded config is empty.");
+      xrt_core::message::send(xrt_core::message::severity_level::debug, "XRT", "Loaded config on device is empty.");
       return requiredXclbinInfo;
     }
 
@@ -55,7 +55,7 @@ namespace xdp {
     auto lastConfigType = loadedConfigInfos.back()->type;
     if (lastConfigType == CONFIG_AIE_PL || lastConfigType == CONFIG_AIE_PL_FORMED)
       xclbinAvailable = true;
-    
+
     if (!xclbinAvailable) {
       if (loadedConfigInfos.back()->containsXclbinType(xclbinQueryType))
         xclbinAvailable = true;
@@ -80,12 +80,6 @@ namespace xdp {
             // Perform deep copy of missing PL xclbin
             requiredXclbinInfo->pl = xclbin->pl;
             requiredXclbinInfo->aie.valid = false ;
-
-            // TODO : Update & delete deviceIntf from previous config
-            // requiredXclbinInfo->deviceIntf = new DeviceIntf();
-            // delete xclbin->deviceIntf;
-            // xclbin->deviceIntf = nullptr;
-
           }
           requiredXclbinInfo->uuid = xclbin->uuid ;
           requiredXclbinInfo->name = xclbin->name ;
@@ -344,7 +338,6 @@ namespace xdp {
                                  const std::string& mod,
                                  const std::string& aieName)
   {
-    
     ConfigInfo* config = currentConfig() ;
     if (!config || config->currentXclbins.empty())
       return ;
@@ -360,7 +353,7 @@ namespace xdp {
     ConfigInfo* config = currentConfig() ;
     if (!config || config->currentXclbins.empty())
       return ;
-   
+
     config->addAIECounterResources(numCounters, numTiles, moduleType) ;
   }
 
@@ -370,7 +363,7 @@ namespace xdp {
     ConfigInfo* config = currentConfig() ;
     if (!config || config->currentXclbins.empty())
       return ;
-    
+
     config->addAIECoreEventResources(numEvents, numTiles) ;
   }
 
@@ -380,7 +373,7 @@ namespace xdp {
     ConfigInfo* config = currentConfig() ;
     if (!config || config->currentXclbins.empty())
       return ;
-    
+
     config->addAIEMemoryEventResources(numEvents, numTiles) ;
   }
 
@@ -390,7 +383,7 @@ namespace xdp {
     ConfigInfo* config = currentConfig() ;
     if (!config || config->currentXclbins.empty())
       return ;
-    
+
     config->addAIEShimEventResources(numEvents, numTiles) ;
   }
 
@@ -400,7 +393,7 @@ namespace xdp {
     ConfigInfo* config = currentConfig() ;
     if (!config || config->currentXclbins.empty())
       return ;
-    
+
     config->addAIEMemTileEventResources(numEvents, numTiles) ;
   }
 
@@ -409,7 +402,7 @@ namespace xdp {
     ConfigInfo* config = currentConfig() ;
     if (!config || config->currentXclbins.empty())
       return ;
-    
+
     config->addAIECfgTile(std::move(tile)) ; 
   }
 
@@ -417,7 +410,7 @@ namespace xdp {
   {
     if (getLoadedConfigs().empty())
       return nullptr ;
-    
+
     return getLoadedConfigs().back().get() ;
   }
   
