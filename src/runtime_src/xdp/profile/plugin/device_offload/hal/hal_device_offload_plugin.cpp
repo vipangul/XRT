@@ -154,14 +154,14 @@ namespace xdp {
 
     // For the HAL level, we must create a device interface using 
     //  the xdp::HalDevice to communicate with the physical device
-    PLDeviceIntf* devInterface = (db->getStaticInfo()).getDeviceIntf(deviceId);
+    std::shared_ptr<PLDeviceIntf> devInterface = (db->getStaticInfo()).getDeviceIntf(deviceId);
 
-    configureDataflow(deviceId, devInterface) ;
-    addOffloader(deviceId, devInterface) ;
-    configureTraceIP(devInterface) ;
+    configureDataflow(deviceId, devInterface.get()) ;
+    addOffloader(deviceId, devInterface.get()) ;
+    configureTraceIP(devInterface.get()) ;
     // Disable AMs for unsupported features
-    configureFa(deviceId, devInterface) ;
-    configureCtx(deviceId, devInterface) ;
+    configureFa(deviceId, devInterface.get()) ;
+    configureCtx(deviceId, devInterface.get()) ;
 
     devInterface->clockTraining() ;
     startContinuousThreads(deviceId) ;

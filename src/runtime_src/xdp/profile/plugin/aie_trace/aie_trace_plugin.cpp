@@ -159,7 +159,7 @@ void AieTracePluginUnified::updateAIEDevice(void *handle) {
 #endif
 
   // Check for device interface
-  PLDeviceIntf *deviceIntf = (db->getStaticInfo()).getDeviceIntf(deviceID);
+  std::shared_ptr<PLDeviceIntf> deviceIntf = (db->getStaticInfo()).getDeviceIntf(deviceID);
 
   // Create gmio metadata
   if (!(db->getStaticInfo()).isGMIORead(deviceID)) {
@@ -273,7 +273,7 @@ void AieTracePluginUnified::updateAIEDevice(void *handle) {
 
 #ifdef XDP_CLIENT_BUILD
   AIEData.offloader = std::make_unique<AIETraceOffload>(
-      handle, deviceID, deviceIntf, AIEData.logger.get(), isPLIO // isPLIO?
+      handle, deviceID, deviceIntf.get(), AIEData.logger.get(), isPLIO // isPLIO?
       ,
       aieTraceBufSize // total trace buffer size
       ,

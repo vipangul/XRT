@@ -84,7 +84,7 @@ namespace xdp {
 
     auto& should_continue = it->second;
 
-    PLDeviceIntf* deviceIntf = (db->getStaticInfo()).getDeviceIntf(deviceId);
+    std::shared_ptr<PLDeviceIntf> deviceIntf = (db->getStaticInfo()).getDeviceIntf(deviceId);
     if (nullptr == deviceIntf)
       return;
 
@@ -208,7 +208,7 @@ namespace xdp {
       }
     }
 
-    PLDeviceIntf* deviceIntf = (db->getStaticInfo()).getDeviceIntf(deviceId);
+    std::shared_ptr<PLDeviceIntf> deviceIntf = (db->getStaticInfo()).getDeviceIntf(deviceId);
 
     if (!deviceIntf->hasDeadlockDetector()) {
       std::string deviceName = (db->getStaticInfo()).getDeviceName(deviceId);

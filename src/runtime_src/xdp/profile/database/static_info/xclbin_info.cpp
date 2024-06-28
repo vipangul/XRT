@@ -226,11 +226,6 @@ namespace xdp {
     for (auto xclbin : currentXclbins)
       delete xclbin;
     currentXclbins.clear();
-
-    if (plDeviceIntf) {
-      delete plDeviceIntf;
-      plDeviceIntf = nullptr;
-    }
   }
 
   xrt_core::uuid ConfigInfo::getConfigUuid()

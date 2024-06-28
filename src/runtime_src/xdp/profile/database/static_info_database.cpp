@@ -385,7 +385,7 @@ namespace xdp {
     return deviceInfo[deviceId]->deviceName ;
   }
 
-  PLDeviceIntf* VPStaticDatabase::getDeviceIntf(uint64_t deviceId)
+  std::shared_ptr<PLDeviceIntf> VPStaticDatabase::getDeviceIntf(uint64_t deviceId)
   {
     std::lock_guard<std::mutex> lock(deviceLock) ;
 
@@ -419,7 +419,7 @@ namespace xdp {
       if (config->plDeviceIntf != nullptr)
           delete config->plDeviceIntf; // It shouldn't be...
 
-      config->plDeviceIntf = new PLDeviceIntf();
+      config->plDeviceIntf = std::make_shared<PLDeviceIntf>();
       config->plDeviceIntf->setDevice(dev);
       try {
         config->plDeviceIntf->readDebugIPlayout();
@@ -427,7 +427,7 @@ namespace xdp {
       catch (std::exception& /* e */) {
         // If reading the debug ip layout fails, we shouldn't have
         // any device interface at all
-        delete config->plDeviceIntf;
+        config->plDeviceIntf.reset();
         config->plDeviceIntf = nullptr;
       }
     }
@@ -436,7 +436,7 @@ namespace xdp {
       int totalConfigs = deviceInfo[deviceId]->loadedConfigInfos.size();
       if (totalConfigs > 1)
       {
-        config->plDeviceIntf = deviceInfo[deviceId]->loadedConfigInfos[totalConfigs-2]->plDeviceIntf;
+        config->plDeviceIntf = std::move(deviceInfo[deviceId]->loadedConfigInfos[totalConfigs-2]->plDeviceIntf);
         deviceInfo[deviceId]->loadedConfigInfos[totalConfigs-2]->plDeviceIntf = nullptr;
       }else {
         // No previous PL device interface available
