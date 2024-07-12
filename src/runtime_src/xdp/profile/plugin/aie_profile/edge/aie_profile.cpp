@@ -489,7 +489,10 @@ namespace xdp {
         aie::profile::modifyEvents(type, subtype, channel0, startEvents, metadata->getHardwareGen());
         endEvents = startEvents;
 
+        // TBD : Placeholder to configure AIE core with required profile counters.
         aie::profile::configEventSelections(aieDevInst, loc, type, metricSet, channel0);
+        // TBD : Placeholder to configure shim tile with required profile counters.
+
         configStreamSwitchPorts(aieDevInst, tileMetric.first, xaieTile, loc, type, numFreeCtr, 
                                 metricSet, channel0, channel1, startEvents, endEvents);
 

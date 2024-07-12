@@ -830,6 +830,28 @@ inline std::string
 get_aie_profile_settings_tile_based_interface_tile_metrics()
 {
   static std::string value = detail::get_string_value("AIE_profile_settings.tile_based_interface_tile_metrics", "");
+  static std::string latencyMetricSets = detail::get_string_value("AIE_profile_settings.tile_based_interface_tile_metrics", "");
+  return value + latencyMetricSets ;
+}
+
+inline std::string
+get_aie_profile_settings_interface_tile_latency_metrics()
+{
+  static std::string value = detail::get_string_value("AIE_profile_settings.interface_tile_latency", "");
+  return value;
+}
+
+inline std::string
+get_aie_profile_settings_start_type()
+{
+  static std::string value = detail::get_string_value("AIE_profile_settings.start_type", "time");
+  return value;
+}
+
+inline unsigned int
+get_aie_profile_settings_start_iteration()
+{
+  static unsigned int value = detail::get_uint_value("AIE_profile_settings.start_iteration", 1);
   return value;
 }
 

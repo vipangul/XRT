@@ -59,7 +59,7 @@ class AieProfileMetadata {
           "input_throughputs", "output_throughputs", 
           "s2mm_throughputs", "mm2s_throughputs",
           "input_stalls", "output_stalls",
-          "s2mm_stalls", "mm2s_stalls", "packets"}
+          "s2mm_stalls", "mm2s_stalls", "packets", "start_to_bytes_transferred"}
       },
       {
         module_type::mem_tile, {
