@@ -246,7 +246,10 @@ AIEControlConfigFiletype::getInterfaceTiles(const std::string& graphName,
                 && (metricStr.find("s2mm") == std::string::npos))
             || (!isMaster && (metricStr.find("input") == std::string::npos)
                 && (metricStr.find("mm2s") == std::string::npos)))
-            continue;
+        {
+            if (metricStr != "interface_tile_latency")
+                continue;
+        }
 
         // Make sure column is within specified range (if specified)
         if (useColumn && !((minCol <= shimCol) && (shimCol <= maxCol)))

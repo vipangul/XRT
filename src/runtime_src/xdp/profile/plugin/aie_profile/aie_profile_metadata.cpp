@@ -57,11 +57,11 @@ namespace xdp {
     clockFreqMhz = (db->getStaticInfo()).getClockRateMHz(deviceID, false);
 
     // Tile-based metrics settings
-    std::vector<std::string> metricsConfig;
-    metricsConfig.push_back(xrt_core::config::get_aie_profile_settings_tile_based_aie_metrics());
-    metricsConfig.push_back(xrt_core::config::get_aie_profile_settings_tile_based_aie_memory_metrics());
-    metricsConfig.push_back(xrt_core::config::get_aie_profile_settings_tile_based_interface_tile_metrics());
-    metricsConfig.push_back(xrt_core::config::get_aie_profile_settings_tile_based_memory_tile_metrics());
+    std::vector<std::string> tileMetricsConfig;
+    tileMetricsConfig.push_back(xrt_core::config::get_aie_profile_settings_tile_based_aie_metrics());
+    tileMetricsConfig.push_back(xrt_core::config::get_aie_profile_settings_tile_based_aie_memory_metrics());
+    tileMetricsConfig.push_back(xrt_core::config::get_aie_profile_settings_tile_based_interface_tile_metrics());
+    tileMetricsConfig.push_back(xrt_core::config::get_aie_profile_settings_tile_based_memory_tile_metrics());
 
     // Graph-based metrics settings
     std::vector<std::string> graphMetricsConfig;
@@ -70,10 +70,14 @@ namespace xdp {
     graphMetricsConfig.push_back(xrt_core::config::get_aie_profile_settings_graph_based_interface_tile_metrics());
     graphMetricsConfig.push_back(xrt_core::config::get_aie_profile_settings_graph_based_memory_tile_metrics());
 
+    // Tile-based Profile APIs support metrics settings
+    std::string intfTilesLatencyConfig = xrt_core::config::get_aie_profile_settings_interface_tile_latency_metrics();
+    std::cout << "!!! metric set: " << intfTilesLatencyConfig << std::endl;
+ 
     // Process all module types
     for (int module = 0; module < NUM_MODULES; ++module) {
       auto type = moduleTypes[module];
-      auto metricsSettings = getSettingsVector(metricsConfig[module]);
+      auto metricsSettings      = getSettingsVector(tileMetricsConfig[module]);
       auto graphMetricsSettings = getSettingsVector(graphMetricsConfig[module]);
 
       if (type == module_type::shim)
@@ -82,6 +86,10 @@ namespace xdp {
         getConfigMetricsForTiles(module, metricsSettings, graphMetricsSettings, type);
     }
 
+    if (!intfTilesLatencyConfig.empty()) {
+      auto latencyMetricsSettings = getSettingsVector(intfTilesLatencyConfig);
+      getConfigMetricsForintfTilesLatencyConfig(module_type::shim, latencyMetricsSettings);
+    }
     xrt_core::message::send(severity_level::info,
                             "XRT", "Finished Parsing AIE Profile Metadata."); 
   }
@@ -105,7 +113,7 @@ namespace xdp {
       "graph_based_memory_tile_metrics", "graph_based_interface_tile_metrics",
       "tile_based_aie_metrics", "tile_based_aie_memory_metrics",
       "tile_based_memory_tile_metrics", "tile_based_interface_tile_metrics",
-      "interval_us"};
+      "interval_us", "interface_tile_latency"};
     const std::map<std::string, std::string> deprecatedSettings {
       {"aie_profile_core_metrics", "AIE_profile_settings.graph_based_aie_metrics or tile_based_aie_metrics"},
       {"aie_profile_memory_metrics", "AIE_profile_settings.graph_based_aie_memory_metrics or tile_based_aie_memory_metrics"},
@@ -924,6 +932,52 @@ namespace xdp {
     // Remove all the "off" tiles
     for (auto& t : offTiles) {
       configMetrics[moduleIdx].erase(t);
+    }
+  }
+
+  void AieProfileMetadata::getConfigMetricsForintfTilesLatencyConfig(xdp::module_type module,
+                                           const std::vector<std::string>& tileMetricSettings)
+  {
+    for(auto &m : tileMetricSettings)
+      std::cout << "!!! metric set: " << m << std::endl;
+ 
+    auto allValidGraphs = metadataReader->getValidGraphs();
+    auto allValidPorts  = metadataReader->getValidPorts();
+    std::string metricName   = "interface_tile_latency";
+
+    // STEP 1 : Parse per-graph or per-kernel settings
+    /* AIE_trace_settings config format ; Multiple values can be specified for a metric separated with ';'
+     * Interface Tiles
+     * interface_tile_latency = graph1:port1:graph2:port2:<tranx num>; graph3:port3:graph4:port4:<tranx num>;
+     */
+
+    std::vector<std::vector<std::string>> tileMetrics(tileMetricSettings.size());
+
+    for (size_t i = 0; i < tileMetricSettings.size(); ++i) {
+      // Split done only in Pass 1
+      boost::split(tileMetrics[i], tileMetricSettings[i], boost::is_any_of(":"));
+
+      if (tileMetrics[i].size() < 4 || tileMetrics[i].size()>5)
+        continue;
+      
+      auto tileSrc  =  metadataReader->getInterfaceTiles(tileMetrics[i][0],
+                                          tileMetrics[i][1],
+                                          metricName);
+      auto tileDest =  metadataReader->getInterfaceTiles(tileMetrics[i][2],
+                                          tileMetrics[i][3],
+                                          metricName);
+
+      if(tileSrc.empty() || tileDest.empty())
+      {
+        std::cout << "!!! Warning: No valid tiles found either for source or dest to calculate latency. \n";
+      } 
+      std::string tranx_no = tileMetrics[i].size() <= 4 ? "1" : tileMetrics[i].back();
+      latencyConfigMetrics[std::make_pair(tileSrc[0], tileDest[0])] = std::make_pair(metricName,tranx_no);
+      for(auto &elm : latencyConfigMetrics) {
+        std::cout << "!!! Source col     : " << +elm.first.first.col << " row: " << +elm.first.first.row;
+        std::cout << "!!! Destination col: " << +elm.first.second.col << " row: " << +elm.first.second.row;
+        std::cout << "!!! metricName: "<< elm.second.first << " tranx_no: "<< elm.second.second;
+      }
     }
   }
 

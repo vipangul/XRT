@@ -58,6 +58,51 @@ namespace xdp::aie::profile {
                               const std::string metricSet,
                               const uint8_t channel);
 
+//   /**
+//    * @brief Configure the startToBytesTransferred metric for specified bytes
+//    * @param aieDevInst AIE device instance
+//    * @param loc Tile location
+//    * @param type xdp module type
+//    * @param metricSet metric set to be configured
+//    * @param channel channel to be configured
+//    * 
+//    */
+//   void configAieCoreGraphIteratorEvent(XAie_DevInst* aieDevInst,
+//                               const XAie_LocType loc,
+//                               const module_type type,
+//                               const std::string metricSet,
+//                               const uint8_t channel);
+
+//   /**
+//    * @brief Configure the startToBytesTransferred metric for specified bytes
+//    * @param aieDevInst AIE device instance
+//    * @param loc Tile location
+//    * @param type xdp module type
+//    * @param metricSet metric set to be configured
+//    * @param channel channel to be configured
+//    * 
+//    */
+//   void configStartToBytesTransferred(XAie_DevInst* aieDevInst,
+//                               const XAie_LocType loc,
+//                               const module_type type,
+//                               const std::string metricSet,
+//                               const uint8_t channel);
+
+//  /**
+//    * @brief Configure the two interface tile loc to profile latency
+//    * @param aieDevInst AIE device instance
+//    * @param loc Tile location
+//    * @param type xdp module type
+//    * @param metricSet metric set to be configured
+//    * @param channel channel to be configured
+//    * 
+//    */
+//   void configInterfaceTileLatency(XAie_DevInst* aieDevInst,
+//                               const XAie_LocType loc,
+//                               const module_type type,
+//                               const std::string metricSet,
+//                               const uint8_t channel);
+
 }  // namespace xdp::aie::profile
 
 #endif

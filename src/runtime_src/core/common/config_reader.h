@@ -830,8 +830,7 @@ inline std::string
 get_aie_profile_settings_tile_based_interface_tile_metrics()
 {
   static std::string value = detail::get_string_value("AIE_profile_settings.tile_based_interface_tile_metrics", "");
-  static std::string latencyMetricSets = detail::get_string_value("AIE_profile_settings.tile_based_interface_tile_metrics", "");
-  return value + latencyMetricSets ;
+  return value;
 }
 
 inline std::string

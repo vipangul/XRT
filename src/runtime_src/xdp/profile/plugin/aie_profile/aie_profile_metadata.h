@@ -91,6 +91,8 @@ class AieProfileMetadata {
     std::map<tile_type, std::string> pairConfigMetrics;
     std::map<tile_type, uint8_t> configChannel0;
     std::map<tile_type, uint8_t> configChannel1;
+    std::map<std::pair<tile_type, tile_type>, std::pair<std::string, std::string>> latencyConfigMetrics;
+    
     const aie::BaseFiletypeImpl* metadataReader = nullptr;
 
   public:
@@ -110,6 +112,8 @@ class AieProfileMetadata {
     void getConfigMetricsForInterfaceTiles(const int moduleIdx,
                                            const std::vector<std::string>& metricsSettings,
                                            const std::vector<std::string> graphMetricsSettings);
+    void getConfigMetricsForintfTilesLatencyConfig(xdp::module_type module,
+                                           const std::vector<std::string>& intfTilesLatencyConfigs);
     int getPairModuleIndex(const std::string& metricSet, module_type mod);
     uint8_t getMetricSetIndex(const std::string& metricSet, module_type mod);
     

@@ -78,5 +78,43 @@ namespace xdp::aie::profile {
     << "DMA  for metricset " << metricSet << ", channel " << (int)channel << ".";
     xrt_core::message::send(severity_level::debug, "XRT", msg.str());
   } 
-  
+
+  // /****************************************************************************
+  //  * Configure performance counter in aie core module for specified graph
+  //  * iterator count threshold
+  //  ***************************************************************************/
+  // void configAieCoreGraphIteratorEvent(XAie_DevInst* aieDevInst,
+  //                       const XAie_LocType loc,
+  //                       const module_type type,
+  //                       const std::string metricSet,
+  //                       const uint8_t channel)
+  // {
+
+  // }
+
+  // /****************************************************************************
+  //  * Configure performance counter interface tile to profile for provided
+  //  * no. of bytes
+  //  ***************************************************************************/
+  // void configStartToBytesTransferred(XAie_DevInst* aieDevInst,
+  //                       const XAie_LocType loc,
+  //                       const module_type type,
+  //                       const std::string metricSet,
+  //                       const uint8_t channel)
+  // {
+
+  // }
+
+  // /****************************************************************************
+  //  * Configure performance counter in interface tile to profile latency
+  //  ***************************************************************************/
+  // void configInterfaceTileLatency(XAie_DevInst* aieDevInst,
+  //                       const XAie_LocType loc,
+  //                       const module_type type,
+  //                       const std::string metricSet,
+  //                       const uint8_t channel)
+  // {
+
+  // }
+ 
 }  // namespace xdp
