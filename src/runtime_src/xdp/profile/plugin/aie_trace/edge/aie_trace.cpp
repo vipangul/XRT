@@ -305,6 +305,7 @@ namespace xdp {
     // NOTE: This is needed to "flush" the last trace packet.
     //       We use the event generate register to create this 
     //       event and gracefully shut down trace modules.
+    // REFER: This is for user generate register.
     bool useTraceFlush = false;
     if ((metadata->getUseUserControl()) || (metadata->getUseGraphIterator()) || (metadata->getUseDelay()) ||
         (xrt_core::config::get_aie_trace_settings_end_type() == "event1")) {

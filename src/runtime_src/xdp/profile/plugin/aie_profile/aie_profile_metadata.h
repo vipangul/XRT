@@ -31,6 +31,9 @@
 
 namespace xdp {
 
+// Forwadr declarations of XDP constructs
+struct LatencyConfig;
+
 constexpr unsigned int NUM_CORE_COUNTERS = 4;
 constexpr unsigned int NUM_MEMORY_COUNTERS = 2;
 constexpr unsigned int NUM_SHIM_COUNTERS = 2;
@@ -86,12 +89,19 @@ class AieProfileMetadata {
     double clockFreqMhz;
     void* handle;
     xrt::hw_context hwContext;
-
+    bool useGraphIterator = false;
+    uint32_t iterationCount = 0;
+    
     std::vector<std::map<tile_type, std::string>> configMetrics;
     std::map<tile_type, std::string> pairConfigMetrics;
     std::map<tile_type, uint8_t> configChannel0;
     std::map<tile_type, uint8_t> configChannel1;
+    
+    // Config data structures required for new profile API metrics
+    // TODO: Combine all config into a single struct. 
     std::map<std::pair<tile_type, tile_type>, std::pair<std::string, std::string>> latencyConfigMetrics;
+    std::map<tile_type, LatencyConfig> latencyConfigMap;
+    std::map<tile_type, size_t> bytesTransferConfigMap;
     
     const aie::BaseFiletypeImpl* metadataReader = nullptr;
 
@@ -112,8 +122,6 @@ class AieProfileMetadata {
     void getConfigMetricsForInterfaceTiles(const int moduleIdx,
                                            const std::vector<std::string>& metricsSettings,
                                            const std::vector<std::string> graphMetricsSettings);
-    void getConfigMetricsForintfTilesLatencyConfig(xdp::module_type module,
-                                           const std::vector<std::string>& intfTilesLatencyConfigs);
     int getPairModuleIndex(const std::string& metricSet, module_type mod);
     uint8_t getMetricSetIndex(const std::string& metricSet, module_type mod);
     
@@ -137,6 +145,15 @@ class AieProfileMetadata {
       hwContext = std::move(c);
     }
     bool aieMetadataEmpty() { return metadataReader==nullptr; }
+
+    void getConfigMetricsForintfTilesLatencyConfig(xdp::module_type module,
+                       const std::vector<std::string>& intfTilesLatencyConfigs);
+    void setProfileStartControl(bool graphIteratorEvent);
+    size_t processUserSpecifiedBytes(const std::string& strTotalBytes);
+    size_t getUserSpecifiedBytes(const tile_type& tile);
+    bool getUseGraphIterator(){return useGraphIterator;}
+    uint32_t getIterationCount(){return iterationCount;}
+
 };
 
 } // end XDP namespace

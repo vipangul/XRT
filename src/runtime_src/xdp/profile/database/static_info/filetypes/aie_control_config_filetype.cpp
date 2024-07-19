@@ -247,7 +247,9 @@ AIEControlConfigFiletype::getInterfaceTiles(const std::string& graphName,
             || (!isMaster && (metricStr.find("input") == std::string::npos)
                 && (metricStr.find("mm2s") == std::string::npos)))
         {
-            if (metricStr != "interface_tile_latency")
+            // Process this tile for below profile API specific metrics
+            if ((metricStr != "interface_tile_latency") &&
+                (metricStr != "start_to_bytes_transferred"))
                 continue;
         }
 

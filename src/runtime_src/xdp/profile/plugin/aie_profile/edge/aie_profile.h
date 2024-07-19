@@ -84,6 +84,17 @@ namespace xdp {
       std::vector<std::shared_ptr<xaiefal::XAiePerfCounter>> perfCounters;
       std::vector<std::shared_ptr<xaiefal::XAieStreamPortSelect>> streamPorts;
 
+      // Graph Iterator broadcast channel event
+      // This event is used to reset/configure the counters in interface tiles
+      XAie_Events graphIteratorBrodcastChannelEvent;
+
+      // This event is asserted in another interface tile
+      XAie_Events latencyUserBrodcastChannelEvent;
+
+      // This vector keeps track of counter events required for other counters
+      std::vector<XAie_Events> profAPICounterEvents_startToBytes;
+      std::vector<XAie_Events> profAPICounterEvents_interfaceLatency;
+
   };
 
 }   

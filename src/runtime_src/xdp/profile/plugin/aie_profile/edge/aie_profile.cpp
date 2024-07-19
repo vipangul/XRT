@@ -84,6 +84,7 @@ namespace xdp {
 
     shimStartEvents = aie::profile::getInterfaceTileEventSets(hwGen);
     shimEndEvents = shimStartEvents;
+    shimEndEvents["start_to_bytes_transferred"] = {XAIE_EVENT_PORT_RUNNING_0_PL, XAIE_EVENT_PERF_CNT_0_PL};
 
     memTileStartEvents = aie::profile::getMemoryTileEventSets();
     memTileEndEvents = memTileStartEvents;
@@ -306,6 +307,7 @@ namespace xdp {
       else
         switchPortRsc->getSSIdleEvent(ssEvent);
 
+      // REFER: Check why it's overriding the existing events.
       startEvents.at(i) = ssEvent;
       endEvents.at(i) = ssEvent;
 
@@ -474,10 +476,22 @@ namespace xdp {
                          : ((type == module_type::dma)  ? memoryEndEvents[metricSet]
                          : ((type == module_type::shim) ? shimEndEvents[metricSet]
                          : memTileEndEvents[metricSet]));
+        std::vector<XAie_Events> resetEvents = {};
 
         int numCounters  = 0;
         auto numFreeCtr  = stats.getNumRsc(loc, mod, xaiefal::XAIE_PERFCOUNT);
         numFreeCtr = (startEvents.size() < numFreeCtr) ? startEvents.size() : numFreeCtr;
+
+        int numFreeCtrSS = numFreeCtr;
+        if (aie::profile::isProfileAPIMetricSet(metricSet)) {
+          if (numFreeCtr < 2) {
+            std::cout << "!!! Warning: Not enough performance counter available."
+                      << " Skipping configuring metric: "<< metricSet << std::endl;
+            continue;
+          }
+          // We need to monitor single stream switch monitor port
+          numFreeCtrSS = 1 ;
+        }
 
         // Specify Sel0/Sel1 for memory tile events 21-44
         auto iter0 = configChannel0.find(tile);
@@ -493,30 +507,76 @@ namespace xdp {
         aie::profile::configEventSelections(aieDevInst, loc, type, metricSet, channel0);
         // TBD : Placeholder to configure shim tile with required profile counters.
 
-        configStreamSwitchPorts(aieDevInst, tileMetric.first, xaieTile, loc, type, numFreeCtr, 
+        configStreamSwitchPorts(aieDevInst, tileMetric.first, xaieTile, loc, type, numFreeCtrSS, 
                                 metricSet, channel0, channel1, startEvents, endEvents);
+       
+        // Identify the profiling API metric sets and configure graph events
+        if (!metadata->getUseGraphIterator()) {
+          std::cout << "!!! Warning: Design is not compiled with --graph-iterator-event.\n";
+        }
+        else {
+          XAie_Events bcEvent;
+          aie::profile::configGraphIteratorAndBroadcast(aieDevInst, xaieModule,
+                loc, mod, type, metricSet, metadata->getIterationCount(), bcEvent);
+          graphIteratorBrodcastChannelEvent = bcEvent;
+        }
+
+        if (aie::profile::isProfileAPIMetricSet(metricSet)) {
+          // Re-use the existing port running event for both the counters
+          startEvents[startEvents.size()-1] = startEvents[0];
+          // End events are from profile counters
+          
+          // Use the set values broadcast events for the reset of counter
+          resetEvents = {XAIE_EVENT_NONE_CORE, XAIE_EVENT_NONE_CORE};
+          if (type == module_type::shim) {
+            resetEvents = {graphIteratorBrodcastChannelEvent, graphIteratorBrodcastChannelEvent};
+          }
+        }
 
         // Request and configure all available counters for this tile
         for (int i=0; i < numFreeCtr; ++i) {
           auto startEvent    = startEvents.at(i);
           auto endEvent      = endEvents.at(i);
-          uint8_t resetEvent = 0;
+          XAie_Events resetEvent = XAIE_EVENT_NONE_CORE;
           auto portnum       = getPortNumberFromEvent(startEvent);
           uint8_t channel    = (portnum == 0) ? channel0 : channel1;
 
           // Configure group event before reserving and starting counter
           aie::profile::configGroupEvents(aieDevInst, loc, mod, type, metricSet, startEvent, channel);
 
-          // Request counter from resource manager
-          auto perfCounter = xaieModule.perfCounter();
-          auto ret = perfCounter->initialize(mod, startEvent, mod, endEvent);
-          if (ret != XAIE_OK) break;
-          ret = perfCounter->reserve();
-          if (ret != XAIE_OK) break;
+          // Configure the profile counters for profile APIs metric sets.
+          std::shared_ptr<xaiefal::XAiePerfCounter> perfCounter = nullptr;
+          if (aie::profile::isProfileAPIMetricSet(metricSet)) {
+            resetEvent = resetEvents.at(i);
+            uint16_t threshold = 0;
+            if (i==0)
+              threshold = metadata->getUserSpecifiedBytes(tileMetric.first);
 
-          // Start the counter
-          ret = perfCounter->start();
-          if (ret != XAIE_OK) break;
+            if (i==1 && metricSet == "start_to_bytes_transferred")
+              endEvent = profAPICounterEvents_startToBytes.back();
+            else
+              endEvent = profAPICounterEvents_interfaceLatency.back();
+            
+            XAie_Events retCounterEvent;
+            perfCounter = aie::profile::configProfileAPICounters(aieDevInst, xaieModule, mod, type,
+                                   metricSet, startEvent, endEvent, resetEvent, i, threshold, retCounterEvent);
+            if (metricSet == "start_to_bytes_transferred")
+              profAPICounterEvents_startToBytes.push_back(retCounterEvent);
+            else
+              profAPICounterEvents_interfaceLatency.push_back(retCounterEvent);
+          }
+          else {
+            // Request counter from resource manager
+            perfCounter = xaieModule.perfCounter();
+            auto ret = perfCounter->initialize(mod, startEvent, mod, endEvent);
+            if (ret != XAIE_OK) break;
+            ret = perfCounter->reserve();
+            if (ret != XAIE_OK) break;
+
+            // Start the counter
+            ret = perfCounter->start();
+            if (ret != XAIE_OK) break;
+          }
           perfCounters.push_back(perfCounter);
 
           // Convert enums to physical event IDs for reporting purposes
@@ -538,14 +598,14 @@ namespace xdp {
                 metadata->getModuleName(module), counterName);
           counterId++;
           numCounters++;
-        }
+        } // numFreeCtr
 
         std::stringstream msg;
         msg << "Reserved " << numCounters << " counters for profiling AIE tile (" << +col 
             << "," << +row << ") using metric set " << metricSet << ".";
         xrt_core::message::send(severity_level::debug, "XRT", msg.str());
         numTileCounters[numCounters]++;
-      }
+      } // configMetrics
     
       // Report counters reserved per tile
       {

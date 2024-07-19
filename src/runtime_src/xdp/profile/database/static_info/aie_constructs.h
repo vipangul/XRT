@@ -314,6 +314,19 @@ enum class module_type {
     aie_cfg_tile(uint32_t c, uint32_t r, module_type t) : column(c), row(r), type(t) {}
   };
 
+  struct LatencyConfig
+  {
+    public:
+      tile_type src;
+      tile_type dest;
+      std::string metricSet;
+      uint32_t tranx_no;
+      bool isSource;
+      LatencyConfig() = default;
+      LatencyConfig(tile_type& s, tile_type& d, std::string m, uint32_t t, bool i) :
+        src(s), dest(d), metricSet(m), tranx_no(t), isSource(i) {}
+  };
+
 } // end namespace xdp
 
 #endif
