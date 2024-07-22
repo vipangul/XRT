@@ -26,8 +26,10 @@
 #include "filetypes/aie_control_config_filetype.h"
 #include "filetypes/aie_trace_config_filetype.h"
 
+#include <algorithm>
 #include <boost/property_tree/json_parser.hpp>
 #include <boost/property_tree/ptree.hpp>
+#include <cctype> 
 #include <cstdint>
 #include <filesystem>
 #include <memory>
@@ -395,6 +397,10 @@ namespace xdp::aie {
     }
 
     return startCols;
+  }
+
+  bool isDigitString(const std::string& str) {
+    return std::all_of(str.begin(), str.end(), ::isdigit);
   }
 
 } // namespace xdp::aie

@@ -160,6 +160,7 @@ namespace xdp::aie::trace {
     std::vector<XAie_Events> comboEvents;
 
     if (mod == XAIE_CORE_MOD) {
+      // TODO: Check what is 4 here?
       auto comboEvent = xaieTile.core().comboEvent(4);
       comboEvents.push_back(XAIE_EVENT_COMBO_EVENT_2_CORE);
 
@@ -449,4 +450,4 @@ namespace xdp::aie::trace {
     return true;
   }
 
-}  // namespace xdp
+  }  // namespace xdp
