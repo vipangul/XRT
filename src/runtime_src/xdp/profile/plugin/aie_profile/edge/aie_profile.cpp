@@ -512,7 +512,7 @@ namespace xdp {
        
         // Identify the profiling API metric sets and configure graph events
         if (!metadata->getUseGraphIterator()) {
-          std::cout << "!!! Warning: Design is not compiled with --graph-iterator-event.\n";
+          std::cout << "!!! Warning: Design is not compiled with --graph-iterator-event or iteration_count is 0.\n";
         }
         else {
           XAie_Events bcEvent;
@@ -552,12 +552,14 @@ namespace xdp {
             if (i==0)
               threshold = metadata->getUserSpecifiedBytes(tileMetric.first);
 
-            if (i==1 && metricSet == "start_to_bytes_transferred")
-              endEvent = profAPICounterEvents_startToBytes.back();
-            else
-              endEvent = profAPICounterEvents_interfaceLatency.back();
+            if (i==1) {
+              if (metricSet == "start_to_bytes_transferred")
+                endEvent = profAPICounterEvents_startToBytes.back();
+              else
+                endEvent = profAPICounterEvents_interfaceLatency.back();
+            }
             
-            XAie_Events retCounterEvent;
+            XAie_Events retCounterEvent = XAIE_EVENT_NONE_CORE;
             perfCounter = aie::profile::configProfileAPICounters(aieDevInst, xaieModule, mod, type,
                                    metricSet, startEvent, endEvent, resetEvent, i, threshold, retCounterEvent);
             if (metricSet == "start_to_bytes_transferred")

@@ -208,7 +208,7 @@ namespace xdp::aie::profile {
     auto pc = xaieModule.perfCounter();
     auto ret = pc->initialize(xaieModType, startEvent, 
                                        xaieModType, endEvent,
-                                       XAIE_CORE_MOD, resetEvent);
+                                       XAIE_PL_MOD, resetEvent);
     if (ret != XAIE_OK) return nullptr;
     ret = pc->reserve();
     if (ret != XAIE_OK) return nullptr;

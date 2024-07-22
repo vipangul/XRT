@@ -88,7 +88,7 @@ namespace xdp {
 
     // Graph-based Profile APIs support metrics settings
     std::string intfTilesLatencyUserSettings = xrt_core::config::get_aie_profile_settings_interface_tile_latency_metrics();
-    std::cout << "!!! metric set: " << intfTilesLatencyUserSettings << std::endl;
+    std::cout << "!!! In metadata metric set: " << intfTilesLatencyUserSettings << std::endl;
     if (!intfTilesLatencyUserSettings.empty()) {
       auto latencyMetricsSettings = getSettingsVector(intfTilesLatencyUserSettings);
       getConfigMetricsForintfTilesLatencyConfig(module_type::shim, latencyMetricsSettings);
@@ -116,7 +116,7 @@ namespace xdp {
       "graph_based_memory_tile_metrics", "graph_based_interface_tile_metrics",
       "tile_based_aie_metrics", "tile_based_aie_memory_metrics",
       "tile_based_memory_tile_metrics", "tile_based_interface_tile_metrics",
-      "interval_us", "interface_tile_latency"};
+      "interval_us", "interface_tile_latency", "start_type", "start_iteration"};
     const std::map<std::string, std::string> deprecatedSettings {
       {"aie_profile_core_metrics", "AIE_profile_settings.graph_based_aie_metrics or tile_based_aie_metrics"},
       {"aie_profile_memory_metrics", "AIE_profile_settings.graph_based_aie_memory_metrics or tile_based_aie_memory_metrics"},
@@ -800,8 +800,10 @@ namespace xdp {
       uint8_t channelId0 = 0;
       uint8_t channelId1 = 1;
       size_t bytes = 0;
-      if (graphMetrics[i][1]=="start_to_bytes_transferred") {
-        bytes = processUserSpecifiedBytes(graphMetrics[i][2]);
+      std::cout << "!!! metrics[i][1]: " << metrics[i][1] << std::endl;
+      if (metrics[i][1]=="start_to_bytes_transferred") {
+        std::cout << "!!! metrics[i][1]: " << metrics[i][1] << std::endl;
+        bytes = processUserSpecifiedBytes(metrics[i][2]);
       }
       else {
         if (metrics[i].size()>2) {
@@ -857,8 +859,8 @@ namespace xdp {
       size_t bytes = 0;
       if (metrics[i].size() >= 4) {
         // Process <tile|all>:start_to_bytes_transferred:<bytes>
-        if (graphMetrics[i][2]=="start_to_bytes_transferred") {
-          bytes = processUserSpecifiedBytes(graphMetrics[i][2]);
+        if (metrics[i][2]=="start_to_bytes_transferred") {
+          bytes = processUserSpecifiedBytes(metrics[i][2]);
         }
         else {
           try {
@@ -1055,7 +1057,7 @@ namespace xdp {
         useGraphIterator = (iterationCount != 0);
       }
     } else {
-      std::string msg = "Provided profile start type setting is not valid";
+      std::string msg = "Profile start type setting is not provided or is invalid.";
       xrt_core::message::send(severity_level::warning, "XRT", msg);
     }
   }
@@ -1075,9 +1077,9 @@ namespace xdp {
     int totalChars = 0;
     char unit;
     while (lastIdx >= 0 && !std::isdigit(strTotalBytes[lastIdx]))
-      unit = strTotalBytes[lastIdx]; ++totalChars; lastIdx--;
+      unit = strTotalBytes[lastIdx]; totalChars++; lastIdx--;
     
-    if (totalChars>0) {
+    if (totalChars>1) {
       std::cout << "!!! Warning: Invalid data size string is provided, supported"
                 << " data size representation are K/M/G" << std::endl;
       return totalBytes;

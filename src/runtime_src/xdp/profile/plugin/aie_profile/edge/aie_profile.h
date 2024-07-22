@@ -86,10 +86,10 @@ namespace xdp {
 
       // Graph Iterator broadcast channel event
       // This event is used to reset/configure the counters in interface tiles
-      XAie_Events graphIteratorBrodcastChannelEvent;
+      XAie_Events graphIteratorBrodcastChannelEvent = XAIE_EVENT_NONE_CORE;
 
       // This event is asserted in another interface tile
-      XAie_Events latencyUserBrodcastChannelEvent;
+      XAie_Events latencyUserBrodcastChannelEvent = XAIE_EVENT_NONE_CORE;
 
       // This vector keeps track of counter events required for other counters
       std::vector<XAie_Events> profAPICounterEvents_startToBytes;
