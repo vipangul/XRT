@@ -864,6 +864,12 @@ namespace xdp {
     if (ret != XAIE_OK)
       return nullptr;
 
+    // // Set up the combo event with FSM type using 4 events state machine
+    // XAie_Events eventA = XAIE_EVENT_TRUE_PL;
+    // XAie_Events eventB = startEvent;
+    // XAie_Events eventC = startEvent;
+    // XAie_Events eventD = endEvent;
+
     combo_events.push_back(startEvent);
     combo_events.push_back(endEvent);
     // combo_opts.push_back(XAIE_EVENT_COMBO_E1_AND_E2);

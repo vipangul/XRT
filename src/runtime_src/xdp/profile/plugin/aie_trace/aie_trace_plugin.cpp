@@ -141,6 +141,14 @@ void AieTracePluginUnified::updateAIEDevice(void *handle) {
     xrt_core::message::send(severity_level::warning, "XRT", "AIE Metadata is empty for AIE Trace");
     return;
   }
+
+  if(!AIEData.metadata->getTraceEnabled()) {
+    AIEData.valid = false;
+    xrt_core::message::send(severity_level::warning, "XRT",
+                            AIE_TRACE_NOT_ENABLED);
+    return;
+  }
+
   if (AIEData.metadata->configMetricsEmpty() && AIEData.metadata->getRuntimeMetrics()) {
     AIEData.valid = false;
     xrt_core::message::send(severity_level::warning, "XRT",

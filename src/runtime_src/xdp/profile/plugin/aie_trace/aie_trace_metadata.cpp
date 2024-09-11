@@ -90,6 +90,10 @@ namespace xdp {
     
     // Catch when compile-time trace is specified (e.g., --event-trace=functions)
     auto compilerOptions = metadataReader->getAIECompilerOptions();
+    if (compilerOptions.event_trace == "not_enabled")
+      return;
+
+    setTraceEnabled();
     setRuntimeMetrics(compilerOptions.event_trace == "runtime");
 
     if (!getRuntimeMetrics()) {

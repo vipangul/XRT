@@ -58,7 +58,7 @@ AIEControlConfigFiletype::getAIECompilerOptions() const
     aiecompiler_options.graph_iterator_event = 
         aie_meta.get("aie_metadata.aiecompiler_options.graph_iterator_event", false);
     aiecompiler_options.event_trace = 
-        aie_meta.get("aie_metadata.aiecompiler_options.event_trace", "runtime");
+        aie_meta.get("aie_metadata.aiecompiler_options.event_trace", "not_enabled");
     return aiecompiler_options;
 }
 

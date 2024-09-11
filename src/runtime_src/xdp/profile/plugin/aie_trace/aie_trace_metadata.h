@@ -101,6 +101,8 @@ class AieTraceMetadata {
 
     void setNumStreams(uint64_t newNumTraceStreams) {numAIETraceOutput = newNumTraceStreams;}
     void setDelayCycles(uint64_t newDelayCycles) {delayCycles = newDelayCycles;}
+    inline void setTraceEnabled() { traceEnabled = true;}
+    inline bool getTraceEnabled() { return traceEnabled; }
     void setRuntimeMetrics(bool metrics) {runtimeMetrics = metrics;}
     uint64_t getDelay() {return ((useDelay) ? delayCycles : 0);}
 
@@ -120,7 +122,8 @@ class AieTraceMetadata {
     bool useUserControl = false;
     bool useGraphIterator = false;
     bool useOneDelayCtr = true;
-    bool isValidMetrics = true;   
+    bool isValidMetrics = true;
+    bool traceEnabled = false;
     bool runtimeMetrics;
     bool continuousTrace;
     bool invalidXclbinMetadata;
