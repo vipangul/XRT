@@ -826,6 +826,8 @@ namespace xdp {
 
     if (resetEvent != XAIE_EVENT_NONE_CORE)
       pc->changeRstEvent(xaieModType, resetEvent);
+    else if(metricSet == METRIC_BYTE_COUNT)
+      pc->changeRstEvent(xaieModType, XAIE_EVENT_USER_EVENT_1_PL);
 
     if (threshold > 0)
       pc->changeThreshold(threshold);
