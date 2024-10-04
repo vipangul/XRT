@@ -558,7 +558,10 @@ namespace xdp {
           // Use the set values broadcast events for the reset of counter
           resetEvents = {XAIE_EVENT_NONE_CORE, XAIE_EVENT_NONE_CORE};
           if (type == module_type::shim) {
-            resetEvents = {graphIteratorBrodcastChannelEvent, graphIteratorBrodcastChannelEvent};
+            if (metadata->getUseGraphIterator())
+              resetEvents = {graphIteratorBrodcastChannelEvent, graphIteratorBrodcastChannelEvent};
+            else
+              resetEvents = {XAIE_EVENT_NONE_CORE, XAIE_EVENT_USER_EVENT_1_PL};
           }
         }
 
@@ -608,7 +611,8 @@ namespace xdp {
             continue;
           perfCounters.push_back(perfCounter);
 
-          if (metricSet == METRIC_BYTE_COUNT && i==1) {
+          // Generate user_event_1 for this specific case
+          if ((metricSet == METRIC_BYTE_COUNT) && (i == 1) && !graphItrBroadcastConfigDone) {
             XAie_LocType tileloc = XAie_TileLoc(tile.col, tile.row);
             XAie_EventGenerate(aieDevInst, tileloc, mod, XAIE_EVENT_USER_EVENT_1_PL);
             std::cout << "!!! [2] generated event 1 user event !!" << std::endl;
@@ -818,8 +822,6 @@ namespace xdp {
       return pc;
     }
 
-
-
     // Request counter from resource manager
     auto pc = xaieModule.perfCounter();
     auto ret = pc->initialize(xaieModType, startEvent, 
@@ -831,10 +833,10 @@ namespace xdp {
     if (ret != XAIE_OK)
       return nullptr;
 
-    // if (resetEvent != XAIE_EVENT_NONE_CORE)
-    //   pc->changeRstEvent(xaieModType, resetEvent);
+    if (resetEvent != XAIE_EVENT_NONE_CORE)
+      pc->changeRstEvent(xaieModType, resetEvent);
     // else if(metricSet == METRIC_BYTE_COUNT)
-    pc->changeRstEvent(xaieModType, XAIE_EVENT_USER_EVENT_1_PL);
+    // pc->changeRstEvent(xaieModType, XAIE_EVENT_USER_EVENT_1_PL);
 
     if (threshold > 0)
       pc->changeThreshold(threshold);
@@ -849,12 +851,6 @@ namespace xdp {
     // Respond back with this performance counter event 
     // to use it later for broadcasting
     retCounterEvent = counterEvent;
-
-    // if (metricSet == METRIC_BYTE_COUNT && pcIndex==1) {
-    //   XAie_LocType tileloc = XAie_TileLoc(tile.col, tile.row);
-    //   XAie_EventGenerate(aieDevInst, tileloc, xaieModType, XAIE_EVENT_USER_EVENT_1_PL);
-    //   std::cout << "!!! generated event 1 user event !!" << std::endl;
-    // }
     return pc;
   }
 
@@ -1218,10 +1214,9 @@ namespace xdp {
       if (adfAPIType.first == aie::profile::adfAPI::START_TO_BYTES_TRANSFERRED) {
         for(auto &adfApiResource : adfAPIType.second) {
           std::stringstream msg;
-          msg << "Start to bytes transferred for tile " << adfApiResource.first << " is " 
-              << +adfApiResource.second.profileResult <<" clock cycles for specified bytes in xrt.ini.\n";
-          // xrt_core::message::send(severity_level::info, "XRT", msg.str());
-          //Note: User specified bytes or graph/port name display support can be added in 2025.1. 
+          msg << "Total start to bytes transferred for tile " << adfApiResource.first << " is " 
+              << +adfApiResource.second.profileResult <<" clock cycles for specified bytes.\n";
+          xrt_core::message::send(severity_level::info, "XRT", msg.str());
         }
       }
       else if(adfAPIType.first == aie::profile::adfAPI::INTF_TILE_LATENCY) {
@@ -1234,7 +1229,7 @@ namespace xdp {
             continue;
           }
           std::stringstream msg;
-          msg << "Latency between specified first beat of " <<graphPortPair.srcGraphName << ":" <<graphPortPair.srcGraphPort 
+          msg << "Total latency between specified first beat of " <<graphPortPair.srcGraphName << ":" <<graphPortPair.srcGraphPort
               << " to first beat of " <<graphPortPair.destGraphName << ":" <<graphPortPair.destGraphPort << " is " 
               << +adfApiResource.second.profileResult <<" clock cycles.\n";
           xrt_core::message::send(severity_level::info, "XRT", msg.str());
