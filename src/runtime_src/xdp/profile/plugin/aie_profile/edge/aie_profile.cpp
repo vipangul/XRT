@@ -805,12 +805,16 @@ namespace xdp {
                                metricSet, startEvent, endEvent, resetEvent,
                                pcIndex, threshold, retCounterEvent);
       XAie_LocType tileloc = XAie_TileLoc(tile.col, tile.row);
-      XAie_EventGenerate(aieDevInst, tileloc, xaieModType, XAIE_EVENT_USER_EVENT_1_PL);
 
       std::string srcKey = "(" + aie::uint8ToStr(tile.col) + "," + aie::uint8ToStr(tile.row) + ")";
       adfAPIResourceInfoMap[aie::profile::adfAPI::START_TO_BYTES_TRANSFERRED][srcKey].srcPcIdx = perfCounters.size();
       adfAPIResourceInfoMap[aie::profile::adfAPI::START_TO_BYTES_TRANSFERRED][srcKey].isSourceTile = true;
       return pc;
+    }
+
+    if (metricSet == METRIC_BYTE_COUNT && pcIndex==1) {
+      XAie_EventGenerate(aieDevInst, tileloc, xaieModType, XAIE_EVENT_USER_EVENT_1_PL);
+      std::cout << "!!! generated event 1 user event !!" << std::endl;
     }
 
     // Request counter from resource manager
