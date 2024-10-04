@@ -608,6 +608,12 @@ namespace xdp {
             continue;
           perfCounters.push_back(perfCounter);
 
+          if (metricSet == METRIC_BYTE_COUNT && i==1) {
+            XAie_LocType tileloc = XAie_TileLoc(tile.col, tile.row);
+            XAie_EventGenerate(aieDevInst, tileloc, mod, XAIE_EVENT_USER_EVENT_1_PL);
+            std::cout << "!!! [2] generated event 1 user event !!" << std::endl;
+          }
+
           // Convert enums to physical event IDs for reporting purposes
           auto physicalEventIds = getEventPhysicalId(loc, mod, type, metricSet, startEvent, endEvent);
           uint16_t phyStartEvent = physicalEventIds.first;
@@ -844,11 +850,11 @@ namespace xdp {
     // to use it later for broadcasting
     retCounterEvent = counterEvent;
 
-    if (metricSet == METRIC_BYTE_COUNT && pcIndex==1) {
-      XAie_LocType tileloc = XAie_TileLoc(tile.col, tile.row);
-      XAie_EventGenerate(aieDevInst, tileloc, xaieModType, XAIE_EVENT_USER_EVENT_1_PL);
-      std::cout << "!!! generated event 1 user event !!" << std::endl;
-    }
+    // if (metricSet == METRIC_BYTE_COUNT && pcIndex==1) {
+    //   XAie_LocType tileloc = XAie_TileLoc(tile.col, tile.row);
+    //   XAie_EventGenerate(aieDevInst, tileloc, xaieModType, XAIE_EVENT_USER_EVENT_1_PL);
+    //   std::cout << "!!! generated event 1 user event !!" << std::endl;
+    // }
     return pc;
   }
 
