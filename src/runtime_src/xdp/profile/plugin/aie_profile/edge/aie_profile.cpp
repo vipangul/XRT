@@ -861,7 +861,7 @@ namespace xdp {
                            XAie_Events endEvent, XAie_Events resetEvent,
                            int pcIndex, size_t threshold, XAie_Events& retCounterEvent)
   {
-    if (xdpModType != module_type::shim || xaieModType != XAIE_PL_MOD)
+    if ((xdpModType != module_type::shim) || (xaieModType != XAIE_PL_MOD))
       return nullptr;
     
     std::shared_ptr<xaiefal::XAieComboEvent>  comboEvent0 = nullptr;
