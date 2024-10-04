@@ -812,10 +812,7 @@ namespace xdp {
       return pc;
     }
 
-    if (metricSet == METRIC_BYTE_COUNT && pcIndex==1) {
-      XAie_EventGenerate(aieDevInst, tileloc, xaieModType, XAIE_EVENT_USER_EVENT_1_PL);
-      std::cout << "!!! generated event 1 user event !!" << std::endl;
-    }
+
 
     // Request counter from resource manager
     auto pc = xaieModule.perfCounter();
@@ -846,6 +843,11 @@ namespace xdp {
     // Respond back with this performance counter event 
     // to use it later for broadcasting
     retCounterEvent = counterEvent;
+
+    if (metricSet == METRIC_BYTE_COUNT && pcIndex==1) {
+      XAie_EventGenerate(aieDevInst, tileloc, xaieModType, XAIE_EVENT_USER_EVENT_1_PL);
+      std::cout << "!!! generated event 1 user event !!" << std::endl;
+    }
     return pc;
   }
 
