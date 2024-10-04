@@ -464,7 +464,7 @@ namespace xdp::aie::profile {
 
     uint32_t max_beats = (total_beats%4 == 0) ? total_beats : (total_beats + (4 - (total_beats%4)));
     std::cout << "total_beats: " << +total_beats << " max_beats: " << +max_beats << std::endl;
-    return total_beats; 
+    return max_beats; 
   }
 
 } // namespace xdp::aie
