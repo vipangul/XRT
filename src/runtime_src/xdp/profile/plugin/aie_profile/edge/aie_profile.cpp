@@ -804,7 +804,7 @@ namespace xdp {
       auto pc = configPCUsingComboEvents(xaieModule, xaieModType, xdpModType,
                                metricSet, startEvent, endEvent, resetEvent,
                                pcIndex, threshold, retCounterEvent);
-      XAie_LocType tileloc = XAie_TileLoc(tile.col, tile.row);
+
 
       std::string srcKey = "(" + aie::uint8ToStr(tile.col) + "," + aie::uint8ToStr(tile.row) + ")";
       adfAPIResourceInfoMap[aie::profile::adfAPI::START_TO_BYTES_TRANSFERRED][srcKey].srcPcIdx = perfCounters.size();
@@ -845,6 +845,7 @@ namespace xdp {
     retCounterEvent = counterEvent;
 
     if (metricSet == METRIC_BYTE_COUNT && pcIndex==1) {
+      XAie_LocType tileloc = XAie_TileLoc(tile.col, tile.row);
       XAie_EventGenerate(aieDevInst, tileloc, xaieModType, XAIE_EVENT_USER_EVENT_1_PL);
       std::cout << "!!! generated event 1 user event !!" << std::endl;
     }
