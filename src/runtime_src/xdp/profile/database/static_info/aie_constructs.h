@@ -84,7 +84,16 @@ namespace xdp {
       if (row != tile.row) return row < tile.row;
       return subtype < tile.subtype;
     }
-  };
+
+    // Generate print function for struct tile_type
+    void print() const {
+      std::cout << "!! is_master: " << is_master << " itr_mem_addr: " << itr_mem_addr << " active_core: " << active_core 
+          << " active_memory: " << active_memory << " is_trigger: " << is_trigger << " subtype: " << subtype ;
+      for (const auto& id : stream_ids) {
+        std::cout << "stream_id: " << id << " ";
+      }
+      std::cout << "\n";
+    };
 
   struct compareTileByLoc {
     tile_type target_tile;

@@ -93,6 +93,12 @@ namespace xdp {
       getConfigMetricsForintfTilesLatencyConfig(module_type::shim, latencyMetricsSettings);
     }
 
+    for(auto &elm: configMetrics) {
+      for(auto &entry : elm.second) {
+        std::cout << "\t !!! Config Metric: " << +entry.first.print() << " : " << entry.second <<std::endl;
+      }
+    }
+
     xrt_core::message::send(severity_level::info,
                             "XRT", "Finished Parsing AIE Profile Metadata."); 
   }
