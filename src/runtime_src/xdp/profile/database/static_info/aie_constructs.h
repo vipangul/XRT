@@ -114,6 +114,17 @@ namespace xdp {
     }
   };
 
+  struct compareTileByLocAndMasterOrSlave {
+    tile_type target_tile;
+    compareTileByLocAndMasterOrSlave(const tile_type& t) : target_tile(t) {}
+
+    bool operator()(const tile_type& src_tile) const {
+      return (src_tile.col == target_tile.col) &&
+             (src_tile.row == target_tile.row) &&
+             (src_tile.is_master == target_tile.is_master);
+    }
+  };
+
   struct io_config
   {
     // Object id

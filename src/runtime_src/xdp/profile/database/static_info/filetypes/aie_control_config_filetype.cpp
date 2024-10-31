@@ -307,7 +307,7 @@ AIEControlConfigFiletype::getInterfaceTiles(const std::string& graphName,
         tile.row = 0;
         
         // Check if tile was already found
-        auto it = std::find_if(tiles.begin(), tiles.end(), compareTileByLoc(tile));
+        auto it = std::find_if(tiles.begin(), tiles.end(), compareTileByLocAndMasterOrSlave(tile));
         if (it != tiles.end()) {
             // Add to existing list of stream IDs
             it->stream_ids.push_back(streamId);
@@ -326,6 +326,8 @@ AIEControlConfigFiletype::getInterfaceTiles(const std::string& graphName,
                         + ". Please specify a valid ID for AIE Profiling. ";
         xrt_core::message::send(severity_level::warning, "XRT", msg);
     }
+
+    std::cout << "!!! Total shim tiles: " << tiles.size() << std::endl;
 
     return tiles;
 }
