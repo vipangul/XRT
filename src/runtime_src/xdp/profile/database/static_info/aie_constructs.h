@@ -77,11 +77,13 @@ namespace xdp {
     io_type  subtype = PLIO;
 
     bool operator==(const tile_type &tile) const {
-      return (col == tile.col) && (row == tile.row) && (subtype == tile.subtype);
+      return (col == tile.col) && (row == tile.row) &&
+             (is_master == tile.is_master) && (subtype == tile.subtype);
     }
     bool operator<(const tile_type &tile) const {
       if (col != tile.col) return col < tile.col;
       if (row != tile.row) return row < tile.row;
+      if (is_master != tile.is_master) return is_master < tile.is_master;
       return subtype < tile.subtype;
     }
   };
