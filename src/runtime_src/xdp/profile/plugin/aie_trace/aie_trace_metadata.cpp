@@ -88,16 +88,9 @@ namespace xdp {
     if (!metadataReader)
       return;
     
-    // Catch when compile-time trace is specified (e.g., --event-trace=functions)
+    // Make sure compiler trace option is available as runtime
     auto compilerOptions = metadataReader->getAIECompilerOptions();
     setRuntimeMetrics(compilerOptions.event_trace == "runtime");
-
-    if (!getRuntimeMetrics()) {
-      std::stringstream msg;
-      msg << "Found compiler trace option of " << compilerOptions.event_trace
-          << ". No runtime AIE metrics will be changed.";
-      xrt_core::message::send(severity_level::info, "XRT", msg.str());
-    }
 
     // Process AIE_trace_settings metrics
     auto aieTileMetricsSettings = 
