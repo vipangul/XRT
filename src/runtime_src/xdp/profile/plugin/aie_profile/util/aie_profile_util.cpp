@@ -794,7 +794,7 @@ namespace xdp::aie::profile {
     std::vector<bool> overflows;
     uint32_t numCounters = UC_NUM_EVENT_COUNTERS + UC_NUM_LATENCY_COUNTERS;
     for (uint32_t c=0; c < numCounters; ++c) {
-      uint32_t val;
+      val = 0;
       XAie_Read32(aieDevInst, tileOffset + UC_MDM_PCSR, &val);
       bool overflow = (((val >> UC_MDM_PCSR_OVERFLOW_BIT) & 0x1) == 1);
       overflows.push_back(overflow);
@@ -810,7 +810,7 @@ namespace xdp::aie::profile {
 
     // 5. Read values of event counters
     for (uint32_t c=0; c < UC_NUM_EVENT_COUNTERS; ++c) {
-      uint32_t val;
+      val = 0;
       XAie_Read32(aieDevInst, tileOffset + UC_MDM_PCDRR, &val);
       uint64_t val2 = (overflows.at(c)) ? (val + OVERFLOW_32BIT) : val;
       values.push_back(val2);
@@ -824,7 +824,7 @@ namespace xdp::aie::profile {
     //             15:0  Maximum measured latency, 16 bits
     std::vector<uint64_t> latencyValues;
     for (uint32_t c=0; c < UC_MDM_PCDRR_LATENCY_READS; ++c) {
-      uint32_t val;
+      val = 0;
       XAie_Read32(aieDevInst, tileOffset + UC_MDM_PCDRR, &val);
       uint64_t val2 = (overflows.at(UC_NUM_EVENT_COUNTERS)) ? (val + OVERFLOW_32BIT) : val;
       latencyValues.push_back(val2);
