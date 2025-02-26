@@ -92,6 +92,9 @@ namespace xdp::aie::profile {
         }
         // Interface tiles (e.g., PLIO, GMIO)
         else if (type == module_type::shim) {
+            std::cout << "!!! Port number: " << static_cast<int>(portnum) 
+                      << ", Channel: " << static_cast<int>(channel) 
+                      << ", Stream ID: " << static_cast<int>(tile.stream_ids.at(portnum)) << std::endl;
           // NOTE: skip configuration of extra ports for tile if stream_ids are not available.
           if (portnum >= tile.stream_ids.size())
             continue;

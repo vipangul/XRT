@@ -377,6 +377,18 @@ namespace xdp {
           // Use start events as End events for profile counters if threshold is not provided
           endEvents[endEvents.size()-1] = endEvents[0];
 
+            std::cout << "!!! Start Events: ";
+            for (const auto& event : startEvents) {
+            std::cout << event << " ";
+            }
+            std::cout << std::endl;
+
+            std::cout << "!!! End Events: ";
+            for (const auto& event : endEvents) {
+            std::cout << event << " ";
+            }
+            std::cout << std::endl;
+
           // Use the set values broadcast events for the reset of counter
           resetEvents = {XAIE_EVENT_NONE_CORE, XAIE_EVENT_NONE_CORE};
           if (type == module_type::shim) {

@@ -1262,10 +1262,10 @@ namespace xdp {
         continue;
       }
       if ((tileSrc[0].col == tileDest[0].col) && (tileSrc[0].row == tileDest[0].row)) {
-        xrt_core::message::send(severity_level::warning, "XRT", "The ports " + g1 + ":" + p1
+        xrt_core::message::send(severity_level::warning, "XRT", "!!! The ports " + g1 + ":" + p1
             + " and " + g2 + ":" + p2 + " were mapped to the same interface tile."
-            + " Latency measurement of these ports is not supported in 2024.2.");
-        continue;
+            + " Latency measurement of these ports are now supported in 2025.1.");
+        // continue;
       }
       std::string tranx_no = tileMetrics[i].size() <= 4 ? "0" : tileMetrics[i].back();
       if (!aie::isDigitString(tranx_no) || std::numeric_limits<uint32_t>::max() < std::stoul(tranx_no)) {
@@ -1386,21 +1386,21 @@ namespace xdp {
     return latencyConfigMap.at(tile).isSource;
   }
 
-  bool AieProfileMetadata::getSourceTile(const tile_type& pairTyle, tile_type& sourceTile) const
+  bool AieProfileMetadata::getSourceTile(const tile_type& pairTile, tile_type& sourceTile) const
   {
-    if (!isValidLatencyTile(pairTyle))
+    if (!isValidLatencyTile(pairTile))
       return false;
 
-    sourceTile = latencyConfigMap.at(pairTyle).src;
+    sourceTile = latencyConfigMap.at(pairTile).src;
     return true;
   }
 
-  bool AieProfileMetadata::getDestTile(const tile_type& pairTyle, tile_type& destTile) const
+  bool AieProfileMetadata::getDestTile(const tile_type& pairTile, tile_type& destTile) const
   {
-    if (!isValidLatencyTile(pairTyle))
+    if (!isValidLatencyTile(pairTile))
       return false;
 
-    destTile = latencyConfigMap.at(pairTyle).dest;
+    destTile = latencyConfigMap.at(pairTile).dest;
     return true;
   }
 
@@ -1451,7 +1451,7 @@ namespace xdp {
 
     LatencyConfig latencyCfg = latencyConfigMap.at(tile);
     return createPayload(latencyCfg.src.col, latencyCfg.src.row, latencyCfg.src.stream_ids.at(0),
-                        latencyCfg.dest.col, latencyCfg.dest.row, latencyCfg.dest.stream_ids.at(0));
+                         latencyCfg.dest.col, latencyCfg.dest.row, latencyCfg.dest.stream_ids.at(0));
   }
 
  std::vector<tile_type>
