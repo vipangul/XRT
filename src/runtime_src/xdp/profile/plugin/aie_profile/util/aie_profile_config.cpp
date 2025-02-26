@@ -185,10 +185,19 @@ namespace xdp::aie::profile {
                                        retCounterEvent, tile, isSourceTile, bcResourcesLatency);
       std::string srcDestPairKey = metadata->getSrcDestPairKey(tile.col, tile.row);
       if (isSourceTile) {
+        // Add std::cout to print the source tile and destination tile and srcDestPairKey
+        std::string srcDestPairKey = metadata->getSrcDestPairKey(tile.col, tile.row);
+        std::cout << "!!! [SRC] Source Tile: " << +tile.col << "," << +tile.row 
+            << " Destination Tile: " << +destTile.col << "," << +destTile.row 
+            << " srcDestPairKey: " << srcDestPairKey << " counterIndex: " << +counterIndex << std::endl;
         adfAPIResourceInfoMap[aie::profile::adfAPI::INTF_TILE_LATENCY][srcDestPairKey].isSourceTile = true; 
         adfAPIResourceInfoMap[aie::profile::adfAPI::INTF_TILE_LATENCY][srcDestPairKey].srcPcIdx = counterIndex;
       }
       else {
+            std::cout << "!!! [DEST] Source Tile: " << +tile.col << "," << +tile.row 
+            << " Destination Tile: " << +destTile.col << "," << +destTile.row 
+            << " srcDestPairKey: " << srcDestPairKey << " counterIndex: " << +counterIndex << std::endl;
+
         adfAPIResourceInfoMap[aie::profile::adfAPI::INTF_TILE_LATENCY][srcDestPairKey].destPcIdx = counterIndex;
       }
       return pc;
