@@ -1265,6 +1265,9 @@ namespace xdp {
         xrt_core::message::send(severity_level::warning, "XRT", "!!! The ports " + g1 + ":" + p1
             + " and " + g2 + ":" + p2 + " were mapped to the same interface tile."
             + " Latency measurement of these ports are now supported in 2025.1.");
+        // Add code cout to print all info inside tileSrc and tileDest
+        std::cout << tileSrc[0]  << std::endl;
+        std::cout << tileDest[0] << std::endl;
         // continue;
       }
       std::string tranx_no = tileMetrics[i].size() <= 4 ? "0" : tileMetrics[i].back();
@@ -1273,8 +1276,8 @@ namespace xdp {
       }
 
       // Update the latencyConfigMap to store the complete config.
-      latencyConfigMap[tileSrc[0]]  = std::move(LatencyConfig(tileSrc[0], tileDest[0], metricName, std::stoul(tranx_no), true, g1, p1, g2, p2));
-      latencyConfigMap[tileDest[0]] = std::move(LatencyConfig(tileSrc[0], tileDest[0], metricName, std::stoul(tranx_no), false, g1, p1, g2, p2));
+      latencyConfigMap[create_tileKey(tileSrc[0])]  = std::move(LatencyConfig(tileSrc[0], tileDest[0], metricName, std::stoul(tranx_no), true, g1, p1, g2, p2));
+      latencyConfigMap[create_tileKey(tileDest[0])] = std::move(LatencyConfig(tileSrc[0], tileDest[0], metricName, std::stoul(tranx_no), false, g1, p1, g2, p2));
 
       // Also update the common configMetrics 
       configMetrics[moduleIdx][tileSrc[0]]  = metricName;
@@ -1363,11 +1366,11 @@ namespace xdp {
       }
     }
     else if(metricSet == METRIC_LATENCY) {
-      if (latencyConfigMap.find(tile) == latencyConfigMap.end()) {
+      if (latencyConfigMap.find(create_tileKey(tile)) == latencyConfigMap.end()) {
         return 0;
       }
       else{
-        return latencyConfigMap.at(tile).tranx_no;
+        return latencyConfigMap.at(create_tileKey(tile)).tranx_no;
       }
     }
     return 0;
@@ -1383,7 +1386,7 @@ namespace xdp {
     if (!isValidLatencyTile(tile))
       return false;
     
-    return latencyConfigMap.at(tile).isSource;
+    return latencyConfigMap.at(create_tileKey(tile)).isSource;
   }
 
   bool AieProfileMetadata::getSourceTile(const tile_type& pairTile, tile_type& sourceTile) const
@@ -1391,7 +1394,7 @@ namespace xdp {
     if (!isValidLatencyTile(pairTile))
       return false;
 
-    sourceTile = latencyConfigMap.at(pairTile).src;
+    sourceTile = latencyConfigMap.at(create_tileKey(pairTile)).src;
     return true;
   }
 
@@ -1400,7 +1403,7 @@ namespace xdp {
     if (!isValidLatencyTile(pairTile))
       return false;
 
-    destTile = latencyConfigMap.at(pairTile).dest;
+    destTile = latencyConfigMap.at(create_tileKey(pairTile)).dest;
     return true;
   }
 
@@ -1414,8 +1417,9 @@ namespace xdp {
 
     for(const auto &config : latencyConfigMap) {
       if(config.first.col == col && config.first.row == row) {
-        key = "src_"  + aie::uint8ToStr(config.second.src.col)  + "," + aie::uint8ToStr(config.second.src.row)+
-              "dest_" + aie::uint8ToStr(config.second.dest.col) + "," + aie::uint8ToStr(config.second.dest.row);
+        key = "src_"  + aie::uint8ToStr(config.second.src.col)  + "," + aie::uint8ToStr(config.second.src.row)+ "," + aie::uint8ToStr(config.second.src.stream_ids.at(0)) + ":" +
+              "dest_" + aie::uint8ToStr(config.second.dest.col) + "," + aie::uint8ToStr(config.second.dest.row) + "," + aie::uint8ToStr(config.second.dest.stream_ids.at(0));
+        std::cout << "!!! formed src-dest key: " << key << std::endl;
         keysCache[cacheKey] = LatencyCache(key,
                                            config.second.graphPortPair.srcGraphName,
                                            config.second.graphPortPair.srcGraphPort,
@@ -1441,7 +1445,7 @@ namespace xdp {
 
   bool AieProfileMetadata::isValidLatencyTile(const tile_type& tile) const
   {
-    return latencyConfigMap.find(tile) != latencyConfigMap.end();
+    return latencyConfigMap.find(create_tileKey(tile)) != latencyConfigMap.end();
   }
 
   uint64_t AieProfileMetadata::getIntfLatencyPayload(const tile_type& tile)
@@ -1449,7 +1453,7 @@ namespace xdp {
     if (!isValidLatencyTile(tile))
       return 0;
 
-    LatencyConfig latencyCfg = latencyConfigMap.at(tile);
+    LatencyConfig latencyCfg = latencyConfigMap.at(create_tileKey(tile));
     return createPayload(latencyCfg.src.col, latencyCfg.src.row, latencyCfg.src.stream_ids.at(0),
                          latencyCfg.dest.col, latencyCfg.dest.row, latencyCfg.dest.stream_ids.at(0));
   }

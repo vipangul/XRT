@@ -94,7 +94,7 @@ namespace xdp::aie::profile {
         else if (type == module_type::shim) {
             std::cout << "!!! Port number: " << static_cast<int>(portnum) 
                       << ", Channel: " << static_cast<int>(channel) 
-                      << ", Stream ID: " << static_cast<int>(tile.stream_ids.at(portnum)) << std::endl;
+                      << ", Stream ID size: " << static_cast<int>(tile.stream_ids.size()) << std::endl;
           // NOTE: skip configuration of extra ports for tile if stream_ids are not available.
           if (portnum >= tile.stream_ids.size())
             continue;
@@ -188,14 +188,12 @@ namespace xdp::aie::profile {
         // Add std::cout to print the source tile and destination tile and srcDestPairKey
         std::string srcDestPairKey = metadata->getSrcDestPairKey(tile.col, tile.row);
         std::cout << "!!! [SRC] Source Tile: " << +tile.col << "," << +tile.row 
-            << " Destination Tile: " << +destTile.col << "," << +destTile.row 
             << " srcDestPairKey: " << srcDestPairKey << " counterIndex: " << +counterIndex << std::endl;
         adfAPIResourceInfoMap[aie::profile::adfAPI::INTF_TILE_LATENCY][srcDestPairKey].isSourceTile = true; 
         adfAPIResourceInfoMap[aie::profile::adfAPI::INTF_TILE_LATENCY][srcDestPairKey].srcPcIdx = counterIndex;
       }
       else {
             std::cout << "!!! [DEST] Source Tile: " << +tile.col << "," << +tile.row 
-            << " Destination Tile: " << +destTile.col << "," << +destTile.row 
             << " srcDestPairKey: " << srcDestPairKey << " counterIndex: " << +counterIndex << std::endl;
 
         adfAPIResourceInfoMap[aie::profile::adfAPI::INTF_TILE_LATENCY][srcDestPairKey].destPcIdx = counterIndex;

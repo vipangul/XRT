@@ -79,8 +79,8 @@ namespace xdp {
             metrics.back() += "," + std::to_string(+validConfig.bytesTransferConfigMap.at(elm.first));
         }
         else if (i == module_type::shim && elm.second == METRIC_LATENCY) {
-          if(validConfig.latencyConfigMap.find(elm.first) != validConfig.latencyConfigMap.end())
-            metrics.back() += "," + std::to_string(+validConfig.latencyConfigMap.at(elm.first).tranx_no);
+          if(validConfig.latencyConfigMap.find(create_tileKey(elm.first)) != validConfig.latencyConfigMap.end())
+            metrics.back() += "," + std::to_string(+validConfig.latencyConfigMap.at(create_tileKey(elm.first)).tranx_no);
         }
       }
       filteredConfig[static_cast<module_type>(i)] = metrics;
