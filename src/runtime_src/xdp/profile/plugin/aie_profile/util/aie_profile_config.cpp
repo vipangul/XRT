@@ -354,6 +354,14 @@ namespace xdp::aie::profile {
     tile_type destTile;
     
     metadata->getDestTile(srcTile, destTile);
+
+    // Write code to check if source and destination tiles are same col and row
+    if (srcTile.col == destTile.col && srcTile.row == destTile.row) {
+      std::cout << "### [SRC][DEST] Source Tile: " << +srcTile.col << "," << +srcTile.row 
+                << " is the same as destination tile:" << +destTile.col << "," << +destTile.row << std::endl;
+      return std::make_pair(0, XAIE_EVENT_USER_EVENT_0_PL);
+    }
+
     XAie_LocType destTileLocation = XAie_TileLoc(destTile.col, destTile.row);
 
     // Include all tiles between source and destination
@@ -437,11 +445,15 @@ namespace xdp::aie::profile {
     
     startEvent = XAIE_EVENT_USER_EVENT_0_PL;
     if (!metadata->isSourceTile(tile)) {
+      std::cout << "### [Dest] tile: " << +tile.col << "," << +tile.row 
+                << " is not a source tile" << std::endl;
       auto bcPair = setupBroadcastChannel(aieDevice, tile, metadata, bcResourcesLatency);
       startEvent = bcPair.second;
       isSource = false;
     }
 
+    std::cout << "### [SRC] tile: " << +tile.col << "," << +tile.row 
+              << " is a source tile" << std::endl;
     auto ret = pc->initialize(xaieModType, startEvent, xaieModType, endEvent);
     if (ret != XAIE_OK)
       return nullptr;

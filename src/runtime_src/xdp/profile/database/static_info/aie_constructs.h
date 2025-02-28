@@ -101,14 +101,14 @@ namespace xdp {
     // For debugging function to print tile_type all fields stream_ids, is_master_vec using stringstream 
     friend std::ostream& operator<<(std::ostream& os, const tile_type& tile) {
       std::stringstream ss;
-      ss << "!!! Tile: " << (int)tile.col << "," << (int)tile.row << " Subtype: " << (int)tile.subtype;
+      ss << "!!! Tile: " << +tile.col << "," << +tile.row << " Subtype: " << +tile.subtype;
       ss << " Stream IDs: ";
       for (auto id : tile.stream_ids) {
-      ss << (int)id << " ";
+      ss << +id << " ";
       }
       ss << " Master: ";
       for (auto master : tile.is_master_vec) {
-      ss << (int)master << " ";
+      ss << +master << " ";
       }
       os << ss.str();
       return os;
@@ -393,6 +393,14 @@ namespace xdp {
       return row == other.row && col == other.col && stream_id == other.stream_id && is_master == other.is_master &&
              itr_mem_addr == other.itr_mem_addr && active_core == other.active_core && active_memory == other.active_memory &&
              is_trigger == other.is_trigger && subtype == other.subtype;
+    }
+    // Implement a method to print the tileKey
+    std::string toString() const {
+      std::stringstream ss;
+      ss << "TileKey: (" << +row << ", " << +col << ", " << +stream_id << ", " << +is_master
+         << ", " << +itr_mem_addr << ", " << active_core << ", " << active_memory << ", " << is_trigger
+         << ", " << (int)subtype << ")";
+      return ss.str();
     }
   };
 

@@ -1279,6 +1279,11 @@ namespace xdp {
       latencyConfigMap[create_tileKey(tileSrc[0])]  = std::move(LatencyConfig(tileSrc[0], tileDest[0], metricName, std::stoul(tranx_no), true, g1, p1, g2, p2));
       latencyConfigMap[create_tileKey(tileDest[0])] = std::move(LatencyConfig(tileSrc[0], tileDest[0], metricName, std::stoul(tranx_no), false, g1, p1, g2, p2));
 
+      // print latencyConfigMap by iteratin on it
+      for (auto& it : latencyConfigMap) {
+        std::cout << "!!! latencyConfigMap(col,row,stream_id): " << +it.first.col << ","  << +it.first.row << "," << +it.first.stream_id << std::endl;
+      }
+
       // Also update the common configMetrics 
       configMetrics[moduleIdx][tileSrc[0]]  = metricName;
       configMetrics[moduleIdx][tileDest[0]] = metricName;
@@ -1386,6 +1391,11 @@ namespace xdp {
     if (!isValidLatencyTile(tile))
       return false;
     
+    std::cout << "!!! isSourceTile received tile: "<< tile << std::endl;
+    auto tile_key = create_tileKey(tile);
+    std::cout << "!!! isSourceTile Formed tileKey: " << tile_key.toString() << std::endl;
+    std::cout << "!!! Src Tile: " << +latencyConfigMap.at(tile_key).src.col << "," << +latencyConfigMap.at(tile_key).src.row << std::endl;
+    std::cout << "!!! Dest Tile: " << +latencyConfigMap.at(tile_key).dest.col << "," << +latencyConfigMap.at(tile_key).dest.row << std::endl;
     return latencyConfigMap.at(create_tileKey(tile)).isSource;
   }
 
@@ -1412,14 +1422,16 @@ namespace xdp {
     std::string key = "";
 
     std::string cacheKey = "fetch_" + aie::uint8ToStr(col) + "," + aie::uint8ToStr(row);
-    if(keysCache.find(cacheKey) != keysCache.end())
+    if(keysCache.find(cacheKey) != keysCache.end()) {
+      std::cout << "!!! Found in cache: " << keysCache.at(cacheKey).srcDestKey << " for query key: " << cacheKey << std::endl;
       return keysCache.at(cacheKey).srcDestKey;
+    }
 
     for(const auto &config : latencyConfigMap) {
       if(config.first.col == col && config.first.row == row) {
         key = "src_"  + aie::uint8ToStr(config.second.src.col)  + "," + aie::uint8ToStr(config.second.src.row)+ "," + aie::uint8ToStr(config.second.src.stream_ids.at(0)) + ":" +
               "dest_" + aie::uint8ToStr(config.second.dest.col) + "," + aie::uint8ToStr(config.second.dest.row) + "," + aie::uint8ToStr(config.second.dest.stream_ids.at(0));
-        std::cout << "!!! formed src-dest key: " << key << std::endl;
+        std::cout << "!!! Formed src-dest key: " << key << std::endl;
         keysCache[cacheKey] = LatencyCache(key,
                                            config.second.graphPortPair.srcGraphName,
                                            config.second.graphPortPair.srcGraphPort,
