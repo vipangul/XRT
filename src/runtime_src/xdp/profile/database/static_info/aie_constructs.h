@@ -183,11 +183,12 @@ namespace xdp {
     double clockFreqMhz;
     std::string module;
     std::string name;
+    uint8_t streamId;
 
     AIECounter(uint32_t i, uint8_t col, uint8_t r, uint8_t num, 
                uint16_t start, uint16_t end, uint8_t reset,
                uint64_t load, double freq, const std::string& mod, 
-               const std::string& aieName)
+               const std::string& aieName, uint8_t id=0)
       : id(i)
       , column(col)
       , row(r)
@@ -199,6 +200,7 @@ namespace xdp {
       , clockFreqMhz(freq)
       , module(mod)
       , name(aieName)
+      , streamId(id)
     {}
   };
 
@@ -397,7 +399,7 @@ namespace xdp {
     // Implement a method to print the tileKey
     std::string toString() const {
       std::stringstream ss;
-      ss << "TileKey: (" << +row << ", " << +col << ", " << +stream_id << ", " << +is_master
+      ss << "TileKey: (" << +col << ", " << +row << ", " << +stream_id << ", " << +is_master
          << ", " << +itr_mem_addr << ", " << active_core << ", " << active_memory << ", " << is_trigger
          << ", " << (int)subtype << ")";
       return ss.str();

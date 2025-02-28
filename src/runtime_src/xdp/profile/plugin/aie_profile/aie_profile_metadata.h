@@ -191,7 +191,7 @@ class AieProfileMetadata {
                          uint8_t col2, uint8_t row2, uint8_t portID2);
     bool getSourceTile(const tile_type& pairTyle, tile_type& sourceTile) const;
     bool getDestTile(const tile_type& pairTyle, tile_type& destTile) const;
-    std::string getSrcDestPairKey(uint8_t col, uint8_t row);
+    std::string getSrcDestPairKey(uint8_t col, uint8_t row, uint8_t streamId);
     GraphPortPair getSrcDestGraphPair(const std::string& srcDestKey) const;
 
     std::vector<tile_type>

@@ -35,7 +35,8 @@ namespace xdp {
 
   void AIEProfilingWriter::writeHeader()
   {
-    // Updated offsets for AIE mem, shim and mem_tile to 1000, 2000, 3000 respectively.
+    // 1.1 Updated offsets for AIE mem, shim and mem_tile to 1000, 2000, 3000 respectively.
+    // 1.2 TODO: Consider adding streamIDs to header apart from Col,row,metric,<optional_value>
     float fileVersion = 1.1f;
 
     // Report HW generation to inform analysis how to interpret event IDs

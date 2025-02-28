@@ -1283,6 +1283,7 @@ namespace xdp {
       for (auto& it : latencyConfigMap) {
         std::cout << "!!! latencyConfigMap(col,row,stream_id): " << +it.first.col << ","  << +it.first.row << "," << +it.first.stream_id << std::endl;
       }
+      std::cout << "---------------------\n";
 
       // Also update the common configMetrics 
       configMetrics[moduleIdx][tileSrc[0]]  = metricName;
@@ -1391,11 +1392,12 @@ namespace xdp {
     if (!isValidLatencyTile(tile))
       return false;
     
-    std::cout << "!!! isSourceTile received tile: "<< tile << std::endl;
+    std::cout << "\t!!! isSourceTile received tile: "<< tile << std::endl;
     auto tile_key = create_tileKey(tile);
-    std::cout << "!!! isSourceTile Formed tileKey: " << tile_key.toString() << std::endl;
-    std::cout << "!!! Src Tile: " << +latencyConfigMap.at(tile_key).src.col << "," << +latencyConfigMap.at(tile_key).src.row << std::endl;
-    std::cout << "!!! Dest Tile: " << +latencyConfigMap.at(tile_key).dest.col << "," << +latencyConfigMap.at(tile_key).dest.row << std::endl;
+    std::cout << "\t!!! isSourceTile Formed tileKey: " << tile_key.toString() << std::endl;
+    std::cout << "\t!!! Src Tile: " << +latencyConfigMap.at(tile_key).src.col << "," << +latencyConfigMap.at(tile_key).src.row <<"," << +latencyConfigMap.at(tile_key).src.stream_ids.at(0) << std::endl;
+    std::cout << "\t!!! Dest Tile: " << +latencyConfigMap.at(tile_key).dest.col << "," << +latencyConfigMap.at(tile_key).dest.row << "," << +latencyConfigMap.at(tile_key).dest.stream_ids.at(0) << std::endl;
+    std::cout << "-------\n";
     return latencyConfigMap.at(create_tileKey(tile)).isSource;
   }
 
@@ -1404,6 +1406,13 @@ namespace xdp {
     if (!isValidLatencyTile(pairTile))
       return false;
 
+    std::cout << "\t!!! getSourceTile received tile: "<< pairTile << std::endl;
+    auto tile_key = create_tileKey(pairTile);
+    std::cout << "\t!!! getSourceTile Formed tileKey: " << tile_key.toString() << std::endl;
+    std::cout << "\t!!! Src Tile: " << +latencyConfigMap.at(tile_key).src.col << "," << +latencyConfigMap.at(tile_key).src.row <<"," << +latencyConfigMap.at(tile_key).src.stream_ids.at(0) << std::endl;
+    std::cout << "\t!!! Dest Tile: " << +latencyConfigMap.at(tile_key).dest.col << "," << +latencyConfigMap.at(tile_key).dest.row << "," << +latencyConfigMap.at(tile_key).dest.stream_ids.at(0) << std::endl;
+    std::cout << "-------\n";
+ 
     sourceTile = latencyConfigMap.at(create_tileKey(pairTile)).src;
     return true;
   }
@@ -1417,19 +1426,68 @@ namespace xdp {
     return true;
   }
 
-  std::string AieProfileMetadata::getSrcDestPairKey(uint8_t col, uint8_t row)
+  // std::string AieProfileMetadata::getSrcDestPairKey(uint8_t col, uint8_t row, uint64_t latencyPayload)
+  // {
+  //   std::string key = "";
+
+  //   // std::string cacheKey = "fetch_" + aie::uint8ToStr(col) + "," + aie::uint8ToStr(row);
+  //   // if(keysCache.find(cacheKey) != keysCache.end()) {
+  //   //   std::cout << "!!! Found in cache: " << keysCache.at(cacheKey).srcDestKey << " for query key: " << cacheKey << std::endl;
+  //   //   return keysCache.at(cacheKey).srcDestKey;
+  //   // }
+
+  //   auto payloadValues = extractPayloadValues(latencyPayload);
+  //   std::cout << "!!! Received payload: " << latencyPayload << std::endl;
+
+  //   // for(const auto &config : latencyConfigMap) {
+  //   //   if(config.first.col == col && config.first.row == row) {
+  //   //     key = "src_"  + aie::uint8ToStr(config.second.src.col)  + "," + aie::uint8ToStr(config.second.src.row)+ "," + aie::uint8ToStr(config.second.src.stream_ids.at(0)) + ":" +
+  //   //           "dest_" + aie::uint8ToStr(config.second.dest.col) + "," + aie::uint8ToStr(config.second.dest.row) + "," + aie::uint8ToStr(config.second.dest.stream_ids.at(0));
+  //   //     std::cout << "!!! Formed src-dest key: " << key << std::endl;
+  //   //     keysCache[cacheKey] = LatencyCache(key,
+  //   //                                        config.second.graphPortPair.srcGraphName,
+  //   //                                        config.second.graphPortPair.srcGraphPort,
+  //   //                                        config.second.graphPortPair.destGraphName,
+  //   //                                        config.second.graphPortPair.destGraphPort);
+  //   //     return key;
+  //   //   }
+  //   // }
+
+  //   // Iterate through the latencyConfigMap to find the matching key
+  //   for (const auto &config : latencyConfigMap) {
+  //     if (config.first.col == col && config.first.row == row && config.first.stream_id == payloadValues.portID1) {
+  //       key = "src_"  + aie::uint8ToStr(config.second.src.col)  + "," + aie::uint8ToStr(config.second.src.row)+ "," + aie::uint8ToStr(config.second.src.stream_ids.at(0)) + ":" +
+  //             "dest_" + aie::uint8ToStr(config.second.dest.col) + "," + aie::uint8ToStr(config.second.dest.row) + "," + aie::uint8ToStr(config.second.dest.stream_ids.at(0));
+  //       std::cout << "!!! Formed src-dest key: " << key << std::endl;
+  //       keysCache[cacheKey] = LatencyCache(key,
+  //                                          config.second.graphPortPair.srcGraphName,
+  //                                          config.second.graphPortPair.srcGraphPort,
+  //                                          config.second.graphPortPair.destGraphName,
+  //                                          config.second.graphPortPair.destGraphPort);
+  //       return key;
+  //   }
+  // }
+    
+  //   return key;
+  // }
+
+  std::string AieProfileMetadata::getSrcDestPairKey(uint8_t col, uint8_t row, uint8_t streamId)
   {
     std::string key = "";
+ 
+    std::string cacheKey = "fetch_" + aie::uint8ToStr(col) + "," + aie::uint8ToStr(row) + "," + aie::uint8ToStr(streamId);
+  //   // if(keysCache.find(cacheKey) != keysCache.end()) {
+  //   //   std::cout << "!!! Found in cache: " << keysCache.at(cacheKey).srcDestKey << " for query key: " << cacheKey << std::endl;
+  //   //   return keysCache.at(cacheKey).srcDestKey;
+  //   // }
 
-    std::string cacheKey = "fetch_" + aie::uint8ToStr(col) + "," + aie::uint8ToStr(row);
-    if(keysCache.find(cacheKey) != keysCache.end()) {
-      std::cout << "!!! Found in cache: " << keysCache.at(cacheKey).srcDestKey << " for query key: " << cacheKey << std::endl;
-      return keysCache.at(cacheKey).srcDestKey;
-    }
-
-    for(const auto &config : latencyConfigMap) {
-      if(config.first.col == col && config.first.row == row) {
-        key = "src_"  + aie::uint8ToStr(config.second.src.col)  + "," + aie::uint8ToStr(config.second.src.row)+ "," + aie::uint8ToStr(config.second.src.stream_ids.at(0)) + ":" +
+    // Extract values from the payload
+    // latency_payload payloadValues = extractPayloadValues(latencyPayload);
+  
+    // Iterate through the latencyConfigMap to find the matching key
+    for (const auto &config : latencyConfigMap) {
+      if (config.first.col == col && config.first.row == row && config.first.stream_id == streamId) {
+        key = "src_"  + aie::uint8ToStr(config.second.src.col)  + "," + aie::uint8ToStr(config.second.src.row)  + "," + aie::uint8ToStr(config.second.src.stream_ids.at(0)) + ":" +
               "dest_" + aie::uint8ToStr(config.second.dest.col) + "," + aie::uint8ToStr(config.second.dest.row) + "," + aie::uint8ToStr(config.second.dest.stream_ids.at(0));
         std::cout << "!!! Formed src-dest key: " << key << std::endl;
         keysCache[cacheKey] = LatencyCache(key,
@@ -1440,6 +1498,8 @@ namespace xdp {
         return key;
       }
     }
+  
+    // If no match is found, return an empty key
     return key;
   }
 
@@ -1489,5 +1549,36 @@ namespace xdp {
                        (static_cast<uint64_t>(portID2) << 0);
     return payload;
   }
+  
+  // Define a structure to hold the extracted values
+struct latency_payload {
+  uint8_t col1;
+  uint8_t row1;
+  uint8_t portID1;
+  uint8_t col2;
+  uint8_t row2;
+  uint8_t portID2;
+
+  // print using << operator
+  friend std::ostream& operator<<(std::ostream& os, const latency_payload& payload) {
+    os << "col1: " << +payload.col1 << ", row1: " << +payload.row1
+       << ", portID1: " << +payload.portID1 << ", col2: " << +payload.col2
+       << ", row2: " << +payload.row2 << ", portID2: " << +payload.portID2;
+    return os;
+  }
+};
+
+// Function to extract values from the payload
+latency_payload extractPayloadValues(uint64_t payload) {
+  latency_payload values;
+  values.col1    = (payload >> 40) & 0xFF;
+  values.row1    = (payload >> 32) & 0xFF;
+  values.portID1 = (payload >> 24) & 0xFF;
+  values.col2    = (payload >> 16) & 0xFF;
+  values.row2    = (payload >> 8) & 0xFF;
+  values.portID2 = payload & 0xFF;
+  return values;
+}
+
 
 }  // namespace xdp

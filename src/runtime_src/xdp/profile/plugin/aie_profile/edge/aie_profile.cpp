@@ -468,7 +468,7 @@ namespace xdp {
           std::string counterName = "AIE Counter " + std::to_string(counterId);
           (db->getStaticInfo()).addAIECounter(deviceId, counterId, col, row, i,
                 phyStartEvent, phyEndEvent, resetEvent, payload, metadata->getClockFreqMhz(), 
-                metadata->getModuleName(module), counterName);
+                metadata->getModuleName(module), counterName, tile.stream_ids[0]);
           counterId++;
           numCounters++;
         } // numFreeCtr
@@ -515,6 +515,7 @@ namespace xdp {
 
     // Iterate over all AIE Counters & Timers
     auto numCounters = db->getStaticInfo().getNumAIECounter(index);
+    std::cout << "!!! Polling " << +numCounters << " counters for device " << +index << std::endl;
     for (uint64_t c=0; c < numCounters; c++) {
       auto aie = db->getStaticInfo().getAIECounter(index, c);
       if (!aie)
@@ -541,9 +542,10 @@ namespace xdp {
           uint32_t srcCounterValue = 0;
           uint32_t destCounterValue = 0;
           try {
-            std::string srcDestPairKey = metadata->getSrcDestPairKey(aie->column, aie->row);
+            std::string srcDestPairKey = metadata->getSrcDestPairKey(aie->column, aie->row, aie->streamId);
             uint8_t srcPcIdx = adfAPIResourceInfoMap.at(aie::profile::adfAPI::INTF_TILE_LATENCY).at(srcDestPairKey).srcPcIdx;
             uint8_t destPcIdx = adfAPIResourceInfoMap.at(aie::profile::adfAPI::INTF_TILE_LATENCY).at(srcDestPairKey).destPcIdx;
+            std::cout << "!!! srcDestPairKey: " << srcDestPairKey << " srcPcIdx: " << +srcPcIdx << " destPcIdx: " << +destPcIdx << std::endl;
             auto srcPerfCount = perfCounters.at(srcPcIdx);
             auto destPerfCount = perfCounters.at(destPcIdx);
             srcPerfCount->readResult(srcCounterValue);
@@ -553,6 +555,7 @@ namespace xdp {
             if (counterValue != storedValue)
               adfAPIResourceInfoMap[aie::profile::adfAPI::INTF_TILE_LATENCY][srcDestPairKey].profileResult = counterValue;
           } catch(...) {
+            std::cout << "!!! ERROR: Unable to read latency counter for " << +aie->column << "," << +aie->row << " streamId: " << +aie->streamId << std::endl;
             continue;
           }
         }

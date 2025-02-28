@@ -183,17 +183,17 @@ namespace xdp::aie::profile {
       auto pc = configInterfaceLatency(aieDevInst, aieDevice, metadata, xaieModule, xaieModType, xdpModType, 
                                        metricSet, startEvent, endEvent, resetEvent, pcIndex, threshold, 
                                        retCounterEvent, tile, isSourceTile, bcResourcesLatency);
-      std::string srcDestPairKey = metadata->getSrcDestPairKey(tile.col, tile.row);
+      std::string srcDestPairKey = metadata->getSrcDestPairKey(tile.col, tile.row, tile.stream_ids[0]);
       if (isSourceTile) {
         // Add std::cout to print the source tile and destination tile and srcDestPairKey
-        std::string srcDestPairKey = metadata->getSrcDestPairKey(tile.col, tile.row);
+        std::string srcDestPairKey = metadata->getSrcDestPairKey(tile.col, tile.row, tile.stream_ids[0]);
         std::cout << "!!! [SRC] Source Tile: " << +tile.col << "," << +tile.row 
             << " srcDestPairKey: " << srcDestPairKey << " counterIndex: " << +counterIndex << std::endl;
         adfAPIResourceInfoMap[aie::profile::adfAPI::INTF_TILE_LATENCY][srcDestPairKey].isSourceTile = true; 
         adfAPIResourceInfoMap[aie::profile::adfAPI::INTF_TILE_LATENCY][srcDestPairKey].srcPcIdx = counterIndex;
       }
       else {
-            std::cout << "!!! [DEST] Source Tile: " << +tile.col << "," << +tile.row 
+            std::cout << "!!! [DEST] Dest Tile: " << +tile.col << "," << +tile.row 
             << " srcDestPairKey: " << srcDestPairKey << " counterIndex: " << +counterIndex << std::endl;
 
         adfAPIResourceInfoMap[aie::profile::adfAPI::INTF_TILE_LATENCY][srcDestPairKey].destPcIdx = counterIndex;
@@ -445,15 +445,17 @@ namespace xdp::aie::profile {
     
     startEvent = XAIE_EVENT_USER_EVENT_0_PL;
     if (!metadata->isSourceTile(tile)) {
-      std::cout << "### [Dest] tile: " << +tile.col << "," << +tile.row 
+      std::cout << "### [Dest] tile: " << +tile.col << "," << +tile.row << "," << +tile.stream_ids[0]
                 << " is not a source tile" << std::endl;
       auto bcPair = setupBroadcastChannel(aieDevice, tile, metadata, bcResourcesLatency);
       startEvent = bcPair.second;
       isSource = false;
     }
 
-    std::cout << "### [SRC] tile: " << +tile.col << "," << +tile.row 
-              << " is a source tile" << std::endl;
+    if(isSource) {
+      std::cout << "### [SRC] tile: " << +tile.col << "," << +tile.row << "," << +tile.stream_ids[0]
+                << " is a source tile" << std::endl;
+    }
     auto ret = pc->initialize(xaieModType, startEvent, xaieModType, endEvent);
     if (ret != XAIE_OK)
       return nullptr;
