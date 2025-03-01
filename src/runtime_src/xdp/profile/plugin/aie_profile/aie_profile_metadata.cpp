@@ -1259,6 +1259,8 @@ namespace xdp {
       auto tileDest =  metadataReader->getInterfaceTiles(g2, p2, metricName);
 
       if (tileSrc.empty() || tileDest.empty()) {
+        xrt_core::message::send(severity_level::info, "XRT", "The graph ports " + g1 + ":" + p1
+            + " and " + g2 + ":" + p2 + " are not valid for latency measurement, skipping this config.");
         continue;
       }
       if ((tileSrc[0].col == tileDest[0].col) && (tileSrc[0].row == tileDest[0].row)) {
@@ -1397,6 +1399,7 @@ namespace xdp {
     std::cout << "\t!!! isSourceTile Formed tileKey: " << tile_key.toString() << std::endl;
     std::cout << "\t!!! Src Tile: " << +latencyConfigMap.at(tile_key).src.col << "," << +latencyConfigMap.at(tile_key).src.row <<"," << +latencyConfigMap.at(tile_key).src.stream_ids.at(0) << std::endl;
     std::cout << "\t!!! Dest Tile: " << +latencyConfigMap.at(tile_key).dest.col << "," << +latencyConfigMap.at(tile_key).dest.row << "," << +latencyConfigMap.at(tile_key).dest.stream_ids.at(0) << std::endl;
+    std::cout << "isSourceTile Formed sourceTile: "<< latencyConfigMap.at(tile_key).isSource << std::endl;
     std::cout << "-------\n";
     return latencyConfigMap.at(create_tileKey(tile)).isSource;
   }
@@ -1406,14 +1409,15 @@ namespace xdp {
     if (!isValidLatencyTile(pairTile))
       return false;
 
-    std::cout << "\t!!! getSourceTile received tile: "<< pairTile << std::endl;
+    std::cout << "\t!!! getSourceTile received for tile: "<< pairTile << std::endl;
     auto tile_key = create_tileKey(pairTile);
-    std::cout << "\t!!! getSourceTile Formed tileKey: " << tile_key.toString() << std::endl;
-    std::cout << "\t!!! Src Tile: " << +latencyConfigMap.at(tile_key).src.col << "," << +latencyConfigMap.at(tile_key).src.row <<"," << +latencyConfigMap.at(tile_key).src.stream_ids.at(0) << std::endl;
-    std::cout << "\t!!! Dest Tile: " << +latencyConfigMap.at(tile_key).dest.col << "," << +latencyConfigMap.at(tile_key).dest.row << "," << +latencyConfigMap.at(tile_key).dest.stream_ids.at(0) << std::endl;
-    std::cout << "-------\n";
+    // std::cout << "\t!!! getSourceTile Formed tileKey: " << tile_key.toString() << std::endl;
+    // std::cout << "\t!!! Src Tile: " << +latencyConfigMap.at(tile_key).src.col << "," << +latencyConfigMap.at(tile_key).src.row <<"," << +latencyConfigMap.at(tile_key).src.stream_ids.at(0) << std::endl;
+    // std::cout << "\t!!! Dest Tile: " << +latencyConfigMap.at(tile_key).dest.col << "," << +latencyConfigMap.at(tile_key).dest.row << "," << +latencyConfigMap.at(tile_key).dest.stream_ids.at(0) << std::endl;
  
     sourceTile = latencyConfigMap.at(create_tileKey(pairTile)).src;
+    std::cout << "\t!!! getSourceTile Formed sourceTile: "<< sourceTile << std::endl;
+    std::cout << "-------\n";
     return true;
   }
 
@@ -1423,6 +1427,15 @@ namespace xdp {
       return false;
 
     destTile = latencyConfigMap.at(create_tileKey(pairTile)).dest;
+    return true;
+  }
+
+  bool AieProfileMetadata::getSrcTile(const tile_type& pairTile, tile_type& srcTile) const
+  {
+    if (!isValidLatencyTile(pairTile))
+      return false;
+
+    srcTile = latencyConfigMap.at(create_tileKey(pairTile)).src;
     return true;
   }
 
