@@ -36,8 +36,7 @@ namespace xdp {
   void AIEProfilingWriter::writeHeader()
   {
     // 1.1 Updated offsets for AIE mem, shim and mem_tile to 1000, 2000, 3000 respectively.
-    // 1.2 TODO: Consider adding streamIDs to header apart from Col,row,metric,<optional_value>
-    // TODO: Add streamID to header apart from Col,row,metric,<optional_value>
+    // 1.2 Added stream_id in metric sets reporting 
     float fileVersion = 1.2f;
 
     // Report HW generation to inform analysis how to interpret event IDs
@@ -82,7 +81,8 @@ namespace xdp {
         }
         else if (i == module_type::shim && elm.second == METRIC_LATENCY) {
           if(validConfig.latencyConfigMap.find(create_tileKey(elm.first)) != validConfig.latencyConfigMap.end())
-            metrics.back() += "," + std::to_string(+validConfig.latencyConfigMap.at(create_tileKey(elm.first)).tranx_no);
+            metrics.back() += "," + std::to_string(+validConfig.latencyConfigMap.at(create_tileKey(elm.first)).tranx_no) +
+                              "," + std::to_string(+elm.first.stream_ids[0]);
         }
       }
       filteredConfig[static_cast<module_type>(i)] = metrics;

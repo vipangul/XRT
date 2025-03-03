@@ -1489,10 +1489,10 @@ namespace xdp {
     std::string key = "";
  
     std::string cacheKey = "fetch_" + aie::uint8ToStr(col) + "," + aie::uint8ToStr(row) + "," + aie::uint8ToStr(streamId);
-  //   // if(keysCache.find(cacheKey) != keysCache.end()) {
-  //   //   std::cout << "!!! Found in cache: " << keysCache.at(cacheKey).srcDestKey << " for query key: " << cacheKey << std::endl;
-  //   //   return keysCache.at(cacheKey).srcDestKey;
-  //   // }
+    if(keysCache.find(cacheKey) != keysCache.end()) {
+      std::cout << "!!! Found in cache: " << keysCache.at(cacheKey).srcDestKey << " for query key: " << cacheKey << std::endl;
+      return keysCache.at(cacheKey).srcDestKey;
+    }
 
     // Extract values from the payload
     // latency_payload payloadValues = extractPayloadValues(latencyPayload);
