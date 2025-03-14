@@ -58,6 +58,44 @@ namespace xdp {
     // Get AIE clock frequency
     clockFreqMhz = (db->getStaticInfo()).getClockRateMHz(deviceID, false);
 
+    // Check if xdp.json is available and if so then read that file instead
+    std::string jsonFilePath = "xdp.json";
+    std::ifstream jsonFile(jsonFilePath);
+    if (jsonFile.is_open()) {
+      pt::ptree jsonTree;
+      try {
+      pt::read_json(jsonFile, jsonTree);
+      // Process the JSON tree as needed
+      // Example: auto value = jsonTree.get<std::string>("key");
+      } catch (const pt::json_parser_error& e) {
+      xrt_core::message::send(severity_level::error, "XRT", "Failed to parse xdp.json: " + std::string(e.what()));
+      }
+    } else {
+      xrt_core::message::send(severity_level::info, "XRT", "xdp.json not found, proceeding with default settings.");
+    }
+
+    // Step 2: Generate code to get JSON object for each plugin type, read JSON object in front of AIE_profile_settings string key in JSON
+    // and then parse the JSON object to get the settings for each plugin type.
+    pt::ptree aieProfileSettings;
+    try {
+      aieProfileSettings = jsonTree.get_child("AIE_profile_settings");
+    } catch (const pt::ptree_bad_path& e) {
+      xrt_core::message::send(severity_level::error, "XRT", "AIE_profile_settings not found in JSON: " + std::string(e.what()));
+    }
+
+    // Step 3: For each plugin type, read the settings from the JSON object and store them in a map or other data structure
+    std::map<std::string, std::string> pluginSettings;
+    for (const auto& setting : aieProfileSettings) {
+      pluginSettings[setting.first] = setting.second.data();
+    }
+
+    // Step 4: Use the stored settings to print it on console
+    for (const auto& setting : pluginSettings) {
+      std::cout << "Setting: " << setting.first << " = " << setting.second << std::endl;
+    }
+
+
+
     // Tile-based metrics settings
     std::vector<std::string> tileMetricsConfig;
     tileMetricsConfig.push_back(xrt_core::config::get_aie_profile_settings_tile_based_aie_metrics());
@@ -101,6 +139,39 @@ namespace xdp {
     xrt_core::message::send(severity_level::info,
                             "XRT", "Finished Parsing AIE Profile Metadata."); 
   }
+
+  void AieProfileMetadata::parseAIEProfileSettings(const std::string& jsonString) {
+    // Parse the JSON string
+    json::value jv = json::parse(jsonString);
+    json::object root = jv.as_object();
+
+    // Extract "AIE_profile_settings"
+    if (root.contains("AIE_profile_settings")) {
+        json::object profileSettings = root["AIE_profile_settings"].as_object();
+
+        // Extract "tile_based_aie_tile_metrics"
+        if (profileSettings.contains("tile_based_aie_tile_metrics")) {
+            std::cout << "Parsing tile_based_aie_tile_metrics:\n";
+            json::array tileMetrics = profileSettings["tile_based_aie_tile_metrics"].as_array();
+            for (const auto& item : tileMetrics) {
+                json::object metric = item.as_object();
+                std::cout << "  Metric: " << metric["metric"].as_string() << "\n";
+            }
+        }
+
+        // Extract "graph_based_aie_tile_metrics"
+        if (profileSettings.contains("graph_based_aie_tile_metrics")) {
+            std::cout << "\nParsing graph_based_aie_tile_metrics:\n";
+            json::array graphMetrics = profileSettings["graph_based_aie_tile_metrics"].as_array();
+            for (const auto& item : graphMetrics) {
+                json::object metric = item.as_object();
+                std::cout << "  Metric: " << metric["metric"].as_string() << "\n";
+            }
+        }
+    } else {
+        std::cout << "AIE_profile_settings not found in JSON.\n";
+    }
+}
 
   /****************************************************************************
    * Compare tiles (used for sorting)
