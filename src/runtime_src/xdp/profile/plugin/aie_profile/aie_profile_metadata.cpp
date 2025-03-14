@@ -21,12 +21,18 @@
 #include <boost/algorithm/string.hpp>
 #include <boost/property_tree/json_parser.hpp>
 #include <boost/property_tree/ptree.hpp>
+#include <filesystem>
 
 #include "core/common/config_reader.h"
 #include "core/common/device.h"
 #include "core/common/message.h"
 #include "xdp/profile/database/database.h"
 #include "xdp/profile/plugin/vp_base/vp_base_plugin.h"
+#include "xdp/profile/plugin/parser/metrics.h"
+#include "xdp/profile/plugin/parser/json_parser.h"
+#include "xdp/profile/plugin/parser/metrics_collection_manager.h"
+#include "xdp/profile/plugin/parser/metrics_factory.h"
+#include "xdp/profile/plugin/parser/parser_utils.h"
 
 namespace xdp {
   using severity_level = xrt_core::message::severity_level;
@@ -58,6 +64,39 @@ namespace xdp {
     // Get AIE clock frequency
     clockFreqMhz = (db->getStaticInfo()).getClockRateMHz(deviceID, false);
 
+    bool useXdpJson = false;
+    std::string settingFile = xrt_core::config::get_xdp_json();
+    if (SettingsJsonParser::getInstance().isValidJson(settingFile)) {
+      xrt_core::message::send(severity_level::info, "XRT",
+        "Using JSON settings from '" + settingFile + "'");
+      useXdpJson = true;
+    }
+
+    MetricsCollectionManager metricsCollectionManager;
+  
+    // Process JSON settings for AIE_PROFILE plugin
+    if (useXdpJson) {
+        XdpJsonSetting XdpJsonSetting = SettingsJsonParser::getInstance().parseXdpJsonSetting(settingFile, info::aie_profile);
+        if (!XdpJsonSetting.isValid) {
+              xrt_core::message::send(severity_level::warning, "XRT",
+                "Unable to parse JSON settings from " + settingFile +
+                ". Error: " + XdpJsonSetting.errorMessage);
+            useXdpJson = false;
+            return;
+        } else {
+            // Process only AIE_PROFILE plugin configuration
+            auto it = XdpJsonSetting.plugins.find(info::aie_profile);
+            if (it != XdpJsonSetting.plugins.end()) {
+                processPluginJsonSetting(it->second, metricsCollectionManager);
+            } else {
+                xrt_core::message::send(severity_level::info, "XRT",
+                   "No valid aie_profile configuration found in JSON settings");
+                useXdpJson = false;
+                return;
+            }
+        }
+    }
+ 
     // Tile-based metrics settings
     std::vector<std::string> tileMetricsConfig;
     tileMetricsConfig.push_back(xrt_core::config::get_aie_profile_settings_tile_based_aie_metrics());
@@ -80,15 +119,20 @@ namespace xdp {
     // Process all module types
     for (int module = 0; module < NUM_MODULES; ++module) {
       auto type = moduleTypes[module];
-      auto metricsSettings      = getSettingsVector(tileMetricsConfig[module]);
-      auto graphMetricsSettings = getSettingsVector(graphMetricsConfig[module]);
+      if (useXdpJson) {
+        getConfigMetricsUsingJson(module, type, metricsCollectionManager);
+      }
+      else {
+        auto metricsSettings      = getSettingsVector(tileMetricsConfig[module]);
+        auto graphMetricsSettings = getSettingsVector(graphMetricsConfig[module]);
 
-      if (type == module_type::shim)
-        getConfigMetricsForInterfaceTiles(module, metricsSettings, graphMetricsSettings);
-      else if (type == module_type::uc)
-        getConfigMetricsForMicrocontrollers(module, metricsSettings, graphMetricsSettings);
-      else
-        getConfigMetricsForTiles(module, metricsSettings, graphMetricsSettings, type);
+        if (type == module_type::shim)
+          getConfigMetricsForInterfaceTiles(module, metricsSettings, graphMetricsSettings);
+        else if (type == module_type::uc)
+          getConfigMetricsForMicrocontrollers(module, metricsSettings, graphMetricsSettings);
+        else
+          getConfigMetricsForTiles(module, metricsSettings, graphMetricsSettings, type);
+      }
     }
 
     // Graph-based Profile APIs support metrics settings
@@ -101,7 +145,55 @@ namespace xdp {
     xrt_core::message::send(severity_level::info,
                             "XRT", "Finished Parsing AIE Profile Metadata."); 
   }
+ 
+  void AieProfileMetadata::processPluginJsonSetting(const PluginJsonSetting& config, 
+                                             MetricsCollectionManager& manager)
+  {
+      for (const auto& [sectionKey, modules] : config.sections) {
+          for (const auto& [moduleKey, metrics] : modules) {
 
+              bool isGraphsType = (sectionKey == "graphs");
+              
+              // Handle plugin-specific module key mappings
+              std::string mappedModuleKey = moduleKey;
+              if (config.pluginType ==info::aie_trace) {
+                  // Map aie_trace modules to aie_profile equivalents if needed
+                  if (moduleKey == "aie_tile") {
+                      // Handle aie_tile differently - might need special processing
+                  }
+              }
+              
+              MetricType type        = getMetricTypeFromKey(sectionKey, mappedModuleKey);
+              module_type moduleType = getModuleTypeFromKey(mappedModuleKey);
+              
+              // std::cout << "!!! Processing " << sectionKey << " Key: " << moduleKey 
+              //           << " & moduleType: " << moduleType << std::endl;
+              
+              MetricCollection collection;
+              for (const auto& metricData : metrics) {
+                  auto metric = MetricsFactory::createMetric(type, metricData);
+                  if (!metric) {
+                        xrt_core::message::send(severity_level::warning, "XRT",
+                        "Failed to create metric for type: " + std::to_string(static_cast<int>(type)));
+                      continue;
+                  }
+                  
+                  if (jsonContainsAllRange(type, metricData)) {
+                      metric->setAllTiles(true);
+                  } else if (jsonContainsRange(type, metricData)) {
+                      metric->setTilesRange(true);
+                  }
+                  
+                  collection.addMetric(std::move(metric));
+              }
+              if (isGraphsType)
+                collection.setGraphBased(true);
+              
+              manager.addMetricCollection(moduleType, moduleKey, std::move(collection));
+          }
+      }
+  }
+  
   /****************************************************************************
    * Compare tiles (used for sorting)
    ***************************************************************************/
