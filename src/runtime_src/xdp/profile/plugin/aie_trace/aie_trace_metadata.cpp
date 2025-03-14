@@ -32,6 +32,11 @@
 #include "xdp/profile/plugin/vp_base/utility.h"
 #include "xdp/profile/plugin/vp_base/vp_base_plugin.h"
 #include "xdp/profile/database/static_info/aie_util.h"
+#include "xdp/profile/plugin/parser/metrics.h"
+#include "xdp/profile/plugin/parser/json_parser.h"
+#include "xdp/profile/plugin/parser/metrics_collection_manager.h"
+#include "xdp/profile/plugin/parser/metrics_factory.h"
+#include "xdp/profile/plugin/parser/parser_utils.h"
 
 namespace {
   static bool tileCompare(xdp::tile_type tile1, xdp::tile_type tile2)
@@ -104,6 +109,50 @@ namespace xdp {
       return;
     }
 
+    bool useXdpJson = false;
+    // std::string settingFile = xrt_core::config::get_xdp_json();
+    // boost::property_tree::ptree jsonTree;
+    // if (std::filesystem::exists(settingFile)) {
+    //   try {
+    //     jsonTree = SettingsJsonParser::getInstance().parse(settingFile);
+    //     useXdpJson = true;
+    //   } catch (const boost::property_tree::ptree_error& e) {
+    //     xrt_core::message::send(severity_level::warning, "XRT",
+    //       std::string("Error parsing JSON file '") + settingFile + "': " + e.what());
+    //   }
+    // }
+    // else {
+    //   xrt_core::message::send(severity_level::info, "XRT",
+    //     "Using default AIE profile settings (no JSON settings found at '" + settingFile + "')");
+    // }
+
+    // MetricsCollectionManager metricsCollectionManager;
+  
+    // // Process JSON settings for AIE_PROFILE plugin
+    // if (useXdpJson) {
+    //     XdpJsonSetting XdpJsonSetting = SettingsJsonParser::getInstance().parseXdpJsonSetting(settingFile,info::aie_trace);
+    //     if (!XdpJsonSetting.isValid) {
+    //           xrt_core::message::send(severity_level::warning, "XRT",
+    //             "Unable to parse JSON settings from " + settingFile +
+    //             ". Error: " + XdpJsonSetting.errorMessage);
+    //         useXdpJson = false;
+    //     } else {
+    //         // Process only AIE_PROFILE plugin configuration
+    //         auto it = XdpJsonSetting.plugins.find(info::aie_trace);
+    //         if (it != XdpJsonSetting.plugins.end()) {
+    //             processPluginJsonSetting(it->second, metricsCollectionManager);
+    //         } else {
+    //             xrt_core::message::send(severity_level::info, "XRT",
+    //                "No valid aie_profile configuration found in JSON settings");
+    //         }
+    //     }
+    // }
+ 
+
+    // MetricsCollectionManager metricsCollectionManager;
+    // bool useXdpJson = false;
+
+    std::string settingFile = xrt_core::config::get_xdp_json();
     // Process AIE_trace_settings metrics
     auto aieTileMetricsSettings = 
         getSettingsVector(xrt_core::config::get_aie_trace_settings_tile_based_aie_tile_metrics());
@@ -117,17 +166,25 @@ namespace xdp {
         getSettingsVector(xrt_core::config::get_aie_trace_settings_tile_based_interface_tile_metrics());
     auto shimGraphMetricsSettings = 
         getSettingsVector(xrt_core::config::get_aie_trace_settings_graph_based_interface_tile_metrics());
-
-    if (aieTileMetricsSettings.empty() && aieGraphMetricsSettings.empty()
-        && memTileMetricsSettings.empty() && memGraphMetricsSettings.empty()
-        && shimTileMetricsSettings.empty() && shimGraphMetricsSettings.empty()) {
-      isValidMetrics = false;
-    } else {
-      // Use DMA type here to include both core-active tiles and DMA-only tiles
-      getConfigMetricsForTiles(aieTileMetricsSettings, aieGraphMetricsSettings, module_type::dma);
-      getConfigMetricsForTiles(memTileMetricsSettings, memGraphMetricsSettings, module_type::mem_tile);
-      getConfigMetricsForInterfaceTiles(shimTileMetricsSettings, shimGraphMetricsSettings);
-      setTraceStartControl(compilerOptions.graph_iterator_event);
+     
+    if (useXdpJson) {
+      // getConfigMetricsForTilesUsingJson(module_type::dma, metricsCollectionManager);
+      // getConfigMetricsForTilesUsingJson(module_type::mem_tile, metricsCollectionManager);
+      // getConfigMetricsForInterfaceTilesUsingJson(metricsCollectionManager);
+      // setTraceStartControl(compilerOptions.graph_iterator_event);
+    }
+    else {
+      if (aieTileMetricsSettings.empty() && aieGraphMetricsSettings.empty()
+          && memTileMetricsSettings.empty() && memGraphMetricsSettings.empty()
+          && shimTileMetricsSettings.empty() && shimGraphMetricsSettings.empty()) {
+        isValidMetrics = false;
+      } else {
+        // Use DMA type here to include both core-active tiles and DMA-only tiles
+        getConfigMetricsForTiles(aieTileMetricsSettings, aieGraphMetricsSettings, module_type::dma);
+        getConfigMetricsForTiles(memTileMetricsSettings, memGraphMetricsSettings, module_type::mem_tile);
+        getConfigMetricsForInterfaceTiles(shimTileMetricsSettings, shimGraphMetricsSettings);
+        setTraceStartControl(compilerOptions.graph_iterator_event);
+      }
     }
   }
 

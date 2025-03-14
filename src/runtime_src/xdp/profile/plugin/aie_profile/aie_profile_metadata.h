@@ -29,6 +29,9 @@
 #include "xdp/profile/database/static_info/aie_util.h"
 #include "xdp/profile/database/static_info/filetypes/base_filetype_impl.h"
 #include "xdp/profile/plugin/aie_profile/aie_profile_defs.h"
+#include "xdp/profile/plugin/parser/metrics.h"
+#include "xdp/profile/plugin/parser/json_parser.h"
+#include "xdp/profile/plugin/parser/metrics_collection_manager.h"
 
 namespace xdp {
 
@@ -142,6 +145,32 @@ class AieProfileMetadata {
     void getConfigMetricsForMicrocontrollers(const int moduleIdx,
                                              const std::vector<std::string>& metricsSettings,
                                              const std::vector<std::string> graphMetricsSettings);
+
+    // Functions to configure settings derieved from JSON
+    void getConfigMetricsUsingJson(const int module, const module_type type,
+                                  MetricsCollectionManager& metricsCollectionManager);
+    void getConfigMetricsForTilesUsingJson(const int moduleIdx,
+                                           const module_type mod,
+                                           MetricsCollectionManager& metricsCollectionManager);
+    void populateGraphConfigMetricsForTilesUsingJson(const int moduleIdx, const module_type mod,
+                            MetricsCollectionManager& metricsCollectionManager);
+    void populateTilesConfigMetricsForTilesUsingJson(const int moduleIdx, 
+      const module_type mod, MetricsCollectionManager& metricsCollectionManager);
+
+    void getConfigMetricsForInterfaceTilesUsingJson(const int moduleIdx,
+                                           MetricsCollectionManager& metricsCollectionManager);
+    void populateGraphConfigMetricsForInterfaceTilesUsingJson(const int moduleIdx,
+                                                      const module_type mod,
+                                                      MetricsCollectionManager& metricsCollectionManager);
+
+    void populateTilesConfigMetricsForInterfaceTilesUsingJson(const int moduleIdx,
+                                                          const module_type mod,
+                                                          MetricsCollectionManager& metricsCollectionManager);
+
+    void getConfigMetricsForMicrocontrollersUsingJson(const int moduleIdx,
+                                                      MetricsCollectionManager& metricsCollectionManager);
+    void processPluginJsonSetting(const PluginJsonSetting& config, MetricsCollectionManager& manager);
+
     int getPairModuleIndex(const std::string& metricSet, module_type mod);
     uint8_t getMetricSetIndex(const std::string& metricSet, module_type mod);
     bool isSupported(const std::string metricSet, bool isTileBased);
