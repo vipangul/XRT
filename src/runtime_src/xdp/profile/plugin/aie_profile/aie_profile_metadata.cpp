@@ -27,6 +27,8 @@
 #include "core/common/message.h"
 #include "xdp/profile/database/database.h"
 #include "xdp/profile/plugin/vp_base/vp_base_plugin.h"
+#include "xdp/profile/plugin/aie_profile/parser/metrics.h"
+
 
 namespace xdp {
   using severity_level = xrt_core::message::severity_level;
@@ -60,9 +62,9 @@ namespace xdp {
 
     // Check if xdp.json is available and if so then read that file instead
     std::string jsonFilePath = "xdp.json";
+    pt::ptree jsonTree;
     std::ifstream jsonFile(jsonFilePath);
     if (jsonFile.is_open()) {
-      pt::ptree jsonTree;
       try {
       pt::read_json(jsonFile, jsonTree);
       // Process the JSON tree as needed
@@ -94,6 +96,31 @@ namespace xdp {
       std::cout << "Setting: " << setting.first << " = " << setting.second << std::endl;
     }
 
+    // Example JSON input file
+    std::string jsonInput = R"([
+        { "type": "tile_based", "graph": "Graph1", "port": "Port1", "metric": "Metric1", "channel1": 10 },
+        { "type": "graph_based", "graph": "Graph2", "port": "Port2", "metric": "Metric2", "channel2": 20 }
+    ])";
+
+    // Write the JSON input to a file for demonstration
+    std::ofstream inputFile("xdp.json");
+    inputFile << jsonInput;
+    inputFile.close();
+
+    // Parse the JSON file
+    MetricCollection collection = JsonParser::parse("xdp.json");
+
+    // Print metrics
+    for (const auto& metric : collection.metrics) {
+        boost::property_tree::ptree pt = metric->toPtree();
+        boost::property_tree::write_json(std::cout, pt);
+    }
+
+    // Write the metrics back to a file
+    JsonParser::write("output.json", collection);
+    xrt_core::message::send(severity_level::info,
+                            "XRT", "Finished Parsing AIE Profile new Metadata."); 
+    return;
 
 
     // Tile-based metrics settings
@@ -140,38 +167,38 @@ namespace xdp {
                             "XRT", "Finished Parsing AIE Profile Metadata."); 
   }
 
-  void AieProfileMetadata::parseAIEProfileSettings(const std::string& jsonString) {
-    // Parse the JSON string
-    json::value jv = json::parse(jsonString);
-    json::object root = jv.as_object();
+//   void AieProfileMetadata::parseAIEProfileSettings(const std::string& jsonString) {
+//     // Parse the JSON string
+//     json::value jv = json::parse(jsonString);
+//     json::object root = jv.as_object();
 
-    // Extract "AIE_profile_settings"
-    if (root.contains("AIE_profile_settings")) {
-        json::object profileSettings = root["AIE_profile_settings"].as_object();
+//     // Extract "AIE_profile_settings"
+//     if (root.contains("AIE_profile_settings")) {
+//         json::object profileSettings = root["AIE_profile_settings"].as_object();
 
-        // Extract "tile_based_aie_tile_metrics"
-        if (profileSettings.contains("tile_based_aie_tile_metrics")) {
-            std::cout << "Parsing tile_based_aie_tile_metrics:\n";
-            json::array tileMetrics = profileSettings["tile_based_aie_tile_metrics"].as_array();
-            for (const auto& item : tileMetrics) {
-                json::object metric = item.as_object();
-                std::cout << "  Metric: " << metric["metric"].as_string() << "\n";
-            }
-        }
+//         // Extract "tile_based_aie_tile_metrics"
+//         if (profileSettings.contains("tile_based_aie_tile_metrics")) {
+//             std::cout << "Parsing tile_based_aie_tile_metrics:\n";
+//             json::array tileMetrics = profileSettings["tile_based_aie_tile_metrics"].as_array();
+//             for (const auto& item : tileMetrics) {
+//                 json::object metric = item.as_object();
+//                 std::cout << "  Metric: " << metric["metric"].as_string() << "\n";
+//             }
+//         }
 
-        // Extract "graph_based_aie_tile_metrics"
-        if (profileSettings.contains("graph_based_aie_tile_metrics")) {
-            std::cout << "\nParsing graph_based_aie_tile_metrics:\n";
-            json::array graphMetrics = profileSettings["graph_based_aie_tile_metrics"].as_array();
-            for (const auto& item : graphMetrics) {
-                json::object metric = item.as_object();
-                std::cout << "  Metric: " << metric["metric"].as_string() << "\n";
-            }
-        }
-    } else {
-        std::cout << "AIE_profile_settings not found in JSON.\n";
-    }
-}
+//         // Extract "graph_based_aie_tile_metrics"
+//         if (profileSettings.contains("graph_based_aie_tile_metrics")) {
+//             std::cout << "\nParsing graph_based_aie_tile_metrics:\n";
+//             json::array graphMetrics = profileSettings["graph_based_aie_tile_metrics"].as_array();
+//             for (const auto& item : graphMetrics) {
+//                 json::object metric = item.as_object();
+//                 std::cout << "  Metric: " << metric["metric"].as_string() << "\n";
+//             }
+//         }
+//     } else {
+//         std::cout << "AIE_profile_settings not found in JSON.\n";
+//     }
+// }
 
   /****************************************************************************
    * Compare tiles (used for sorting)
