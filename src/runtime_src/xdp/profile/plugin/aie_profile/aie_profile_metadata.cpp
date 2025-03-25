@@ -61,54 +61,30 @@ namespace xdp {
     clockFreqMhz = (db->getStaticInfo()).getClockRateMHz(deviceID, false);
 
     // Check if xdp.json is available and if so then read that file instead
-    std::string jsonFilePath = "xdp.json";
-    pt::ptree jsonTree;
-    std::ifstream jsonFile(jsonFilePath);
-    if (jsonFile.is_open()) {
-      try {
-      pt::read_json(jsonFile, jsonTree);
-      // Process the JSON tree as needed
-      // Example: auto value = jsonTree.get<std::string>("key");
-      } catch (const pt::json_parser_error& e) {
-      xrt_core::message::send(severity_level::error, "XRT", "Failed to parse xdp.json: " + std::string(e.what()));
-      }
-    } else {
-      xrt_core::message::send(severity_level::info, "XRT", "xdp.json not found, proceeding with default settings.");
-    }
 
-    // Step 2: Generate code to get JSON object for each plugin type, read JSON object in front of AIE_profile_settings string key in JSON
-    // and then parse the JSON object to get the settings for each plugin type.
-    pt::ptree aieProfileSettings;
-    try {
-      aieProfileSettings = jsonTree.get_child("AIE_profile_settings");
-    } catch (const pt::ptree_bad_path& e) {
-      xrt_core::message::send(severity_level::error, "XRT", "AIE_profile_settings not found in JSON: " + std::string(e.what()));
-    }
-
-    // Step 3: For each plugin type, read the settings from the JSON object and store them in a map or other data structure
-    std::map<std::string, std::string> pluginSettings;
-    for (const auto& setting : aieProfileSettings) {
-      pluginSettings[setting.first] = setting.second.data();
-    }
-
-    // Step 4: Use the stored settings to print it on console
-    for (const auto& setting : pluginSettings) {
-      std::cout << "Setting: " << setting.first << " = " << setting.second << std::endl;
-    }
 
     // Example JSON input file
-    std::string jsonInput = R"([
-        { "type": "tile_based", "graph": "Graph1", "port": "Port1", "metric": "Metric1", "channel1": 10 },
-        { "type": "graph_based", "graph": "Graph2", "port": "Port2", "metric": "Metric2", "channel2": 20 }
-    ])";
+    std::string jsonString = R"(
+      {
+        "AIE_profile_settings": {
+          "tile_base_aie_tile_metrics": [
+            { "st": [0,0], "metric": "all_stalls_dma" },
+            { "st": [0,1], "et": [0,1], "metric": "s2mm_channels_stalls", "ch1": 0 }
+          ],
+          "graph_based_aie_tile_metrics": [
+            { "gr": "mygraph", "pt": "port1", "metric": "all_stalls_dma" },
+            { "gr": "mygraph", "pt": "all", "metric": "s2mm_channels_stalls", "ch1": 0 }
+          ]
+        }
+      })";
 
     // Write the JSON input to a file for demonstration
     std::ofstream inputFile("xdp.json");
-    inputFile << jsonInput;
+    inputFile << jsonString;
     inputFile.close();
 
     // Parse the JSON file
-    MetricCollection collection = JsonParser::parse("xdp.json");
+    MetricCollection& collection = JsonParser::parse("xdp.json");
 
     // Print metrics
     for (const auto& metric : collection.metrics) {
