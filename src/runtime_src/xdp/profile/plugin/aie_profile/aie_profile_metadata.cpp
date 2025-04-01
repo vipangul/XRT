@@ -67,7 +67,7 @@ namespace xdp {
     std::string jsonString = R"(
       {
         "AIE_profile_settings": {
-          "tile_base_aie_tile_metrics": [
+          "tile_based_aie_tile_metrics": [
             { "st": [0,0], "metric": "all_stalls_dma" },
             { "st": [0,1], "et": [0,1], "metric": "s2mm_channels_stalls", "ch1": 0 }
           ],
@@ -78,26 +78,33 @@ namespace xdp {
         }
       })";
 
-    // Write the JSON input to a file for demonstration
-    std::ofstream inputFile("xdp.json");
-    inputFile << jsonString;
-    inputFile.close();
+    bool useXdpJson = xrt_core::config::get_xdp_json();
+    if (useXdpJson) {
+      // If xdp.json is available, read it instead of the hardcoded string
+      // Write the JSON input to a file for demonstration
+      std::ofstream inputFile("xdp.json", std::ios::out);
+      if (!inputFile) {
+          xrt_core::message::send(severity_level::error, "XRT", "Failed to create xdp.json file. Check write permissions.");
+          return;
+      }
+      inputFile << jsonString;
+      inputFile.close();
 
-    // Parse the JSON file
-    MetricCollection& collection = JsonParser::parse("xdp.json");
+      // Parse the JSON file
+      MetricCollection& collection = JsonParser::parse("xdp.json");
 
-    // Print metrics
-    for (const auto& metric : collection.metrics) {
-        boost::property_tree::ptree pt = metric->toPtree();
-        boost::property_tree::write_json(std::cout, pt);
+      // Print metrics
+      for (const auto& metric : collection.metrics) {
+          boost::property_tree::ptree pt = metric->toPtree();
+          boost::property_tree::write_json(std::cout, pt);
+      }
+
+      // Write the metrics back to a file
+      JsonParser::write("output.json", collection);
+      xrt_core::message::send(severity_level::info,
+                              "XRT", "Finished Parsing AIE Profile new Metadata."); 
+      return;
     }
-
-    // Write the metrics back to a file
-    JsonParser::write("output.json", collection);
-    xrt_core::message::send(severity_level::info,
-                            "XRT", "Finished Parsing AIE Profile new Metadata."); 
-    return;
-
 
     // Tile-based metrics settings
     std::vector<std::string> tileMetricsConfig;

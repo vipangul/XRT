@@ -366,6 +366,13 @@ get_pl_deadlock_detection()
 }
 
 inline bool
+get_xdp_json()
+{
+  static bool value = detail::get_bool_value("Debug.xdp_json", false);
+  return value;
+}
+
+inline bool
 get_api_checks()
 {
   static bool value = detail::get_bool_value("Runtime.api_checks",true);
