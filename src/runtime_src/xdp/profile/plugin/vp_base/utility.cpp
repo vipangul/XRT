@@ -197,4 +197,48 @@ namespace xdp {
     return mode ;
   }
 
+
+  // There are two driver environments that user can set i.e. VE2_ZOCL and VE2_XDNA 
+  // Only one should be set to "true" at a time, if both are set, VE2_ZOCL takes precedence
+  DriverMode getXdpModeEnv()
+  {
+    static DriverMode mode = UNKNOWN ;
+    static bool initialized = false ;
+
+    if (initialized) return mode ;
+
+    initialized = true ;
+    const char* envVar = std::getenv("VE2_ZOCL") ;
+
+    if (envVar && (std::strcmp(envVar, "true") == 0 || std::strcmp(envVar, "TRUE") == 0)) {
+      mode = ZOCL ;
+    } else {
+      envVar = std::getenv("VE2_XDNA") ;
+      if (envVar && (std::strcmp(envVar, "true") == 0 || std::strcmp(envVar, "TRUE") == 0)) {
+        mode = XDNA ;
+      } else {
+        mode = UNKNOWN ;
+      }
+    }
+
+    return mode ;
+  }
+
+  // If hw_context_flow is true, then the function checks if getXdpModeEnv()
+  // returns ZOCL or XDNA. If hw_context_flow is false, then the function
+  // return true.
+  bool checkValidEnv(bool hw_context_flow, DriverMode userMode)
+  {
+    if (!hw_context_flow) {
+      return true;
+    }
+
+    DriverMode mode = getXdpModeEnv();
+    if (mode == userMode) {
+      return true;
+    }
+
+    return false;
+  }
+
 } // end namespace xdp

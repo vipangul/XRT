@@ -109,6 +109,14 @@ namespace xdp {
     if (!handle)
       return;
 
+    if(!checkValidEnv(hw_context_flow)) {
+      std::stringstream msg;
+      msg << "Invalid environment for AIE profiling. "
+          << "Please check if the environment variable VE2_ZOCL or VE2_XDNA is set.";
+      xrt_core::message::send(severity_level::warning, "XRT", msg.str());
+      return;
+    }
+
     auto device = util::convertToCoreDevice(handle, hw_context_flow);
     auto deviceID = getDeviceIDFromHandle(handle);
 

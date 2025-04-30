@@ -42,6 +42,12 @@ namespace xdp {
     UNKNOWN = 3
   };
 
+  enum DriverMode {
+    ZOCL  = 0,
+    XDNA  = 1,
+    UNKNOWN = 2
+  };
+
   namespace uint_constants {
     constexpr uint64_t one_thousand = 1000;
     constexpr uint64_t one_million  = 1000000;
@@ -57,6 +63,9 @@ namespace xdp {
   }
 
   XDP_CORE_EXPORT Flow getFlowMode();
+  XDP_CORE_EXPORT  DriverMode getXdpModeEnv();
+  XDP_CORE_EXPORT Flow getFlowMode();
+  XDP_CORE_EXPORT bool checkValidEnv(bool hw_context_flow, DriverMode userMode=ZOCL);
 
 } // end namespace xdp
 
