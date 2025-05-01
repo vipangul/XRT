@@ -12,8 +12,22 @@
 #include <iostream>
 #include "core/common/message.h"
 
+namespace xdp {
 namespace pt = boost::property_tree;
 using severity_level = xrt_core::message::severity_level;
+
+// Helper Functions
+std::vector<uint8_t> parseArray(const boost::property_tree::ptree& arrayNode) {
+  std::vector<uint8_t> result;
+  for (const auto& item : arrayNode) {
+      result.push_back(static_cast<uint8_t>(item.second.get_value<int>()));
+  }
+  for (const auto& item : result) {
+      std::cout << "Parsed item: " << static_cast<int>(item) << std::endl;
+  }
+  return result;
+}
+
 // Base interface for all metrics
 class Metric {
 public:
@@ -112,7 +126,7 @@ public:
             tileNode.put("", static_cast<int>(tile)); // Convert uint8_t to int for JSON
             startTileNode.push_back(std::make_pair("", tileNode));
         }
-        obj.add_child("startTile", startTileNode);
+        obj.add_child("st", startTileNode);
 
         // Add endTile array
         boost::property_tree::ptree endTileNode;
@@ -121,26 +135,28 @@ public:
             tileNode.put("", static_cast<int>(tile)); // Convert uint8_t to int for JSON
             endTileNode.push_back(std::make_pair("", tileNode));
         }
-        obj.add_child("endTile", endTileNode);
+        obj.add_child("et", endTileNode);
 
         addCommonFields(obj);
         return obj;
     }
 
+
+
     // Create from ptree
     static std::unique_ptr<Metric> processSettings(const boost::property_tree::ptree& obj) {
         // Helper function to parse arrays of uint8_t
-        auto parseArray = [](const boost::property_tree::ptree& arrayNode) {
-            std::vector<uint8_t> result;
-            for (const auto& item : arrayNode) {
-                result.push_back(static_cast<uint8_t>(std::stoi(item.second.data())));
-            }
-            return result;
-        };
+        // auto parseArray = [](const boost::property_tree::ptree& arrayNode) {
+        //     std::vector<uint8_t> result;
+        //     for (const auto& item : arrayNode) {
+        //         result.push_back(static_cast<uint8_t>(std::stoi(item.second.data())));
+        //     }
+        //     return result;
+        // };
 
         return std::make_unique<TileBasedMetricEntry>(
-            obj.get_child_optional("startTile") ? parseArray(obj.get_child("startTile")) : std::vector<uint8_t>{},
-            obj.get_child_optional("endTile") ? parseArray(obj.get_child("endTile")) : std::vector<uint8_t>{},
+            obj.get_child_optional("st") ? parseArray(obj.get_child("st")) : std::vector<uint8_t>{},
+            obj.get_child_optional("et") ? parseArray(obj.get_child("et")) : std::vector<uint8_t>{},
             obj.get<std::string>("metric", "N/A"),
             obj.get_optional<int>("ch1") ? std::make_optional<int>(obj.get<int>("ch1")) : std::nullopt,
             obj.get_optional<int>("ch2") ? std::make_optional<int>(obj.get<int>("ch2")) : std::nullopt
@@ -165,6 +181,7 @@ enum class metric_type {
     GRAPH_BASED_AIE_TILE,
     NUM_TYPES // Used to determine the number of metric types
 };
+
 // MetricCollection class for managing a collection of metrics
 class MetricCollection {
 public:
@@ -185,7 +202,8 @@ public:
     MetricCollection& operator=(MetricCollection&&) = default;
 
     // Create from ptree array
-    static MetricCollection processSettings(const boost::property_tree::ptree& ptArr, metric_type type) {
+    static MetricCollection processSettings(const boost::property_tree::ptree& ptArr, 
+                                            metric_type type) {
         MetricCollection collection;
         for (const auto& item : ptArr) {
             const auto& obj = item.second;
@@ -243,6 +261,7 @@ class JsonParser {
   private:
     // Data structure to store MetricCollection objects for different plugin types
     static std::map<std::string, MetricCollection> pluginMetricCollections;
+    static std::map<module_type, std::map<std::string, MetricCollection>> allModulesMetricCollections;
 public:
     static MetricCollection& parse(const std::string& jsonFilePath) {
       // std::string jsonFilePath = "xdp.json";
@@ -297,7 +316,8 @@ public:
             
             if (!tileBasedMetric.metrics.empty()) {
               tileBasedMetric.print();
-              pluginMetricCollections[setting.first] = std::move(tileBasedMetric);
+              // pluginMetricCollections[setting.first] = std::move(tileBasedMetric);
+              allModulesMetricCollections[module_type::core][setting.first] = std::move(tileBasedMetric);
             }
             else
               xrt_core::message::send(severity_level::warning, "XRT", "Failed to generate object: tile_based_aie_tile_metrics");
@@ -306,7 +326,8 @@ public:
             auto graphBasedMetric = MetricCollection::processSettings(setting.second, metric_type::GRAPH_BASED_AIE_TILE);
             if (!graphBasedMetric.metrics.empty()) {
               graphBasedMetric.print();
-              pluginMetricCollections[setting.first] = std::move(graphBasedMetric);
+              // pluginMetricCollections[setting.first] = std::move(graphBasedMetric);
+              allModulesMetricCollections[module_type::core][setting.first] = std::move(graphBasedMetric);
             }
             else
               xrt_core::message::send(severity_level::warning, "XRT", "Failed to generate object: graph_based_aie_tile_metrics");
@@ -314,14 +335,21 @@ public:
       }
 
       // print pluginMetricCollections
-      for (const auto& collection : pluginMetricCollections) {
-        std::cout << "!! Plugin: " << collection.first << std::endl;
-        collection.second.print();
+      // for (const auto& collection : pluginMetricCollections) {
+      //   std::cout << "!! Plugin: " << collection.first << std::endl;
+      //   collection.second.print();
+      // }
+
+      for (const auto& module : allModulesMetricCollections) {
+        std::cout << "!! Module: " << static_cast<int>(module.first) << std::endl;
+        for (const auto& collection : module.second) {
+          std::cout << "!! Plugin: " << collection.first << std::endl;
+          collection.second.print();
+        }
       }
       
-      // return MetricCollection::processSettings(pt);
-      // return pluginMetricCollections["tile_based_aie_tile_metrics"];
-      return pluginMetricCollections.begin()->second;
+      // return pluginMetricCollections.begin()->second;
+      return allModulesMetricCollections[module_type::core].begin()->second;
     }
 
     static void write(const std::string& filename, const MetricCollection& collection) {
@@ -348,6 +376,10 @@ public:
 
 // Define the static member
 std::map<std::string, MetricCollection> JsonParser::pluginMetricCollections;
+std::map<module_type, std::map<std::string, MetricCollection>> JsonParser::allModulesMetricCollections;
 
+
+
+}
 
 #endif
