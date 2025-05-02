@@ -63,6 +63,7 @@ namespace xdp {
     // Check if xdp.json is available and if so then read that file instead
 
 
+    // Feature starts from here
     // Example JSON input file
     std::string jsonString = R"(
       {
@@ -72,8 +73,8 @@ namespace xdp {
             { "st": [0,1], "et": [0,1], "metric": "s2mm_channels_stalls", "ch1": 0 }
           ],
           "graph_based_aie_tile_metrics": [
-            { "gr": "mygraph", "pt": "port1", "metric": "all_stalls_dma" },
-            { "gr": "mygraph", "pt": "all", "metric": "s2mm_channels_stalls", "ch1": 0 }
+            { "graph": "mygraph", "port": "port1", "metric": "all_stalls_dma" },
+            { "graph": "mygraph", "port": "all", "metric": "s2mm_channels_stalls", "ch1": 0 }
           ]
         }
       })";
