@@ -17,7 +17,7 @@ namespace pt = boost::property_tree;
 using severity_level = xrt_core::message::severity_level;
 
 // Helper Functions
-std::vector<uint8_t> parseArray(const boost::property_tree::ptree& arrayNode) {
+inline std::vector<uint8_t> parseArray(const boost::property_tree::ptree& arrayNode) {
   std::vector<uint8_t> result;
   for (const auto& item : arrayNode) {
       result.push_back(static_cast<uint8_t>(item.second.get_value<int>()));
@@ -40,29 +40,57 @@ public:
     // Create a metric from ptree
     static std::unique_ptr<Metric> processSettings(const boost::property_tree::ptree& obj);
 
+    virtual const std::vector<uint8_t>& getStartTile() const {
+      static const std::vector<uint8_t> empty;
+      return empty; // Default implementation for base class
+    }
+  
+    virtual const std::vector<uint8_t>& getEndTile() const {
+      static const std::vector<uint8_t> empty;
+      return empty; // Default implementation for base class
+    }
+  
     virtual void print() const {
       std::cout << "Metric: " << metric;
-      if (channel1) {
-          std::cout << ", Channel 1: " << *channel1;
+      if (channel0) {
+          std::cout << ", Channel 1: " << *channel0;
       }
-      if (channel2) {
-          std::cout << ", Channel 2: " << *channel2;
+      if (channel1) {
+          std::cout << ", Channel 2: " << *channel1;
       }
       std::cout << std::endl;
     }
-protected:
-    std::string metric;
-    std::optional<int> channel1;
-    std::optional<int> channel2;
+// protected:
+public:
+  std::string metric;
+  std::optional<int> channel0;
+  std::optional<int> channel1;
 
-    Metric(std::string metric, std::optional<int> ch1 = std::nullopt, std::optional<int> ch2 = std::nullopt)
-        : metric(std::move(metric)), channel1(ch1), channel2(ch2) {}
+  bool areChannelsSet() const {
+    return (channel0.has_value() && channel1.has_value());
+  }
+
+  int getChannel0() const {
+    if (channel0.has_value()) {
+      return *channel0;
+    }
+    return -1; // or throw an exception
+  }
+
+  int getChannel1() const {
+    if (channel1.has_value()) {
+      return *channel1;
+    }
+    return -1; // or throw an exception
+  }
+    Metric(std::string metric, std::optional<int> ch0 = std::nullopt, std::optional<int> ch1 = std::nullopt)
+        : metric(std::move(metric)), channel0(ch0), channel1(ch1) {}
 
     // Add common fields to ptree
     void addCommonFields(boost::property_tree::ptree& obj) const {
         obj.put("metric", metric);
+        if (channel0) obj.put("ch0", *channel0);
         if (channel1) obj.put("ch1", *channel1);
-        if (channel2) obj.put("ch2", *channel2);
     }
 
 
@@ -76,8 +104,8 @@ public:
 
     // Constructor
     GraphBasedMetricEntry(std::string graph, std::string port, std::string metric, 
-                          std::optional<int> ch1 = std::nullopt, std::optional<int> ch2 = std::nullopt)
-        : Metric(std::move(metric), ch1, ch2), graph(std::move(graph)), port(std::move(port)) {}
+                          std::optional<int> ch0 = std::nullopt, std::optional<int> ch1 = std::nullopt)
+        : Metric(std::move(metric), ch0, ch1), graph(std::move(graph)), port(std::move(port)) {}
 
     // Convert to ptree
     boost::property_tree::ptree toPtree() const override {
@@ -94,8 +122,8 @@ public:
             obj.get<std::string>("graph", "all"),
             obj.get<std::string>("port", "all"),
             obj.get<std::string>("metric", ""),
-            obj.get_optional<int>("ch1") ? std::make_optional<int>(obj.get<int>("ch1")) : std::nullopt,
-            obj.get_optional<int>("ch2") ? std::make_optional<int>(obj.get<int>("ch2")) : std::nullopt
+            obj.get_optional<int>("ch0") ? std::make_optional<int>(obj.get<int>("ch0")) : std::nullopt,
+            obj.get_optional<int>("ch1") ? std::make_optional<int>(obj.get<int>("ch1")) : std::nullopt
         );
     }
 
@@ -114,8 +142,8 @@ public:
 
     // Constructor
     TileBasedMetricEntry(std::vector<uint8_t> startTile, std::vector<uint8_t> endTile, std::string metric, 
-                         std::optional<int> ch1 = std::nullopt, std::optional<int> ch2 = std::nullopt)
-        : Metric(std::move(metric), ch1, ch2), startTile(std::move(startTile)), endTile(std::move(endTile)) {}
+                         std::optional<int> ch0 = std::nullopt, std::optional<int> ch1 = std::nullopt)
+        : Metric(std::move(metric), ch0, ch1), startTile(std::move(startTile)), endTile(std::move(endTile)) {}
 
     // Convert to ptree
     boost::property_tree::ptree toPtree() const override {
@@ -128,7 +156,7 @@ public:
             tileNode.put("", static_cast<int>(tile)); // Convert uint8_t to int for JSON
             startTileNode.push_back(std::make_pair("", tileNode));
         }
-        obj.add_child("st", startTileNode);
+        obj.add_child("start", startTileNode);
 
         // Add endTile array
         boost::property_tree::ptree endTileNode;
@@ -137,7 +165,7 @@ public:
             tileNode.put("", static_cast<int>(tile)); // Convert uint8_t to int for JSON
             endTileNode.push_back(std::make_pair("", tileNode));
         }
-        obj.add_child("et", endTileNode);
+        obj.add_child("end", endTileNode);
 
         addCommonFields(obj);
         return obj;
@@ -157,12 +185,22 @@ public:
         // };
 
         return std::make_unique<TileBasedMetricEntry>(
-            obj.get_child_optional("st") ? parseArray(obj.get_child("st")) : std::vector<uint8_t>{},
-            obj.get_child_optional("et") ? parseArray(obj.get_child("et")) : std::vector<uint8_t>{},
+            obj.get_child_optional("start") ? parseArray(obj.get_child("start")) : std::vector<uint8_t>{},
+            obj.get_child_optional("end") ? parseArray(obj.get_child("end")) : std::vector<uint8_t>{},
             obj.get<std::string>("metric", "N/A"),
-            obj.get_optional<int>("ch1") ? std::make_optional<int>(obj.get<int>("ch1")) : std::nullopt,
-            obj.get_optional<int>("ch2") ? std::make_optional<int>(obj.get<int>("ch2")) : std::nullopt
+            obj.get_optional<int>("ch0") ? std::make_optional<int>(obj.get<int>("ch0")) : std::nullopt,
+            obj.get_optional<int>("ch1") ? std::make_optional<int>(obj.get<int>("ch1")) : std::nullopt
         );
+    }
+
+    const std::vector<uint8_t>& getStartTile() const override {
+      std::cout << "!!! TileBasedMetricEntry::getStartTile(): ";
+      return startTile;
+    }
+
+    const std::vector<uint8_t>& getEndTile() const override {
+      std::cout << "!!! TileBasedMetricEntry::getEndTile(): ";
+      return endTile;
     }
 
     void print() const {
@@ -181,6 +219,10 @@ public:
 enum class metric_type {
     TILE_BASED_AIE_TILE,
     GRAPH_BASED_AIE_TILE,
+    TILE_BASED_MEM_MOD,
+    GRAPH_BASED_MEM_MOD,
+    TILE_BASED_INTERFACE_TILE,
+    GRAPH_BASED_INTERFACE_TILE,
     NUM_TYPES // Used to determine the number of metric types
 };
 
@@ -219,6 +261,10 @@ public:
                 collection.metrics.push_back(GraphBasedMetricEntry::processSettings(obj));
                 std::cout << "!!! processed GraphBasedMetricEntry from JSON, collection.metrics size: "<< collection.metrics.size() << std::endl;
             }
+            else if (type == metric_type::TILE_BASED_INTERFACE_TILE) {
+              collection.metrics.push_back(TileBasedMetricEntry::processSettings(obj));
+              std::cout << "!!! processed TileBasedMetricEntry from JSON : collection.metrics size: "<< collection.metrics.size() << std::endl;
+            } 
             else {
                 throw std::runtime_error("Unknown metric type: " + std::to_string(static_cast<int>(type)));
             }
@@ -261,11 +307,14 @@ public:
 // JsonParser for reading and writing JSON files
 class JsonParser {
   private:
+  // public:
     // Data structure to store MetricCollection objects for different plugin types
     // static std::map<std::string, MetricCollection> pluginMetricCollections;
-    static std::map<module_type, std::map<std::string, MetricCollection>> allModulesMetricCollections;
+    // static std::map<module_type, std::map<std::string, MetricCollection>> allModulesMetricCollections;
+    std::map<module_type, std::map<std::string, MetricCollection>> allModulesMetricCollections;
 public:
-    static MetricCollection& parse(const std::string& jsonFilePath) {
+    // static MetricCollection& parse(const std::string& jsonFilePath) {
+    void parse(const std::string& jsonFilePath) {
       // std::string jsonFilePath = "xdp.json";
       pt::ptree jsonTree;
       std::ifstream jsonFile(jsonFilePath);
@@ -348,6 +397,23 @@ public:
               xrt_core::message::send(severity_level::warning, "XRT", "Failed to generate object: graph_based_aie_tile_metrics");
             std::cout << "----------------------------------------------" << std::endl;
         }
+
+        else if (setting.first == "tile_based_interface_tile_metrics") {
+          std::cout << "\t Processing tile_based_interface_tile_metrics" << std::endl;
+          auto tileBasedMetric = MetricCollection::processSettings(setting.second, metric_type::TILE_BASED_INTERFACE_TILE);
+          // check uniquePtr is valid
+          
+          if (!tileBasedMetric.metrics.empty()) {
+            std::cout << "Adding tile_based_interface_tile_metrics to allModulesMetricCollections. Metrics size: " 
+            << tileBasedMetric.metrics.size() << std::endl;
+            tileBasedMetric.print();
+            // pluginMetricCollections[setting.first] = std::move(tileBasedMetric);
+            allModulesMetricCollections[module_type::shim][setting.first] = std::move(tileBasedMetric);
+          }
+          else
+            xrt_core::message::send(severity_level::warning, "XRT", "Failed to generate object: tile_based_interface_tile_metrics");
+          std::cout << "----------------------------------------------" << std::endl;
+        }
       }
 
       // write code to print allModulesMetricCollections printing everything in the map
@@ -362,7 +428,9 @@ public:
       }
       
       // TODO : currently only returning the first module's collection
-      return allModulesMetricCollections[module_type::core].begin()->second;
+      // return allModulesMetricCollections[module_type::core].begin()->second;
+      // return allModulesMetricCollections;
+      // return *this;
     }
 
     static void write(const std::string& filename, const MetricCollection& collection) {
@@ -385,11 +453,24 @@ public:
         boost::property_tree::ptree pt = collection.toPtree();
         boost::property_tree::write_json(file, pt);
     }
-};
+
+    const MetricCollection& getMetricCollection(module_type mod, const std::string& settingName) {
+        // Check if the plugin name exists in the map
+        auto it = allModulesMetricCollections.find(mod);
+        if (it != allModulesMetricCollections.end()) {
+            auto pluginIt = it->second.find(settingName);
+            if (pluginIt != it->second.end()) {
+                return pluginIt->second;
+            }
+        }
+        throw std::runtime_error("Plugin not found: " + settingName);
+    }
+
+  };
 
 // Define the static member
 // std::map<std::string, MetricCollection> JsonParser::pluginMetricCollections;
-std::map<module_type, std::map<std::string, MetricCollection>> JsonParser::allModulesMetricCollections;
+// std::map<module_type, std::map<std::string, MetricCollection>> JsonParser::allModulesMetricCollections;
 }
 
 #endif

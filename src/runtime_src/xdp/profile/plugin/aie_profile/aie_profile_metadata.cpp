@@ -65,21 +65,44 @@ namespace xdp {
 
     // Feature starts from here
     // Example JSON input file
-    std::string jsonString = R"(
-      {
-        "AIE_profile_settings": {
-          "tile_based_aie_tile_metrics": [
-            { "st": [0,0], "metric": "all_stalls_dma" },
-            { "st": [0,1], "et": [0,1], "metric": "s2mm_channels_stalls", "ch1": 0 }
-          ],
-          "graph_based_aie_tile_metrics": [
-            { "graph": "mygraph", "port": "port1", "metric": "all_stalls_dma" },
-            { "graph": "mygraph", "port": "all", "metric": "s2mm_channels_stalls", "ch1": 0 }
-          ]
-        }
-      })";
+    // std::string jsonString = R"(
+    //   {
+    //     "AIE_profile_settings": {
+    //       "tile_based_aie_tile_metrics": [
+    //         { "start": [0,0], "metric": "all_stalls_dma" },
+    //         { "start": [0,1], "end": [0,1], "metric": "s2mm_channels_stalls", "ch1": 0 }
+    //       ],
+    //       "graph_based_aie_tile_metrics": [
+    //         { "graph": "mygraph", "port": "port1", "metric": "all_stalls_dma" },
+    //         { "graph": "mygraph", "port": "all", "metric": "s2mm_channels_stalls", "ch1": 0 }
+    //       ]
+    //     }
+    //   })";
+
+      // std::string jsonString = R"(
+      //   {
+      //     "AIE_profile_settings": {
+      //       "tile_based_aie_tile_metrics": [
+      //         { "start": [24,0], "end": [24,0], "metric": "mm2s_throughputs", "ch1": 0 },
+      //         { "start": [24,1], "metric": "s2mm_throughputs", "ch1": 0 }
+      //       ],
+      //       "tile_based_interface_tile_metrics": [
+      //         { "start": [24,0], "end": [24,0], "metric": "output_stalls"}
+      //       ]
+      //     }
+      //   })";
+
+        std::string jsonString = R"(
+          {
+            "AIE_profile_settings": {
+              "tile_based_interface_tile_metrics": [
+                { "start": [24,0], "end": [24,0], "metric": "output_stalls"}
+              ]
+            }
+          })";
 
     bool useXdpJson = xrt_core::config::get_xdp_json();
+    JsonParser jsonParser;
     if (useXdpJson) {
       // If xdp.json is available, read it instead of the hardcoded string
       // Write the JSON input to a file for demonstration
@@ -92,19 +115,20 @@ namespace xdp {
       inputFile.close();
 
       // Parse the JSON file
-      MetricCollection& collection = JsonParser::parse("xdp.json");
+      jsonParser.parse("xdp.json");
+      // MetricCollection& collectionParser JsonParser::parse("xdp.json");
 
       // Print metrics
-      for (const auto& metric : collection.metrics) {
-          boost::property_tree::ptree pt = metric->toPtree();
-          boost::property_tree::write_json(std::cout, pt);
-      }
+    //   for (const auto& metric : collection.metrics) {
+    //       boost::property_tree::ptree pt = metric->toPtree();
+    //       boost::property_tree::write_json(std::cout, pt);
+    //   }
 
-      // Write the metrics back to a file
-      JsonParser::write("output.json", collection);
-      xrt_core::message::send(severity_level::info,
-                              "XRT", "Finished Parsing AIE Profile new Metadata."); 
-      return;
+    //   // Write the metrics back to a file
+    //   JsonParser::write("output.json", collection);
+      // xrt_core::message::send(severity_level::info,
+                              // "XRT", "Finished Parsing AIE Profile new Metadata."); 
+      // return;
     }
 
     // Tile-based metrics settings
@@ -132,8 +156,12 @@ namespace xdp {
       auto metricsSettings      = getSettingsVector(tileMetricsConfig[module]);
       auto graphMetricsSettings = getSettingsVector(graphMetricsConfig[module]);
 
-      if (type == module_type::shim)
-        getConfigMetricsForInterfaceTiles(module, metricsSettings, graphMetricsSettings);
+      if (type == module_type::shim) {
+        if (useXdpJson)
+          getConfigMetricsForInterfaceTilesUsingJson(module, metricsSettings, graphMetricsSettings, jsonParser);
+        else
+          getConfigMetricsForInterfaceTiles(module, metricsSettings, graphMetricsSettings);
+      }
       else if (type == module_type::uc)
         getConfigMetricsForMicrocontrollers(module, metricsSettings, graphMetricsSettings);
       else
@@ -150,39 +178,6 @@ namespace xdp {
     xrt_core::message::send(severity_level::info,
                             "XRT", "Finished Parsing AIE Profile Metadata."); 
   }
-
-//   void AieProfileMetadata::parseAIEProfileSettings(const std::string& jsonString) {
-//     // Parse the JSON string
-//     json::value jv = json::parse(jsonString);
-//     json::object root = jv.as_object();
-
-//     // Extract "AIE_profile_settings"
-//     if (root.contains("AIE_profile_settings")) {
-//         json::object profileSettings = root["AIE_profile_settings"].as_object();
-
-//         // Extract "tile_based_aie_tile_metrics"
-//         if (profileSettings.contains("tile_based_aie_tile_metrics")) {
-//             std::cout << "Parsing tile_based_aie_tile_metrics:\n";
-//             json::array tileMetrics = profileSettings["tile_based_aie_tile_metrics"].as_array();
-//             for (const auto& item : tileMetrics) {
-//                 json::object metric = item.as_object();
-//                 std::cout << "  Metric: " << metric["metric"].as_string() << "\n";
-//             }
-//         }
-
-//         // Extract "graph_based_aie_tile_metrics"
-//         if (profileSettings.contains("graph_based_aie_tile_metrics")) {
-//             std::cout << "\nParsing graph_based_aie_tile_metrics:\n";
-//             json::array graphMetrics = profileSettings["graph_based_aie_tile_metrics"].as_array();
-//             for (const auto& item : graphMetrics) {
-//                 json::object metric = item.as_object();
-//                 std::cout << "  Metric: " << metric["metric"].as_string() << "\n";
-//             }
-//         }
-//     } else {
-//         std::cout << "AIE_profile_settings not found in JSON.\n";
-//     }
-// }
 
   /****************************************************************************
    * Compare tiles (used for sorting)
@@ -1163,6 +1158,118 @@ namespace xdp {
     for (auto& t : offTiles) {
       configMetrics[moduleIdx].erase(t);
     }
+  }
+
+   /****************************************************************************
+   * Resolve metrics for Interface tiles
+   ***************************************************************************/
+  void AieProfileMetadata::getConfigMetricsForInterfaceTilesUsingJson(const int moduleIdx,
+    const std::vector<std::string>& metricsSettings,
+    const std::vector<std::string> graphMetricsSettings,
+    JsonParser& jsonParser)
+  {
+    // if ((metricsSettings.empty()) && (graphMetricsSettings.empty()))
+    //   return;
+
+    auto & shimMetricCollection = jsonParser.getMetricCollection(module_type::shim, "tile_based_interface_tile_metrics");
+
+    auto allValidGraphs = metadataReader->getValidGraphs();
+    auto allValidPorts  = metadataReader->getValidPorts();
+
+    // Pass 3 : process only single tile metric setting
+    auto &metrics = shimMetricCollection.metrics;
+    for (size_t i = 0; i < metrics.size(); ++i) {
+      if (!isSupported(metrics[i]->metric, true))
+        continue;
+
+      uint8_t col = metrics[i]->getStartTile().front();
+      std::cout << "!!! Shim Column: " << std::to_string(col) << std::endl;
+
+          // xrt_core::message::send(severity_level::warning, "XRT",
+          //                         "Column specification in tile_based_interface_tile_metrics "
+          //                         "is not an integer and hence skipped.");
+          // continue;
+
+        // By-default select both the channels
+        bool foundChannels = false;
+        uint8_t channelId0 = 0;
+        uint8_t channelId1 = 1;
+        uint32_t bytes = defaultTransferBytes;
+        //TODO: Support for user specified bytes.
+          // if (profileAPIMetricSet(metrics[i][1])) {
+          //   bytes = processUserSpecifiedBytes(metrics[i][2]);
+          // }
+
+          // else {
+          //   try {
+          //     foundChannels = true;
+          //     channelId0 = aie::convertStringToUint8(metrics[i][2]);
+          //     channelId1 = (metrics[i].size() == 3) ? channelId0 : aie::convertStringToUint8(metrics[i][3]);
+          //   }
+          //   catch (std::invalid_argument const&) {
+          //     // Expected channel Id is not an integer, give warning and ignore
+          //     foundChannels = false;
+          //     xrt_core::message::send(severity_level::warning, "XRT", "Channel ID specification "
+          //       "in tile_based_interface_tile_metrics is not an integer and hence ignored.");
+          //   }
+          // }
+
+        foundChannels = metrics[i]->areChannelsSet();
+        int16_t channelNum = (foundChannels) ? metrics[i]->getChannel0() : -1;
+        auto tiles = metadataReader->getInterfaceTiles("all", "all", metrics[i]->metric, channelNum, true, col, col);
+
+        std::cout << "!!! Total tiles: " << tiles.size() << std::endl;
+        for (auto& t : tiles) {
+          std::cout << "\t !!! Tile: (" << std::to_string(t.col) << ","
+                    << std::to_string(t.row) << ")" << std::endl;
+          std::cout << t << std::endl;
+          configMetrics[moduleIdx][t] = metrics[i]->metric;
+          configChannel0[t] = channelId0;
+          configChannel1[t] = channelId1;
+          if (metrics[i]->metric == METRIC_BYTE_COUNT)
+            setUserSpecifiedBytes(t, bytes);
+        }
+      }
+    
+      // Set default, check validity, and remove "off" tiles
+      auto defaultSet = defaultSets[moduleIdx];
+      bool showWarning = true;
+      std::vector<tile_type> offTiles;
+      auto metricVec = metricStrings.at(module_type::shim);
+
+      for (auto& tileMetric : configMetrics[moduleIdx]) {
+        // Save list of "off" tiles
+        if (tileMetric.second.empty() || (tileMetric.second.compare("off") == 0)) {
+          offTiles.push_back(tileMetric.first);
+          continue;
+        }
+
+        // Ensure requested metric set is supported (if not, use default)
+        if (std::find(metricVec.begin(), metricVec.end(), tileMetric.second) == metricVec.end()) {
+          if (showWarning) {
+            std::string msg = "Unable to find interface_tile metric set " + tileMetric.second
+                              + ". Using default of " + defaultSet + ". ";
+            xrt_core::message::send(severity_level::warning, "XRT", msg);
+            showWarning = false;
+          }
+
+          tileMetric.second = defaultSet;
+        }
+      }
+
+      // Remove all the "off" tiles
+      for (auto& t : offTiles) {
+        configMetrics[moduleIdx].erase(t);
+      }
+
+      // Print configMetrics for moduleIdx.
+      for (auto & tileMetric : configMetrics[moduleIdx]) {
+        auto tile = tileMetric.first;
+        auto metricSet = tileMetric.second;
+        std::cout << "!!! Module Index: " << moduleIdx << ", Tile: (" << std::to_string(tile.col) << ","
+                  << std::to_string(tile.row) << "), Metric Set: " << metricSet << std::endl;
+      }
+
   }
 
   /****************************************************************************
