@@ -104,6 +104,7 @@ namespace xdp {
     bool useXdpJson = xrt_core::config::get_xdp_json();
     JsonParser jsonParser;
     if (useXdpJson) {
+      /*
       // If xdp.json is available, read it instead of the hardcoded string
       // Write the JSON input to a file for demonstration
       std::ofstream inputFile("xdp.json", std::ios::out);
@@ -113,6 +114,7 @@ namespace xdp {
       }
       inputFile << jsonString;
       inputFile.close();
+      */
 
       // Parse the JSON file
       jsonParser.parse("xdp.json");
@@ -1226,8 +1228,14 @@ namespace xdp {
           configMetrics[moduleIdx][t] = metrics[i]->metric;
           configChannel0[t] = channelId0;
           configChannel1[t] = channelId1;
-          if (metrics[i]->metric == METRIC_BYTE_COUNT)
-            setUserSpecifiedBytes(t, bytes);
+          if (metrics[i]->metric == METRIC_BYTE_COUNT) {
+            std::string bytes_str = metrics[i]->getBytesToTransfer();
+            uint32_t bytes = processUserSpecifiedBytes(bytes_str);
+            if (bytes > 0)
+              setUserSpecifiedBytes(t, bytes);
+            else
+              xrt_core::message::send(severity_level::warning, "XRT", "User specified bytes is not set or non-zero.");
+          }
         }
       }
     

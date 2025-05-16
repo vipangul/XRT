@@ -65,6 +65,7 @@ public:
   std::string metric;
   std::optional<int> channel0;
   std::optional<int> channel1;
+  std::optional<std::string> bytes_to_transfer;
 
   bool areChannelsSet() const {
     return (channel0.has_value() && channel1.has_value());
@@ -83,17 +84,24 @@ public:
     }
     return -1; // or throw an exception
   }
-    Metric(std::string metric, std::optional<int> ch0 = std::nullopt, std::optional<int> ch1 = std::nullopt)
-        : metric(std::move(metric)), channel0(ch0), channel1(ch1) {}
+  std::string getBytesToTransfer() const {
+    if (bytes_to_transfer.has_value()) {
+      return *bytes_to_transfer;
+    }
+    return ""; // or throw an exception
+  }
+
+    Metric(std::string metric, std::optional<int> ch0 = std::nullopt, std::optional<int> ch1 = std::nullopt, 
+           std::optional<std::string> bytes = std::nullopt)
+        : metric(std::move(metric)), channel0(ch0), channel1(ch1), bytes_to_transfer(bytes) {}
 
     // Add common fields to ptree
     void addCommonFields(boost::property_tree::ptree& obj) const {
         obj.put("metric", metric);
         if (channel0) obj.put("ch0", *channel0);
         if (channel1) obj.put("ch1", *channel1);
+        if (bytes_to_transfer) obj.put("bytes", *bytes_to_transfer);
     }
-
-
 };
 
 // GraphBasedMetricEntry class
@@ -104,8 +112,8 @@ public:
 
     // Constructor
     GraphBasedMetricEntry(std::string graph, std::string port, std::string metric, 
-                          std::optional<int> ch0 = std::nullopt, std::optional<int> ch1 = std::nullopt)
-        : Metric(std::move(metric), ch0, ch1), graph(std::move(graph)), port(std::move(port)) {}
+                          std::optional<int> ch0 = std::nullopt, std::optional<int> ch1 = std::nullopt, std::optional<std::string> bytes = std::nullopt)
+        : Metric(std::move(metric), ch0, ch1, bytes), graph(std::move(graph)), port(std::move(port)) {}
 
     // Convert to ptree
     boost::property_tree::ptree toPtree() const override {
@@ -123,7 +131,8 @@ public:
             obj.get<std::string>("port", "all"),
             obj.get<std::string>("metric", ""),
             obj.get_optional<int>("ch0") ? std::make_optional<int>(obj.get<int>("ch0")) : std::nullopt,
-            obj.get_optional<int>("ch1") ? std::make_optional<int>(obj.get<int>("ch1")) : std::nullopt
+            obj.get_optional<int>("ch1") ? std::make_optional<int>(obj.get<int>("ch1")) : std::nullopt,
+            obj.get_optional<std::string>("bytes") ? std::make_optional(obj.get<std::string>("bytes")) : std::nullopt
         );
     }
 
@@ -142,8 +151,8 @@ public:
 
     // Constructor
     TileBasedMetricEntry(std::vector<uint8_t> startTile, std::vector<uint8_t> endTile, std::string metric, 
-                         std::optional<int> ch0 = std::nullopt, std::optional<int> ch1 = std::nullopt)
-        : Metric(std::move(metric), ch0, ch1), startTile(std::move(startTile)), endTile(std::move(endTile)) {}
+                         std::optional<int> ch0 = std::nullopt, std::optional<int> ch1 = std::nullopt, std::optional<std::string> bytes = std::nullopt)
+        : Metric(std::move(metric), ch0, ch1, bytes), startTile(std::move(startTile)), endTile(std::move(endTile)) {}
 
     // Convert to ptree
     boost::property_tree::ptree toPtree() const override {
@@ -187,9 +196,10 @@ public:
         return std::make_unique<TileBasedMetricEntry>(
             obj.get_child_optional("start") ? parseArray(obj.get_child("start")) : std::vector<uint8_t>{},
             obj.get_child_optional("end") ? parseArray(obj.get_child("end")) : std::vector<uint8_t>{},
-            obj.get<std::string>("metric", "N/A"),
+            obj.get<std::string>("metric", "NA"),
             obj.get_optional<int>("ch0") ? std::make_optional<int>(obj.get<int>("ch0")) : std::nullopt,
-            obj.get_optional<int>("ch1") ? std::make_optional<int>(obj.get<int>("ch1")) : std::nullopt
+            obj.get_optional<int>("ch1") ? std::make_optional<int>(obj.get<int>("ch1")) : std::nullopt,
+            obj.get_optional<std::string>("bytes") ? std::make_optional(obj.get<std::string>("bytes")) : std::nullopt
         );
     }
 
