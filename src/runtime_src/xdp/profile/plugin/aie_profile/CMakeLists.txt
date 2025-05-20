@@ -22,6 +22,8 @@ file(GLOB AIE_PROFILE_PLUGIN_FILES
   "${PROFILE_DIR}/plugin/aie_profile/*.cpp"
   "${PROFILE_DIR}/writer/aie_profile/*.h"
   "${PROFILE_DIR}/writer/aie_profile/*.cpp"
+  "${PROFILE_DIR}/plugin/aie_profile/parser/*.h"
+  "${PROFILE_DIR}/plugin/aie_profile/parser/*.cpp"
   "${IMPL_DIR}/*.h"
   "${IMPL_DIR}/*.cpp"
 )

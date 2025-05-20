@@ -28,6 +28,7 @@
 #include "xdp/profile/database/database.h"
 #include "xdp/profile/plugin/vp_base/vp_base_plugin.h"
 #include "xdp/profile/plugin/aie_profile/parser/metrics.h"
+#include "xdp/profile/plugin/aie_profile/parser/json_parser.h"
 
 
 namespace xdp {
