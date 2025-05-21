@@ -134,6 +134,12 @@ class AieProfileMetadata {
                                   const std::vector<std::string>& metricsSettings,
                                   const std::vector<std::string>& graphMetricsSettings,
                                   const module_type mod);
+    void getConfigMetricsForTilesUsingJson(const int moduleIdx, 
+                                           const std::vector<std::string>& metricsSettings,
+                                           const std::vector<std::string>& graphMetricsSettings,
+                                           const module_type mod,
+                                           JsonParser& jsonParser);
+
     void getConfigMetricsForInterfaceTiles(const int moduleIdx,
                                            const std::vector<std::string>& metricsSettings,
                                            const std::vector<std::string> graphMetricsSettings);

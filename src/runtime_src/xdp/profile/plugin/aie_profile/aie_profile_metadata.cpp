@@ -29,6 +29,7 @@
 #include "xdp/profile/plugin/vp_base/vp_base_plugin.h"
 #include "xdp/profile/plugin/aie_profile/parser/metrics.h"
 #include "xdp/profile/plugin/aie_profile/parser/json_parser.h"
+#include "xdp/profile/plugin/aie_profile/aie_profile_metadata_json.cpp"
 
 
 namespace xdp {
@@ -167,8 +168,12 @@ namespace xdp {
       }
       else if (type == module_type::uc)
         getConfigMetricsForMicrocontrollers(module, metricsSettings, graphMetricsSettings);
-      else
-        getConfigMetricsForTiles(module, metricsSettings, graphMetricsSettings, type);
+      else {
+        if (useXdpJson)
+          getConfigMetricsForTilesUsingJson(module, metricsSettings, graphMetricsSettings, type, jsonParser);
+        else
+          getConfigMetricsForTiles(module, metricsSettings, graphMetricsSettings, type);
+      }
     }
 
     // Graph-based Profile APIs support metrics settings
@@ -1163,123 +1168,123 @@ namespace xdp {
     }
   }
 
-   /****************************************************************************
-   * Resolve metrics for Interface tiles
-   ***************************************************************************/
-  void AieProfileMetadata::getConfigMetricsForInterfaceTilesUsingJson(const int moduleIdx,
-    const std::vector<std::string>& metricsSettings,
-    const std::vector<std::string> graphMetricsSettings,
-    JsonParser& jsonParser)
-  {
-    // if ((metricsSettings.empty()) && (graphMetricsSettings.empty()))
-    //   return;
+  //  /****************************************************************************
+  //  * Resolve metrics for Interface tiles
+  //  ***************************************************************************/
+  // void AieProfileMetadata::getConfigMetricsForInterfaceTilesUsingJson(const int moduleIdx,
+  //   const std::vector<std::string>& metricsSettings,
+  //   const std::vector<std::string> graphMetricsSettings,
+  //   JsonParser& jsonParser)
+  // {
+  //   // if ((metricsSettings.empty()) && (graphMetricsSettings.empty()))
+  //   //   return;
 
-    auto & shimMetricCollection = jsonParser.getMetricCollection(module_type::shim, "tile_based_interface_tile_metrics");
+  //   auto & shimMetricCollection = jsonParser.getMetricCollection(module_type::shim, "tile_based_interface_tile_metrics");
 
-    auto allValidGraphs = metadataReader->getValidGraphs();
-    auto allValidPorts  = metadataReader->getValidPorts();
+  //   auto allValidGraphs = metadataReader->getValidGraphs();
+  //   auto allValidPorts  = metadataReader->getValidPorts();
 
-    // Pass 3 : process only single tile metric setting
-    auto &metrics = shimMetricCollection.metrics;
-    for (size_t i = 0; i < metrics.size(); ++i) {
-      if (!isSupported(metrics[i]->metric, true))
-        continue;
+  //   // Pass 3 : process only single tile metric setting
+  //   auto &metrics = shimMetricCollection.metrics;
+  //   for (size_t i = 0; i < metrics.size(); ++i) {
+  //     if (!isSupported(metrics[i]->metric, true))
+  //       continue;
 
-      uint8_t col = metrics[i]->getStartTile().front();
-      std::cout << "!!! Shim Column: " << std::to_string(col) << std::endl;
+  //     uint8_t col = metrics[i]->getStartTile().front();
+  //     std::cout << "!!! Shim Column: " << std::to_string(col) << std::endl;
 
-          // xrt_core::message::send(severity_level::warning, "XRT",
-          //                         "Column specification in tile_based_interface_tile_metrics "
-          //                         "is not an integer and hence skipped.");
-          // continue;
+  //         // xrt_core::message::send(severity_level::warning, "XRT",
+  //         //                         "Column specification in tile_based_interface_tile_metrics "
+  //         //                         "is not an integer and hence skipped.");
+  //         // continue;
 
-        // By-default select both the channels
-        bool foundChannels = false;
-        uint8_t channelId0 = 0;
-        uint8_t channelId1 = 1;
-        uint32_t bytes = defaultTransferBytes;
-        //TODO: Support for user specified bytes.
-          // if (profileAPIMetricSet(metrics[i][1])) {
-          //   bytes = processUserSpecifiedBytes(metrics[i][2]);
-          // }
+  //       // By-default select both the channels
+  //       bool foundChannels = false;
+  //       uint8_t channelId0 = 0;
+  //       uint8_t channelId1 = 1;
+  //       uint32_t bytes = defaultTransferBytes;
+  //       //TODO: Support for user specified bytes.
+  //         // if (profileAPIMetricSet(metrics[i][1])) {
+  //         //   bytes = processUserSpecifiedBytes(metrics[i][2]);
+  //         // }
 
-          // else {
-          //   try {
-          //     foundChannels = true;
-          //     channelId0 = aie::convertStringToUint8(metrics[i][2]);
-          //     channelId1 = (metrics[i].size() == 3) ? channelId0 : aie::convertStringToUint8(metrics[i][3]);
-          //   }
-          //   catch (std::invalid_argument const&) {
-          //     // Expected channel Id is not an integer, give warning and ignore
-          //     foundChannels = false;
-          //     xrt_core::message::send(severity_level::warning, "XRT", "Channel ID specification "
-          //       "in tile_based_interface_tile_metrics is not an integer and hence ignored.");
-          //   }
-          // }
+  //         // else {
+  //         //   try {
+  //         //     foundChannels = true;
+  //         //     channelId0 = aie::convertStringToUint8(metrics[i][2]);
+  //         //     channelId1 = (metrics[i].size() == 3) ? channelId0 : aie::convertStringToUint8(metrics[i][3]);
+  //         //   }
+  //         //   catch (std::invalid_argument const&) {
+  //         //     // Expected channel Id is not an integer, give warning and ignore
+  //         //     foundChannels = false;
+  //         //     xrt_core::message::send(severity_level::warning, "XRT", "Channel ID specification "
+  //         //       "in tile_based_interface_tile_metrics is not an integer and hence ignored.");
+  //         //   }
+  //         // }
 
-        foundChannels = metrics[i]->areChannelsSet();
-        int16_t channelNum = (foundChannels) ? metrics[i]->getChannel0() : -1;
-        auto tiles = metadataReader->getInterfaceTiles("all", "all", metrics[i]->metric, channelNum, true, col, col);
+  //       foundChannels = metrics[i]->areChannelsSet();
+  //       int16_t channelNum = (foundChannels) ? metrics[i]->getChannel0() : -1;
+  //       auto tiles = metadataReader->getInterfaceTiles("all", "all", metrics[i]->metric, channelNum, true, col, col);
 
-        std::cout << "!!! Total tiles: " << tiles.size() << std::endl;
-        for (auto& t : tiles) {
-          std::cout << "\t !!! Tile: (" << std::to_string(t.col) << ","
-                    << std::to_string(t.row) << ")" << std::endl;
-          std::cout << t << std::endl;
-          configMetrics[moduleIdx][t] = metrics[i]->metric;
-          configChannel0[t] = channelId0;
-          configChannel1[t] = channelId1;
-          if (metrics[i]->metric == METRIC_BYTE_COUNT) {
-            std::string bytes_str = metrics[i]->getBytesToTransfer();
-            uint32_t bytes = processUserSpecifiedBytes(bytes_str);
-            if (bytes > 0)
-              setUserSpecifiedBytes(t, bytes);
-            else
-              xrt_core::message::send(severity_level::warning, "XRT", "User specified bytes is not set or non-zero.");
-          }
-        }
-      }
+  //       std::cout << "!!! Total tiles: " << tiles.size() << std::endl;
+  //       for (auto& t : tiles) {
+  //         std::cout << "\t !!! Tile: (" << std::to_string(t.col) << ","
+  //                   << std::to_string(t.row) << ")" << std::endl;
+  //         std::cout << t << std::endl;
+  //         configMetrics[moduleIdx][t] = metrics[i]->metric;
+  //         configChannel0[t] = channelId0;
+  //         configChannel1[t] = channelId1;
+  //         if (metrics[i]->metric == METRIC_BYTE_COUNT) {
+  //           std::string bytes_str = metrics[i]->getBytesToTransfer();
+  //           uint32_t bytes = processUserSpecifiedBytes(bytes_str);
+  //           if (bytes > 0)
+  //             setUserSpecifiedBytes(t, bytes);
+  //           else
+  //             xrt_core::message::send(severity_level::warning, "XRT", "User specified bytes is not set or non-zero.");
+  //         }
+  //       }
+  //     }
     
-      // Set default, check validity, and remove "off" tiles
-      auto defaultSet = defaultSets[moduleIdx];
-      bool showWarning = true;
-      std::vector<tile_type> offTiles;
-      auto metricVec = metricStrings.at(module_type::shim);
+  //     // Set default, check validity, and remove "off" tiles
+  //     auto defaultSet = defaultSets[moduleIdx];
+  //     bool showWarning = true;
+  //     std::vector<tile_type> offTiles;
+  //     auto metricVec = metricStrings.at(module_type::shim);
 
-      for (auto& tileMetric : configMetrics[moduleIdx]) {
-        // Save list of "off" tiles
-        if (tileMetric.second.empty() || (tileMetric.second.compare("off") == 0)) {
-          offTiles.push_back(tileMetric.first);
-          continue;
-        }
+  //     for (auto& tileMetric : configMetrics[moduleIdx]) {
+  //       // Save list of "off" tiles
+  //       if (tileMetric.second.empty() || (tileMetric.second.compare("off") == 0)) {
+  //         offTiles.push_back(tileMetric.first);
+  //         continue;
+  //       }
 
-        // Ensure requested metric set is supported (if not, use default)
-        if (std::find(metricVec.begin(), metricVec.end(), tileMetric.second) == metricVec.end()) {
-          if (showWarning) {
-            std::string msg = "Unable to find interface_tile metric set " + tileMetric.second
-                              + ". Using default of " + defaultSet + ". ";
-            xrt_core::message::send(severity_level::warning, "XRT", msg);
-            showWarning = false;
-          }
+  //       // Ensure requested metric set is supported (if not, use default)
+  //       if (std::find(metricVec.begin(), metricVec.end(), tileMetric.second) == metricVec.end()) {
+  //         if (showWarning) {
+  //           std::string msg = "Unable to find interface_tile metric set " + tileMetric.second
+  //                             + ". Using default of " + defaultSet + ". ";
+  //           xrt_core::message::send(severity_level::warning, "XRT", msg);
+  //           showWarning = false;
+  //         }
 
-          tileMetric.second = defaultSet;
-        }
-      }
+  //         tileMetric.second = defaultSet;
+  //       }
+  //     }
 
-      // Remove all the "off" tiles
-      for (auto& t : offTiles) {
-        configMetrics[moduleIdx].erase(t);
-      }
+  //     // Remove all the "off" tiles
+  //     for (auto& t : offTiles) {
+  //       configMetrics[moduleIdx].erase(t);
+  //     }
 
-      // Print configMetrics for moduleIdx.
-      for (auto & tileMetric : configMetrics[moduleIdx]) {
-        auto tile = tileMetric.first;
-        auto metricSet = tileMetric.second;
-        std::cout << "!!! Module Index: " << moduleIdx << ", Tile: (" << std::to_string(tile.col) << ","
-                  << std::to_string(tile.row) << "), Metric Set: " << metricSet << std::endl;
-      }
+  //     // Print configMetrics for moduleIdx.
+  //     for (auto & tileMetric : configMetrics[moduleIdx]) {
+  //       auto tile = tileMetric.first;
+  //       auto metricSet = tileMetric.second;
+  //       std::cout << "!!! Module Index: " << moduleIdx << ", Tile: (" << std::to_string(tile.col) << ","
+  //                 << std::to_string(tile.row) << "), Metric Set: " << metricSet << std::endl;
+  //     }
 
-  }
+  // }
 
   /****************************************************************************
    * Resolve metrics for micrcontrollers
