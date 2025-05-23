@@ -129,12 +129,19 @@ namespace xdp {
       for (const auto& [key, value] : jsonTree.get_child("AIE_profile_settings")) {
         metric_type type = getMetricTypeFromKey(key);
         module_type moduleType = getModuleTypeFromKey(key);
+        std::cout << "!!! Processing Key: " << key << "& moduleType: "<< moduleType << std::endl;
         MetricCollection collection;
         for (const auto& item : value) {
           collection.addMetric(MetricsFactory::createMetric(type, item.second));
         }
+
+        for (auto& metric : collection.metrics) {
+          metric->print();
+        }
+        std::cout << "!!! Adding MetricCollection for Key: " << key << " for module type: " << moduleType << std::endl;
         // metricsCollectionManager.addMetricCollection({module_type::core, key}, std::move(collection));
         metricsCollectionManager.addMetricCollection(moduleType, key, std::move(collection));
+        std::cout << "-----------------------------------------" << std::endl;
       }
       // MetricCollection& collectionParser JsonParser::parse("xdp.json");
 
@@ -185,9 +192,9 @@ namespace xdp {
       else if (type == module_type::uc)
         getConfigMetricsForMicrocontrollers(module, metricsSettings, graphMetricsSettings);
       else {
-        // if (useXdpJson)
-        //   getConfigMetricsForTilesUsingJson(module, metricsSettings, graphMetricsSettings, type, metricsCollectionManager);
-        // else
+        if (useXdpJson)
+          getConfigMetricsForTilesUsingJson(module, metricsSettings, graphMetricsSettings, type, metricsCollectionManager);
+        else
           getConfigMetricsForTiles(module, metricsSettings, graphMetricsSettings, type);
       }
     }

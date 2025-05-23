@@ -31,7 +31,17 @@ namespace xdp {
     // if ((metricsSettings.empty()) && (graphMetricsSettings.empty()))
     //   return;
     std::string metricSettingsName = "tile_based_" + moduleNames[moduleIdx] + "_metrics";
-    auto & tilesMetricCollection = metricsCollectionManager.getMetricCollection(module_type::shim, metricSettingsName);
+
+    const std::vector<std::unique_ptr<Metric>>* metrics = nullptr;
+    try {
+      const MetricCollection& tilesMetricCollection = metricsCollectionManager.getMetricCollection(mod, metricSettingsName);
+      const auto& metrics = tilesMetricCollection.metrics;
+
+    if (metrics.empty()) {
+      xrt_core::message::send(severity_level::debug, "XRT",
+                              "No metric collection found for " + metricSettingsName);
+      return;
+    }
 
     if ((metadataReader->getHardwareGeneration() == 1) && (mod == module_type::mem_tile)) {
       xrt_core::message::send(severity_level::warning, "XRT",
@@ -54,7 +64,6 @@ namespace xdp {
     std::unique_copy(validTilesVec.begin(), validTilesVec.end(), std::inserter(allValidTiles, allValidTiles.end()),
                      xdp::aie::tileCompare);
 
-    auto &metrics = tilesMetricCollection.metrics;
     // Process only range of tiles metric setting
     for (size_t i = 0; i < metrics.size(); ++i) {
 
@@ -218,6 +227,10 @@ namespace xdp {
     for (auto& t : offTiles) {
       configMetrics[moduleIdx].erase(t);
     }
+  } catch (const std::exception& e) {
+      xrt_core::message::send(severity_level::error, "XRT", e.what());
+      return;
+    }
   }
 
 
@@ -228,14 +241,21 @@ namespace xdp {
     {
       // if ((metricsSettings.empty()) && (graphMetricsSettings.empty()))
       //   return;
-
-      auto & shimMetricCollection = metricsCollectionManager.getMetricCollection(module_type::shim, "tile_based_interface_tile_metrics");
+      std::string metricSettingsName = "tile_based_" + moduleNames[moduleIdx] + "_metrics";
+      try {
+        const MetricCollection& tilesMetricCollection = metricsCollectionManager.getMetricCollection(module_type::shim, metricSettingsName);
+        const auto& metrics = tilesMetricCollection.metrics;
+        if (metrics.empty()) {
+          xrt_core::message::send(severity_level::debug, "XRT",
+                                  "No metric collection found for " + metricSettingsName);
+          return;
+        }
+      // auto & shimMetricCollection = metricsCollectionManager.getMetricCollection(module_type::shim, "tile_based_interface_tile_metrics");
 
       auto allValidGraphs = metadataReader->getValidGraphs();
       auto allValidPorts  = metadataReader->getValidPorts();
 
       // Pass 3 : process only single tile metric setting
-      auto &metrics = shimMetricCollection.metrics;
       for (size_t i = 0; i < metrics.size(); ++i) {
         if (!isSupported(metrics[i]->metric, true))
           continue;
@@ -333,7 +353,10 @@ namespace xdp {
           std::cout << "!!! Module Index: " << moduleIdx << ", Tile: (" << std::to_string(tile.col) << ","
                     << std::to_string(tile.row) << "), Metric Set: " << metricSet << std::endl;
         }
-
+      } catch (const std::exception& e) {
+        xrt_core::message::send(severity_level::error, "XRT", e.what());
+        return;
+      }
     }
 
 }  // namespace xdp
