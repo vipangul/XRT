@@ -28,8 +28,6 @@ namespace xdp {
       const std::vector<std::string>& graphMetricsSettings, const module_type mod,
       MetricsCollectionManager& metricsCollectionManager)
   {
-    // if ((metricsSettings.empty()) && (graphMetricsSettings.empty()))
-    //   return;
     std::string metricSettingsName = "tile_based_" + moduleNames[moduleIdx] + "_metrics";
 
     const std::vector<std::unique_ptr<Metric>>* metrics = nullptr;
@@ -239,8 +237,6 @@ namespace xdp {
       const std::vector<std::string> graphMetricsSettings,
       MetricsCollectionManager& metricsCollectionManager)
     {
-      // if ((metricsSettings.empty()) && (graphMetricsSettings.empty()))
-      //   return;
       std::string metricSettingsName = "tile_based_" + moduleNames[moduleIdx] + "_metrics";
       try {
         const MetricCollection& tilesMetricCollection = metricsCollectionManager.getMetricCollection(module_type::shim, metricSettingsName);
