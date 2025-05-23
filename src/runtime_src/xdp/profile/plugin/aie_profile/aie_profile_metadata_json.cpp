@@ -16,7 +16,6 @@
 #include "xdp/profile/plugin/vp_base/vp_base_plugin.h"
 #include "xdp/profile/plugin/aie_profile/parser/metrics.h"
 
-
 namespace xdp {
   using severity_level = xrt_core::message::severity_level;
   namespace pt = boost::property_tree;
@@ -27,12 +26,12 @@ namespace xdp {
   void AieProfileMetadata::getConfigMetricsForTilesUsingJson(const int moduleIdx, 
       const std::vector<std::string>& metricsSettings,
       const std::vector<std::string>& graphMetricsSettings, const module_type mod,
-      JsonParser& jsonParser)
+      MetricsCollectionManager& metricsCollectionManager)
   {
     // if ((metricsSettings.empty()) && (graphMetricsSettings.empty()))
     //   return;
     std::string metricSettingsName = "tile_based_" + moduleNames[moduleIdx] + "_metrics";
-    auto & tilesMetricCollection = jsonParser.getMetricCollection(module_type::shim, metricSettingsName);
+    auto & tilesMetricCollection = metricsCollectionManager.getMetricCollection(module_type::shim, metricSettingsName);
 
     if ((metadataReader->getHardwareGeneration() == 1) && (mod == module_type::mem_tile)) {
       xrt_core::message::send(severity_level::warning, "XRT",
@@ -225,12 +224,12 @@ namespace xdp {
   void AieProfileMetadata::getConfigMetricsForInterfaceTilesUsingJson(const int moduleIdx,
       const std::vector<std::string>& metricsSettings,
       const std::vector<std::string> graphMetricsSettings,
-      JsonParser& jsonParser)
+      MetricsCollectionManager& metricsCollectionManager)
     {
       // if ((metricsSettings.empty()) && (graphMetricsSettings.empty()))
       //   return;
 
-      auto & shimMetricCollection = jsonParser.getMetricCollection(module_type::shim, "tile_based_interface_tile_metrics");
+      auto & shimMetricCollection = metricsCollectionManager.getMetricCollection(module_type::shim, "tile_based_interface_tile_metrics");
 
       auto allValidGraphs = metadataReader->getValidGraphs();
       auto allValidPorts  = metadataReader->getValidPorts();

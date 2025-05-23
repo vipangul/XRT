@@ -31,6 +31,7 @@
 #include "xdp/profile/plugin/aie_profile/aie_profile_defs.h"
 #include "xdp/profile/plugin/aie_profile/parser/metrics.h"
 #include "xdp/profile/plugin/aie_profile/parser/json_parser.h"
+#include "xdp/profile/plugin/aie_profile/parser/metrics_collection_manager.h"
 
 namespace xdp {
 
@@ -138,7 +139,7 @@ class AieProfileMetadata {
                                            const std::vector<std::string>& metricsSettings,
                                            const std::vector<std::string>& graphMetricsSettings,
                                            const module_type mod,
-                                           JsonParser& jsonParser);
+                                           MetricsCollectionManager& metricsCollectionManager);
 
     void getConfigMetricsForInterfaceTiles(const int moduleIdx,
                                            const std::vector<std::string>& metricsSettings,
@@ -146,7 +147,7 @@ class AieProfileMetadata {
     void getConfigMetricsForInterfaceTilesUsingJson(const int moduleIdx,
                                            const std::vector<std::string>& metricsSettings,
                                            const std::vector<std::string> graphMetricsSettings,
-                                           JsonParser& jsonParser);
+                                           MetricsCollectionManager& metricsCollectionManager);
 
     void getConfigMetricsForMicrocontrollers(const int moduleIdx,
                                              const std::vector<std::string>& metricsSettings,

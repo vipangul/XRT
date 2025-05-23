@@ -30,9 +30,11 @@ namespace xdp {
       MetricCollection(MetricCollection&&) = default;
       MetricCollection& operator=(MetricCollection&&) = default;
 
-      // Create from ptree array
-      static MetricCollection processSettings(const boost::property_tree::ptree& ptArr, 
-                                              metric_type type);
+      // static MetricCollection processSettings(const boost::property_tree::ptree& ptArr, 
+      //                                         metric_type type);
+      
+      void addMetric(std::unique_ptr<Metric> metric);
+
       // Convert to ptree array
       boost::property_tree::ptree toPtree() const;
       void print() const;

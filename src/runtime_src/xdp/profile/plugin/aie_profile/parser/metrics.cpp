@@ -141,8 +141,6 @@ namespace xdp {
         return obj;
     }
 
-
-
     // Create from ptree
     std::unique_ptr<Metric>
     TileBasedMetricEntry::processSettings(const boost::property_tree::ptree& obj) {

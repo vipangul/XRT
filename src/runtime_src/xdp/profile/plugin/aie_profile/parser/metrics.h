@@ -13,6 +13,7 @@
 #include <sstream>
 #include <iostream>
 #include "core/common/message.h"
+#include "xdp/profile/database/static_info/aie_constructs.h"
 #include "metrics_type.h"
 
 namespace xdp {
@@ -29,6 +30,40 @@ namespace xdp {
         std::cout << "Parsed item: " << static_cast<int>(item) << std::endl;
     }
     return result;
+  }
+
+  inline metric_type getMetricTypeFromKey(const std::string& key) {
+    static const std::map<std::string, metric_type> keyToMetricType = {
+        {"tile_based_aie_metrics",             metric_type::TILE_BASED_AIE_TILE},
+        {"tile_based_aie_memory_metrics",      metric_type::TILE_BASED_MEM_MOD},
+        {"tile_based_interface_tile_metrics",  metric_type::TILE_BASED_INTERFACE_TILE},
+        {"tile_based_memory_tile_metrics",     metric_type::TILE_BASED_MEM_TILE},
+        {"tile_based_microcontroller_metrics", metric_type::TILE_BASED_UC},
+        {"graph_based_aie_metrics",            metric_type::GRAPH_BASED_AIE_TILE},
+        {"graph_based_aie_memory_metrics",     metric_type::GRAPH_BASED_MEM_MOD},
+        {"graph_based_interface_tile_metrics", metric_type::GRAPH_BASED_INTERFACE_TILE},
+        {"graph_based_memory_tile_metrics",    metric_type::GRAPH_BASED_MEM_TILE}
+    };
+
+    auto it = keyToMetricType.find(key);
+    return (it != keyToMetricType.end()) ? it->second : metric_type::NUM_TYPES;
+  }
+
+  inline module_type getModuleTypeFromKey(const std::string& key) {
+    static const std::map<std::string, module_type> keyToModuleType = {
+        {"tile_based_aie_metrics",             module_type::core},
+        {"tile_based_aie_memory_metrics",      module_type::dma},
+        {"tile_based_interface_tile_metrics",  module_type::shim},
+        {"tile_based_memory_tile_metrics",     module_type::mem_tile},
+        {"tile_based_microcontroller_metrics", module_type::uc},
+        {"graph_based_aie_metrics",            module_type::core},
+        {"graph_based_aie_memory_metrics",     module_type::dma},
+        {"graph_based_interface_tile_metrics", module_type::shim},
+        {"graph_based_memory_tile_metrics",    module_type::mem_tile}
+    };
+
+    auto it = keyToModuleType.find(key);
+    return (it != keyToModuleType.end()) ? it->second : module_type::num_types;
   }
 
   // --------------------------------------------------------------------------------------------------------------------
