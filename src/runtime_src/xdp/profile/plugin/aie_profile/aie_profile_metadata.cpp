@@ -190,7 +190,10 @@ namespace xdp {
           getConfigMetricsForInterfaceTiles(module, metricsSettings, graphMetricsSettings);
       }
       else if (type == module_type::uc)
-        getConfigMetricsForMicrocontrollers(module, metricsSettings, graphMetricsSettings);
+        if (useXdpJson)
+          getConfigMetricsForMicrocontrollersUsingJson(module, metricsSettings, graphMetricsSettings, metricsCollectionManager);
+        else
+          getConfigMetricsForMicrocontrollers(module, metricsSettings, graphMetricsSettings);
       else {
         if (useXdpJson)
           getConfigMetricsForTilesUsingJson(module, metricsSettings, graphMetricsSettings, type, metricsCollectionManager);

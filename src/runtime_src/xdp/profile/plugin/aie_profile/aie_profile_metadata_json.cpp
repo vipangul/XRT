@@ -225,7 +225,7 @@ namespace xdp {
     for (auto& t : offTiles) {
       configMetrics[moduleIdx].erase(t);
     }
-  } catch (const std::exception& e) {
+    } catch (const std::exception& e) {
       xrt_core::message::send(severity_level::error, "XRT", e.what());
       return;
     }
@@ -355,4 +355,80 @@ namespace xdp {
       }
     }
 
+
+  /****************************************************************************
+   * Resolve metrics for micrcontrollers
+   ***************************************************************************/
+  void AieProfileMetadata::getConfigMetricsForMicrocontrollersUsingJson(const int moduleIdx,
+      const std::vector<std::string>& metricsSettings,
+      const std::vector<std::string> graphMetricsSettings,
+      MetricsCollectionManager& metricsCollectionManager)
+  {
+    std::string metricSettingsName = "tile_based_" + moduleNames[moduleIdx] + "_metrics";
+    try {
+      const MetricCollection& tilesMetricCollection = metricsCollectionManager.getMetricCollection(module_type::uc, metricSettingsName);
+      const auto& metrics = tilesMetricCollection.metrics;
+      if (metrics.empty()) {
+        xrt_core::message::send(severity_level::debug, "XRT",
+                                "No metric collection found for " + metricSettingsName);
+        return;
+      }
+
+    auto allValidGraphs = metadataReader->getValidGraphs();
+    auto allValidPorts = metadataReader->getValidPorts();
+
+    // Process only single tile metric setting
+    for (size_t i = 0; i < metrics.size(); ++i) {
+      uint8_t col = 0;
+      try {
+        col = metrics[i]->getStartTile().front();
+        std::cout << "!!! uC Column: " << std::to_string(col) << std::endl;
+      }
+      catch (std::invalid_argument const&) {
+          // Expected column specification is not a number. Give warning and skip
+          xrt_core::message::send(severity_level::warning, "XRT",
+                                  "Column specification in tile_based_microcontroller_metrics "
+                                  "is not an integer and hence skipped.");
+          continue;
+      }
+      auto tiles = metadataReader->getMicrocontrollers(true, col, col);
+        
+      for (auto& t : tiles)
+        configMetrics[moduleIdx][t] = metrics[i]->metric;
+    }
+
+    // Set default, check validity, and remove "off" tiles
+    auto defaultSet = defaultSets[moduleIdx];
+    bool showWarning = true;
+    std::vector<tile_type> offTiles;
+    auto metricVec = metricStrings.at(module_type::uc);
+
+    for (auto& tileMetric : configMetrics[moduleIdx]) {
+      // Save list of "off" tiles
+      if (tileMetric.second.empty() || (tileMetric.second.compare("off") == 0)) {
+        offTiles.push_back(tileMetric.first);
+        continue;
+      }
+
+      // Ensure requested metric set is supported (if not, use default)
+      if (std::find(metricVec.begin(), metricVec.end(), tileMetric.second) == metricVec.end()) {
+        if (showWarning) {
+          std::string msg = "Unable to find microcontroller metric set " + tileMetric.second
+                            + ". Using default of " + defaultSet + ". ";
+          xrt_core::message::send(severity_level::warning, "XRT", msg);
+          showWarning = false;
+        }
+
+        tileMetric.second = defaultSet;
+      }
+    }
+
+    // Remove all the "off" tiles
+    for (auto& t : offTiles)
+      configMetrics[moduleIdx].erase(t);
+  } catch (const std::exception& e) {
+    xrt_core::message::send(severity_level::error, "XRT", e.what());
+    return;
+  }
+  }
 }  // namespace xdp

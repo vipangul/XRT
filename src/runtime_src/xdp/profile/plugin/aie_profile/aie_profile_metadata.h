@@ -152,6 +152,11 @@ class AieProfileMetadata {
     void getConfigMetricsForMicrocontrollers(const int moduleIdx,
                                              const std::vector<std::string>& metricsSettings,
                                              const std::vector<std::string> graphMetricsSettings);
+    void getConfigMetricsForMicrocontrollersUsingJson(const int moduleIdx,
+                                                      const std::vector<std::string>& metricsSettings,
+                                                      const std::vector<std::string> graphMetricsSettings,
+                                                      MetricsCollectionManager& metricsCollectionManager);
+
     int getPairModuleIndex(const std::string& metricSet, module_type mod);
     uint8_t getMetricSetIndex(const std::string& metricSet, module_type mod);
     bool isSupported(const std::string metricSet, bool isTileBased);
