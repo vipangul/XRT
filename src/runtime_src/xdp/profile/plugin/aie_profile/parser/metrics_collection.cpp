@@ -15,43 +15,6 @@ namespace xdp {
         }
     }
 
-    // MetricCollection
-    // MetricCollection::processSettings(const boost::property_tree::ptree& ptArr, 
-    //                                         metric_type type)
-    // {
-    //     MetricCollection collection;
-    //     for (const auto& item : ptArr) {
-    //         const auto& obj = item.second;
-
-    //         // Directly handle metric creation based on type
-    //         if (type == metric_type::TILE_BASED_AIE_TILE) {
-    //             collection.metrics.push_back(TileBasedMetricEntry::processSettings(obj));
-    //             std::cout << "!!! processed TileBasedMetricEntry from JSON : collection.metrics size: "<< collection.metrics.size() << std::endl;
-    //         } 
-    //         else if (type == metric_type::GRAPH_BASED_AIE_TILE) {
-    //             collection.metrics.push_back(GraphBasedMetricEntry::processSettings(obj));
-    //             std::cout << "!!! processed GraphBasedMetricEntry from JSON, collection.metrics size: "<< collection.metrics.size() << std::endl;
-    //         }
-    //         else if (type == metric_type::TILE_BASED_INTERFACE_TILE) {
-    //           collection.metrics.push_back(TileBasedMetricEntry::processSettings(obj));
-    //           std::cout << "!!! processed TileBasedMetricEntry from JSON : collection.metrics size: "<< collection.metrics.size() << std::endl;
-    //         } 
-    //         else {
-    //             throw std::runtime_error("Unknown metric type: " + std::to_string(static_cast<int>(type)));
-    //         }
-    //     }
-    //     // Print all metrics for debugging purposes
-    //     std::cout << "## collection Added- Print and check available metrics in the collection:" << std::endl;
-    //     for (const auto& metric : collection.metrics) {
-    //         if (metric) {
-    //             metric->print(); // Call the print method of each metric
-    //         } else {
-    //             xrt_core::message::send(severity_level::warning, "XRT", "Null metric found in collection");
-    //         }
-    //     }
-    //     return collection;
-    // }
-
     // Convert to ptree array
     boost::property_tree::ptree
     MetricCollection::toPtree() const {

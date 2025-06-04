@@ -63,67 +63,12 @@ namespace xdp {
     // Get AIE clock frequency
     clockFreqMhz = (db->getStaticInfo()).getClockRateMHz(deviceID, false);
 
-    // Check if xdp.json is available and if so then read that file instead
-
-
-    // Feature starts from here
-    // Example JSON input file
-    // std::string jsonString = R"(
-    //   {
-    //     "AIE_profile_settings": {
-    //       "tile_based_aie_tile_metrics": [
-    //         { "start": [0,0], "metric": "all_stalls_dma" },
-    //         { "start": [0,1], "end": [0,1], "metric": "s2mm_channels_stalls", "ch1": 0 }
-    //       ],
-    //       "graph_based_aie_tile_metrics": [
-    //         { "graph": "mygraph", "port": "port1", "metric": "all_stalls_dma" },
-    //         { "graph": "mygraph", "port": "all", "metric": "s2mm_channels_stalls", "ch1": 0 }
-    //       ]
-    //     }
-    //   })";
-
-      // std::string jsonString = R"(
-      //   {
-      //     "AIE_profile_settings": {
-      //       "tile_based_aie_tile_metrics": [
-      //         { "start": [24,0], "end": [24,0], "metric": "mm2s_throughputs", "ch1": 0 },
-      //         { "start": [24,1], "metric": "s2mm_throughputs", "ch1": 0 }
-      //       ],
-      //       "tile_based_interface_tile_metrics": [
-      //         { "start": [24,0], "end": [24,0], "metric": "output_stalls"}
-      //       ]
-      //     }
-      //   })";
-
-        std::string jsonString = R"(
-          {
-            "AIE_profile_settings": {
-              "tile_based_interface_tile_metrics": [
-                { "start": [24,0], "end": [24,0], "metric": "output_stalls"}
-              ]
-            }
-          })";
-
     bool useXdpJson = xrt_core::config::get_xdp_json();
     JsonParser jsonParser;
     MetricsCollectionManager metricsCollectionManager;
     if (useXdpJson) {
-      /*
-      // If xdp.json is available, read it instead of the hardcoded string
-      // Write the JSON input to a file for demonstration
-      std::ofstream inputFile("xdp.json", std::ios::out);
-      if (!inputFile) {
-          xrt_core::message::send(severity_level::error, "XRT", "Failed to create xdp.json file. Check write permissions.");
-          return;
-      }
-      inputFile << jsonString;
-      inputFile.close();
-      */
-
       // Parse the JSON file
       auto jsonTree = jsonParser.parse("xdp.json");
-
-      // Create MetricManager
 
       // Process metrics
       for (const auto& [key, value] : jsonTree.get_child("AIE_profile_settings")) {
@@ -143,19 +88,6 @@ namespace xdp {
         metricsCollectionManager.addMetricCollection(moduleType, key, std::move(collection));
         std::cout << "-----------------------------------------" << std::endl;
       }
-      // MetricCollection& collectionParser JsonParser::parse("xdp.json");
-
-      // Print metrics
-    //   for (const auto& metric : collection.metrics) {
-    //       boost::property_tree::ptree pt = metric->toPtree();
-    //       boost::property_tree::write_json(std::cout, pt);
-    //   }
-
-    //   // Write the metrics back to a file
-    //   JsonParser::write("output.json", collection);
-      // xrt_core::message::send(severity_level::info,
-                              // "XRT", "Finished Parsing AIE Profile new Metadata."); 
-      // return;
     }
 
     // Tile-based metrics settings
@@ -180,23 +112,22 @@ namespace xdp {
     // Process all module types
     for (int module = 0; module < NUM_MODULES; ++module) {
       auto type = moduleTypes[module];
-      auto metricsSettings      = getSettingsVector(tileMetricsConfig[module]);
-      auto graphMetricsSettings = getSettingsVector(graphMetricsConfig[module]);
-
-      if (type == module_type::shim) {
-        if (useXdpJson)
-          getConfigMetricsForInterfaceTilesUsingJson(module, metricsSettings, graphMetricsSettings, metricsCollectionManager);
-        else
-          getConfigMetricsForInterfaceTiles(module, metricsSettings, graphMetricsSettings);
+      if (useXdpJson) {
+        if (type == module_type::shim)
+            getConfigMetricsForInterfaceTilesUsingJson(module, metricsCollectionManager);
+        else if (type == module_type::uc)
+            getConfigMetricsForMicrocontrollersUsingJson(module, metricsCollectionManager);
+        else 
+            getConfigMetricsForTilesUsingJson(module, type, metricsCollectionManager);
       }
-      else if (type == module_type::uc)
-        if (useXdpJson)
-          getConfigMetricsForMicrocontrollersUsingJson(module, metricsSettings, graphMetricsSettings, metricsCollectionManager);
-        else
-          getConfigMetricsForMicrocontrollers(module, metricsSettings, graphMetricsSettings);
       else {
-        if (useXdpJson)
-          getConfigMetricsForTilesUsingJson(module, metricsSettings, graphMetricsSettings, type, metricsCollectionManager);
+        auto metricsSettings      = getSettingsVector(tileMetricsConfig[module]);
+        auto graphMetricsSettings = getSettingsVector(graphMetricsConfig[module]);
+
+        if (type == module_type::shim)
+          getConfigMetricsForInterfaceTiles(module, metricsSettings, graphMetricsSettings);
+        else if (type == module_type::uc)
+          getConfigMetricsForMicrocontrollers(module, metricsSettings, graphMetricsSettings);
         else
           getConfigMetricsForTiles(module, metricsSettings, graphMetricsSettings, type);
       }

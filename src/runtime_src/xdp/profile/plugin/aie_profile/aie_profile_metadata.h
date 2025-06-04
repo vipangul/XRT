@@ -136,8 +136,6 @@ class AieProfileMetadata {
                                   const std::vector<std::string>& graphMetricsSettings,
                                   const module_type mod);
     void getConfigMetricsForTilesUsingJson(const int moduleIdx, 
-                                           const std::vector<std::string>& metricsSettings,
-                                           const std::vector<std::string>& graphMetricsSettings,
                                            const module_type mod,
                                            MetricsCollectionManager& metricsCollectionManager);
 
@@ -145,16 +143,12 @@ class AieProfileMetadata {
                                            const std::vector<std::string>& metricsSettings,
                                            const std::vector<std::string> graphMetricsSettings);
     void getConfigMetricsForInterfaceTilesUsingJson(const int moduleIdx,
-                                           const std::vector<std::string>& metricsSettings,
-                                           const std::vector<std::string> graphMetricsSettings,
                                            MetricsCollectionManager& metricsCollectionManager);
 
     void getConfigMetricsForMicrocontrollers(const int moduleIdx,
                                              const std::vector<std::string>& metricsSettings,
                                              const std::vector<std::string> graphMetricsSettings);
     void getConfigMetricsForMicrocontrollersUsingJson(const int moduleIdx,
-                                                      const std::vector<std::string>& metricsSettings,
-                                                      const std::vector<std::string> graphMetricsSettings,
                                                       MetricsCollectionManager& metricsCollectionManager);
 
     int getPairModuleIndex(const std::string& metricSet, module_type mod);

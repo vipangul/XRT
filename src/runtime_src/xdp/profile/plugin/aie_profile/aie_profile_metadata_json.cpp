@@ -24,9 +24,7 @@ namespace xdp {
    * Resolve metrics for AIE or Memory tiles
    ***************************************************************************/
   void AieProfileMetadata::getConfigMetricsForTilesUsingJson(const int moduleIdx, 
-      const std::vector<std::string>& metricsSettings,
-      const std::vector<std::string>& graphMetricsSettings, const module_type mod,
-      MetricsCollectionManager& metricsCollectionManager)
+      const module_type mod, MetricsCollectionManager& metricsCollectionManager)
   {
     std::string metricSettingsName = "tile_based_" + moduleNames[moduleIdx] + "_metrics";
 
@@ -233,8 +231,6 @@ namespace xdp {
 
 
   void AieProfileMetadata::getConfigMetricsForInterfaceTilesUsingJson(const int moduleIdx,
-      const std::vector<std::string>& metricsSettings,
-      const std::vector<std::string> graphMetricsSettings,
       MetricsCollectionManager& metricsCollectionManager)
     {
       std::string metricSettingsName = "tile_based_" + moduleNames[moduleIdx] + "_metrics";
@@ -360,8 +356,6 @@ namespace xdp {
    * Resolve metrics for micrcontrollers
    ***************************************************************************/
   void AieProfileMetadata::getConfigMetricsForMicrocontrollersUsingJson(const int moduleIdx,
-      const std::vector<std::string>& metricsSettings,
-      const std::vector<std::string> graphMetricsSettings,
       MetricsCollectionManager& metricsCollectionManager)
   {
     std::string metricSettingsName = "tile_based_" + moduleNames[moduleIdx] + "_metrics";
