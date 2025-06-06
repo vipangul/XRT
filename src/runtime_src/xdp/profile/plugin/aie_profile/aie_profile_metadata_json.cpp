@@ -304,7 +304,7 @@ namespace xdp {
       xrt_core::message::send(severity_level::error, "XRT", e.what());
       return;
     }
-  }
+  } // end of getConfigMetricsForTilesUsingJson
 
   void AieProfileMetadata::getConfigMetricsForInterfaceTilesUsingJson(const int moduleIdx,
       MetricsCollectionManager& metricsCollectionManager)
@@ -318,34 +318,116 @@ namespace xdp {
                                   "No metric collection found for " + metricSettingsName);
           return;
         }
-      // auto & shimMetricCollection = metricsCollectionManager.getMetricCollection(module_type::shim, "tile_based_interface_tile_metrics");
 
-      auto allValidGraphs = metadataReader->getValidGraphs();
-      auto allValidPorts  = metadataReader->getValidPorts();
+        auto allValidGraphs = metadataReader->getValidGraphs();
+        auto allValidPorts  = metadataReader->getValidPorts();
+      
+        // Step 1a: Process "all" tiles metric setting
+        // Step 1b: Process only range of tiles metric setting
+        // Step 1c: Process single tile metric setting
+        // NOTE: Only one of these can be specified in the JSON file for a tile type.
+    
+        bool isAllTilesSet = false;
+        bool isTileRangeSet = false;
 
-      // Pass 3 : process only single tile metric setting
-      for (size_t i = 0; i < metrics.size(); ++i) {
-        if (!isSupported(metrics[i]->metric, true))
-          continue;
+        // Pass 1a : process only "all" metric setting
+        for (size_t i = 0; i < metrics.size(); ++i) {
+          if (!metrics[i]->isAllTilesRangeSet())
+            break;
+        
+          // By-default select both the channels
+          uint8_t channelId0 = 0;
+          uint8_t channelId1 = 1;
 
-        uint8_t col = metrics[i]->getStartTile().front();
-        std::cout << "!!! Shim Column: " << std::to_string(col) << std::endl;
+          std::vector<tile_type> tiles;
+          if (metrics[i]->isChannel0Set()) {
+            channelId0 = metrics[i]->getChannel0();
+            channelId1 = metrics[i]->isChannel1Set() ? metrics[i]->getChannel1() : channelId0;
+            tiles = metadataReader->getInterfaceTiles("all", "all", metrics[i]->metric, channelId0);
+          }
+          else
+            tiles = metadataReader->getInterfaceTiles("all", "all", metrics[i]->metric);
+
+          for (auto& t : tiles) {
+            configMetrics[moduleIdx][t] = metrics[i]->metric;
+            configChannel0[t] = channelId0;
+            configChannel1[t] = channelId1;
+          }
+          isAllTilesSet = true;
+        } // End of pass 1a
+
+        // Step 1b: process tile range metric setting
+        for (size_t i = 0; i < metrics.size(); ++i) {
+          if (isAllTilesSet)
+            break;
+
+          // TODO: Add Support for Profile API metric sets
+          // if (!isSupported(metrics[i]->metric, true))
+          //   continue;
+
+          uint8_t minCol = 0, maxCol = 0;
+          uint8_t minRow = 0, maxRow = 0;
+          try {
+            std::vector<uint8_t> minTile;
+            minTile = metrics[i]->getStartTile();
+
+            std::vector<uint8_t> maxTile;
+            maxTile = metrics[i]->getEndTile();
+            if (maxTile.empty())
+              maxTile = minTile;
+          
+            if (minTile.empty() || maxTile.empty()) {
+              std::stringstream msg;
+              msg << "Tile range specification in tile_based_" << moduleNames[moduleIdx]
+                  << "_metrics is not a valid format and hence skipped."
+                  << "It should be \"start\": [mincolumn,minrow], \"end\" :[maxcolumn, maxrow]";
+              xrt_core::message::send(severity_level::warning, "XRT", msg.str());
+              continue;
+            }
+                
+            minCol = minTile[0];
+            maxCol = maxTile[0];
+            minRow = minTile[1];
+            maxRow = maxTile[1];
+          }
+          catch (...) {
+            xrt_core::message::send(severity_level::warning, "XRT",
+                                    "Tile range specification in tile_based_" + moduleNames[moduleIdx]
+                                    + "_metrics is not valid format and hence skipped.");
+            continue;
+          }
+
+          // Ensure range is valid
+          if ((minCol > maxCol) || (minRow > maxRow)) {
+            std::stringstream msg;
+            msg << "Tile range specification in tile_based_" <<  moduleNames[moduleIdx]
+                << "_metrics is not a valid range ({col1}<={col2,row2}) and hence skipped.";
+            xrt_core::message::send(severity_level::warning, "XRT", msg.str());
+            continue;
+          }
+          std::cout << "!!! Shim Column: " << std::to_string(minCol) << "," << std::to_string(minRow)
+                    << " to " << std::to_string(maxCol) << "," << std::to_string(maxRow) << std::endl;
 
           // By-default select both the channels
           bool foundChannels = false;
           uint8_t channelId0 = 0;
           uint8_t channelId1 = 1;
-          uint32_t bytes = defaultTransferBytes;
+          if (metrics[i]->isChannel0Set()) {
+            channelId0 = metrics[i]->getChannel0();
+            channelId1 = metrics[i]->isChannel1Set() ? metrics[i]->getChannel1() : channelId0;
+            foundChannels = true;
+          }
+
+          // uint32_t bytes = defaultTransferBytes;
           //TODO: Support for user specified bytes.
             // if (profileAPIMetricSet(metrics[i][1])) {
             //   bytes = processUserSpecifiedBytes(metrics[i][2]);
             // }
 
-          foundChannels = metrics[i]->areChannelsSet();
-          int16_t channelNum = (foundChannels) ? metrics[i]->getChannel0() : -1;
-          auto tiles = metadataReader->getInterfaceTiles("all", "all", metrics[i]->metric, channelNum, true, col, col);
-
+          int16_t channelNum = (foundChannels) ? channelId0 : -1;
+          auto tiles = metadataReader->getInterfaceTiles("all", "all", metrics[i]->metric, channelNum, true, minCol, maxCol);
           std::cout << "!!! Total tiles: " << tiles.size() << std::endl;
+          
           for (auto& t : tiles) {
             std::cout << "\t !!! Tile: (" << std::to_string(t.col) << ","
                       << std::to_string(t.row) << ")" << std::endl;
@@ -353,61 +435,89 @@ namespace xdp {
             configMetrics[moduleIdx][t] = metrics[i]->metric;
             configChannel0[t] = channelId0;
             configChannel1[t] = channelId1;
-            if (metrics[i]->metric == METRIC_BYTE_COUNT) {
-              std::string bytes_str = metrics[i]->getBytesToTransfer();
-              uint32_t bytes = processUserSpecifiedBytes(bytes_str);
-              if (bytes > 0)
-                setUserSpecifiedBytes(t, bytes);
-              else
-                xrt_core::message::send(severity_level::warning, "XRT", "User specified bytes is not set or non-zero.");
+          }
+          isTileRangeSet = true;
+        } // End of pass 1b
+
+        // Pass 1c: process only single tile metric setting
+        for (size_t i = 0; i < metrics.size(); ++i) {
+          if(isAllTilesSet || isTileRangeSet)
+            break;
+
+          // TODO: Add Support for Profile API metric sets
+          // if (!isSupported(metrics[i][1], true))
+          //   continue;
+
+          uint8_t col = 0;
+          col = metrics[i]->getCol();
+          std::cout << "!!! Shim Column: " << std::to_string(col) << std::endl;
+            
+            // By-default select both the channels
+            bool foundChannels = false;
+            uint8_t channelId0 = 0;
+            uint8_t channelId1 = 1;
+
+            if (metrics[i]->isChannel0Set()) {
+              foundChannels = true;
+              channelId0 = metrics[i]->getChannel0();
+              channelId1 = metrics[i]->isChannel1Set() ? metrics[i]->getChannel1() : channelId0;
+            }
+                
+            int16_t channelNum = (foundChannels) ? channelId0 : -1;
+            auto tiles = metadataReader->getInterfaceTiles("all", "all", metrics[i]->metric, channelNum, true, col, col);
+            
+            for (auto& t : tiles) {
+              configMetrics[moduleIdx][t] = metrics[i]->metric;
+              configChannel0[t] = channelId0;
+              configChannel1[t] = channelId1;
+              // if (metrics[i]->metric == METRIC_BYTE_COUNT)
+              //   setUserSpecifiedBytes(t, bytes);
+            }
+          } // Pass 1c: process single tile metric setting
+
+          // Set default, check validity, and remove "off" tiles
+          auto defaultSet = defaultSets[moduleIdx];
+          bool showWarning = true;
+          std::vector<tile_type> offTiles;
+          auto metricVec = metricStrings.at(module_type::shim);
+
+          for (auto& tileMetric : configMetrics[moduleIdx]) {
+            // Save list of "off" tiles
+            if (tileMetric.second.empty() || (tileMetric.second.compare("off") == 0)) {
+              offTiles.push_back(tileMetric.first);
+              continue;
+            }
+
+            // Ensure requested metric set is supported (if not, use default)
+            if (std::find(metricVec.begin(), metricVec.end(), tileMetric.second) == metricVec.end()) {
+              if (showWarning) {
+                std::string msg = "Unable to find interface_tile metric set " + tileMetric.second
+                                  + ". Using default of " + defaultSet + ". ";
+                xrt_core::message::send(severity_level::warning, "XRT", msg);
+                showWarning = false;
+              }
+
+              tileMetric.second = defaultSet;
             }
           }
-        }
-      
-        // Set default, check validity, and remove "off" tiles
-        auto defaultSet = defaultSets[moduleIdx];
-        bool showWarning = true;
-        std::vector<tile_type> offTiles;
-        auto metricVec = metricStrings.at(module_type::shim);
 
-        for (auto& tileMetric : configMetrics[moduleIdx]) {
-          // Save list of "off" tiles
-          if (tileMetric.second.empty() || (tileMetric.second.compare("off") == 0)) {
-            offTiles.push_back(tileMetric.first);
-            continue;
+          // Remove all the "off" tiles
+          for (auto& t : offTiles) {
+            configMetrics[moduleIdx].erase(t);
           }
 
-          // Ensure requested metric set is supported (if not, use default)
-          if (std::find(metricVec.begin(), metricVec.end(), tileMetric.second) == metricVec.end()) {
-            if (showWarning) {
-              std::string msg = "Unable to find interface_tile metric set " + tileMetric.second
-                                + ". Using default of " + defaultSet + ". ";
-              xrt_core::message::send(severity_level::warning, "XRT", msg);
-              showWarning = false;
-            }
-
-            tileMetric.second = defaultSet;
+          // Print configMetrics for moduleIdx.
+          for (auto & tileMetric : configMetrics[moduleIdx]) {
+            auto tile = tileMetric.first;
+            auto metricSet = tileMetric.second;
+            std::cout << "!!! Module Index: " << moduleIdx << ", Tile: (" << std::to_string(tile.col) << ","
+                      << std::to_string(tile.row) << "), Metric Set: " << metricSet << std::endl;
           }
+        } catch (const std::exception& e) {
+          xrt_core::message::send(severity_level::error, "XRT", e.what());
+          return;
         }
-
-        // Remove all the "off" tiles
-        for (auto& t : offTiles) {
-          configMetrics[moduleIdx].erase(t);
-        }
-
-        // Print configMetrics for moduleIdx.
-        for (auto & tileMetric : configMetrics[moduleIdx]) {
-          auto tile = tileMetric.first;
-          auto metricSet = tileMetric.second;
-          std::cout << "!!! Module Index: " << moduleIdx << ", Tile: (" << std::to_string(tile.col) << ","
-                    << std::to_string(tile.row) << "), Metric Set: " << metricSet << std::endl;
-        }
-      } catch (const std::exception& e) {
-        xrt_core::message::send(severity_level::error, "XRT", e.what());
-        return;
-      }
-    }
-
+    } // end of getConfigMetricsForInterfaceTilesUsingJson
 
   /****************************************************************************
    * Resolve metrics for micrcontrollers
@@ -425,61 +535,103 @@ namespace xdp {
         return;
       }
 
-    auto allValidGraphs = metadataReader->getValidGraphs();
-    auto allValidPorts = metadataReader->getValidPorts();
+      auto allValidGraphs = metadataReader->getValidGraphs();
+      auto allValidPorts = metadataReader->getValidPorts();
 
-    // Process only single tile metric setting
-    for (size_t i = 0; i < metrics.size(); ++i) {
-      uint8_t col = 0;
-      try {
-        col = metrics[i]->getStartTile().front();
-        std::cout << "!!! uC Column: " << std::to_string(col) << std::endl;
-      }
-      catch (std::invalid_argument const&) {
-          // Expected column specification is not a number. Give warning and skip
-          xrt_core::message::send(severity_level::warning, "XRT",
-                                  "Column specification in tile_based_microcontroller_metrics "
-                                  "is not an integer and hence skipped.");
-          continue;
-      }
-      auto tiles = metadataReader->getMicrocontrollers(true, col, col);
+      // Step 1a: Process "all" tiles metric setting
+      // Step 1b: Process only range of tiles metric setting
+      // Step 1c: Process single tile metric setting
+      // NOTE: Only one of these can be specified in the JSON file for a tile type.
+      bool isAllTilesSet = false;
+      bool isTileRangeSet = false;
+
+      // Step 1a: Process "all" tiles metric setting
+      for (size_t i = 0; i < metrics.size(); ++i) {
+        if (metrics[i]->isAllTilesRangeSet() == false)
+          break;
+
+        auto tiles = metadataReader->getMicrocontrollers(false);
+
+        for (auto& t : tiles)
+          configMetrics[moduleIdx][t] = metrics[i]->metric;
         
-      for (auto& t : tiles)
-        configMetrics[moduleIdx][t] = metrics[i]->metric;
-    }
+        isAllTilesSet = true;
+      } // end of pass 1a
 
-    // Set default, check validity, and remove "off" tiles
-    auto defaultSet = defaultSets[moduleIdx];
-    bool showWarning = true;
-    std::vector<tile_type> offTiles;
-    auto metricVec = metricStrings.at(module_type::uc);
+      // Step 1b: Process only range of tiles metric setting
+      for (size_t i = 0; i < metrics.size(); ++i) {
+      if (isAllTilesSet)
+        break;
 
-    for (auto& tileMetric : configMetrics[moduleIdx]) {
-      // Save list of "off" tiles
-      if (tileMetric.second.empty() || (tileMetric.second.compare("off") == 0)) {
-        offTiles.push_back(tileMetric.first);
-        continue;
+        uint8_t minCol = 0;
+        minCol = metrics[i]->getStartTile().front();
+
+        uint8_t maxCol = 0;
+        maxCol = metrics[i]->getEndTile().front();
+
+        auto tiles = metadataReader->getMicrocontrollers(true, minCol, maxCol);
+        
+        for (auto& t : tiles)
+          configMetrics[moduleIdx][t] = metrics[i]->metric;
+        
+        isTileRangeSet = true;
+      } // end of pass 1b
+
+      // Process only single tile metric setting
+      for (size_t i = 0; i < metrics.size(); ++i) {
+        if (isAllTilesSet || isTileRangeSet)
+          break;
+
+        uint8_t col = 0;
+        try {
+          col = metrics[i]->getStartTile().front();
+          std::cout << "!!! uC Column: " << std::to_string(col) << std::endl;
+        }
+        catch (std::invalid_argument const&) {
+            // Expected column specification is not a number. Give warning and skip
+            xrt_core::message::send(severity_level::warning, "XRT",
+                                    "Column specification in tile_based_microcontroller_metrics "
+                                    "is not an integer and hence skipped.");
+            continue;
+        }
+        auto tiles = metadataReader->getMicrocontrollers(true, col, col);
+          
+        for (auto& t : tiles)
+          configMetrics[moduleIdx][t] = metrics[i]->metric;
       }
 
-      // Ensure requested metric set is supported (if not, use default)
-      if (std::find(metricVec.begin(), metricVec.end(), tileMetric.second) == metricVec.end()) {
-        if (showWarning) {
-          std::string msg = "Unable to find microcontroller metric set " + tileMetric.second
-                            + ". Using default of " + defaultSet + ". ";
-          xrt_core::message::send(severity_level::warning, "XRT", msg);
-          showWarning = false;
+      // Set default, check validity, and remove "off" tiles
+      auto defaultSet = defaultSets[moduleIdx];
+      bool showWarning = true;
+      std::vector<tile_type> offTiles;
+      auto metricVec = metricStrings.at(module_type::uc);
+
+      for (auto& tileMetric : configMetrics[moduleIdx]) {
+        // Save list of "off" tiles
+        if (tileMetric.second.empty() || (tileMetric.second.compare("off") == 0)) {
+          offTiles.push_back(tileMetric.first);
+          continue;
         }
 
-        tileMetric.second = defaultSet;
-      }
-    }
+        // Ensure requested metric set is supported (if not, use default)
+        if (std::find(metricVec.begin(), metricVec.end(), tileMetric.second) == metricVec.end()) {
+          if (showWarning) {
+            std::string msg = "Unable to find microcontroller metric set " + tileMetric.second
+                              + ". Using default of " + defaultSet + ". ";
+            xrt_core::message::send(severity_level::warning, "XRT", msg);
+            showWarning = false;
+          }
 
-    // Remove all the "off" tiles
-    for (auto& t : offTiles)
-      configMetrics[moduleIdx].erase(t);
-  } catch (const std::exception& e) {
-    xrt_core::message::send(severity_level::error, "XRT", e.what());
-    return;
-  }
-  }
+          tileMetric.second = defaultSet;
+        }
+      }
+
+      // Remove all the "off" tiles
+      for (auto& t : offTiles)
+        configMetrics[moduleIdx].erase(t);
+    } catch (const std::exception& e) {
+      xrt_core::message::send(severity_level::error, "XRT", e.what());
+      return;
+    }
+  } // end of getConfigMetricsForMicrocontrollersUsingJson
 }  // namespace xdp
