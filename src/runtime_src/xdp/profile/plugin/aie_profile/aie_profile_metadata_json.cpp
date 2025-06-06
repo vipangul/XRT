@@ -60,8 +60,40 @@ namespace xdp {
     std::unique_copy(validTilesVec.begin(), validTilesVec.end(), std::inserter(allValidTiles, allValidTiles.end()),
                      xdp::aie::tileCompare);
 
-    // Process only range of tiles metric setting
+    // Step 1a: Process "all" tiles metric setting
+    // Step 1b: Process only range of tiles metric setting
+    // Step 1c: Process single tile metric setting
+    // NOTE: Only one of these can be specified in the JSON file for a tile type.
+
+    bool isAllTilesSet = false;
+    bool isTileRangeSet = false;
+
+    // Step 1a: Process "all" tiles metric setting
     for (size_t i = 0; i < metrics.size(); ++i) {
+
+      if (!metrics[i]->isAllTilesRangeSet())
+        break;
+
+      auto tiles = metadataReader->getTiles("all", mod, "all");
+      for (auto& e : tiles)
+        configMetrics[moduleIdx][e] = metrics[i]->metric;
+
+      // Use channel numbers if specified
+      if (metrics[i]->isChannel0Set()) {
+        for (auto& e : tiles)
+          configChannel0[e] = metrics[i]->getChannel0();
+      }
+      if (metrics[i]->isChannel1Set()) {
+        for (auto& e : tiles)
+          configChannel1[e] = metrics[i]->getChannel1();
+      }
+      isAllTilesSet = true;
+    } // Pass 1a
+
+    // Step 1b: Process tiles range metric settings
+    for (size_t i = 0; i < metrics.size(); ++i) {
+      if (isAllTilesSet)
+        break;
 
       uint8_t minRow = 0, minCol = 0;
       uint8_t maxRow = 0, maxCol = 0;
@@ -147,9 +179,54 @@ namespace xdp {
             configChannel0[tile] = channel0;
             configChannel1[tile] = channel1;
           }
+
+          isTileRangeSet = true;
         }
       }
-    } // End of metrics loop
+    } // End of pass 1b
+
+    // Step 1c: Process single tile metric settings
+    for (size_t i = 0; i < metrics.size(); ++i) {
+      if (isAllTilesSet || isTileRangeSet)
+        break;
+      
+      try {
+        uint8_t col, row;
+        col = metrics[i]->getCol();
+        row = metrics[i]->getRow() + rowOffset;
+
+        tile_type tile;
+        tile.col = col;
+        tile.row = row;
+        tile.active_core   = true;
+        tile.active_memory = true;
+
+        // Make sure tile is used
+        auto it = std::find_if(allValidTiles.begin(), allValidTiles.end(),
+                               compareTileByLoc(tile));
+        if (it == allValidTiles.end()) {
+          std::stringstream msg;
+          msg << "Specified Tile (" << std::to_string(tile.col) << "," 
+              << std::to_string(tile.row) << ") is not active. Hence skipped.";
+          xrt_core::message::send(severity_level::warning, "XRT", msg.str());
+          continue;
+        }
+
+        configMetrics[moduleIdx][tile] = metrics[i]->metric;
+
+        // Grab channel numbers (if specified; memory tiles only)
+        if (metrics[i]->areChannelsSet()) {
+          configChannel0[tile] = metrics[i]->getChannel0();
+          configChannel1[tile] = metrics[i]->getChannel1();
+        }
+      }
+      catch (...) {
+        xrt_core::message::send(severity_level::warning, "XRT",
+                                "Tile range specification in tile_based_" + modName
+                                + "_metrics is not valid format and hence skipped.");
+        continue;
+      }
+    } // End of pass 1c
 
     // Set default, check validity, and remove "off" tiles
     auto defaultSet = defaultSets[moduleIdx];
@@ -219,16 +296,15 @@ namespace xdp {
       }
     }
 
-    // Remove all the "off" tiles
-    for (auto& t : offTiles) {
-      configMetrics[moduleIdx].erase(t);
-    }
+      // Remove all the "off" tiles
+      for (auto& t : offTiles) {
+        configMetrics[moduleIdx].erase(t);
+      }
     } catch (const std::exception& e) {
       xrt_core::message::send(severity_level::error, "XRT", e.what());
       return;
     }
   }
-
 
   void AieProfileMetadata::getConfigMetricsForInterfaceTilesUsingJson(const int moduleIdx,
       MetricsCollectionManager& metricsCollectionManager)
@@ -255,11 +331,6 @@ namespace xdp {
         uint8_t col = metrics[i]->getStartTile().front();
         std::cout << "!!! Shim Column: " << std::to_string(col) << std::endl;
 
-            // xrt_core::message::send(severity_level::warning, "XRT",
-            //                         "Column specification in tile_based_interface_tile_metrics "
-            //                         "is not an integer and hence skipped.");
-            // continue;
-
           // By-default select both the channels
           bool foundChannels = false;
           uint8_t channelId0 = 0;
@@ -268,20 +339,6 @@ namespace xdp {
           //TODO: Support for user specified bytes.
             // if (profileAPIMetricSet(metrics[i][1])) {
             //   bytes = processUserSpecifiedBytes(metrics[i][2]);
-            // }
-
-            // else {
-            //   try {
-            //     foundChannels = true;
-            //     channelId0 = aie::convertStringToUint8(metrics[i][2]);
-            //     channelId1 = (metrics[i].size() == 3) ? channelId0 : aie::convertStringToUint8(metrics[i][3]);
-            //   }
-            //   catch (std::invalid_argument const&) {
-            //     // Expected channel Id is not an integer, give warning and ignore
-            //     foundChannels = false;
-            //     xrt_core::message::send(severity_level::warning, "XRT", "Channel ID specification "
-            //       "in tile_based_interface_tile_metrics is not an integer and hence ignored.");
-            //   }
             // }
 
           foundChannels = metrics[i]->areChannelsSet();

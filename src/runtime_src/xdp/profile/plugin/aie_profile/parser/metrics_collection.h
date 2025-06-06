@@ -34,6 +34,8 @@ namespace xdp {
       //                                         metric_type type);
       
       void addMetric(std::unique_ptr<Metric> metric);
+      bool hasAllTileRanges() const;
+      bool hasIndividualTiles() const;
 
       // Convert to ptree array
       boost::property_tree::ptree toPtree() const;

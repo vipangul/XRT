@@ -75,6 +75,10 @@ namespace xdp {
       static std::unique_ptr<Metric> processSettings(const boost::property_tree::ptree& obj);
       virtual std::vector<uint8_t> getStartTile() const;
       virtual std::vector<uint8_t> getEndTile() const;
+      virtual uint8_t getCol() const = 0;
+      virtual uint8_t getRow() const = 0;
+      virtual void setAllTilesRange(bool allTiles) = 0;
+      virtual bool isAllTilesRangeSet() const = 0;
     
       virtual void print() const;
       // Convert metric to ptree
@@ -86,6 +90,8 @@ namespace xdp {
     std::optional<std::string> bytes_to_transfer;
 
     bool areChannelsSet() const;
+    bool isChannel0Set() const;
+    bool isChannel1Set() const;
     int getChannel0() const;
     int getChannel1() const;
     std::string getBytesToTransfer() const;
@@ -100,12 +106,18 @@ namespace xdp {
   public:
       std::string graph;
       std::string port;
+      uint8_t col, row;
+      bool allTilesRange = false;
 
       // Constructor
       GraphBasedMetricEntry(std::string graph, std::string port, std::string metric, 
                             std::optional<int> ch0 = std::nullopt, std::optional<int> ch1 = std::nullopt, std::optional<std::string> bytes = std::nullopt);
       // Create from ptree
       static std::unique_ptr<Metric> processSettings(const boost::property_tree::ptree& obj);
+      uint8_t getCol() const override { return col; }
+      uint8_t getRow() const override { return row; }
+      void setAllTilesRange(bool allTiles) override { allTilesRange = allTiles; }
+      bool isAllTilesRangeSet() const { return allTilesRange; }
       
       // Convert to ptree
       boost::property_tree::ptree toPtree() const override;
@@ -117,14 +129,24 @@ namespace xdp {
   public:
       std::vector<uint8_t> startTile;
       std::vector<uint8_t> endTile;
+      uint8_t col, row;
+      bool allTilesRange = false;
 
-      // Constructor
+      // Constructor based on start and end tiles range or "all" tiles
       TileBasedMetricEntry(std::vector<uint8_t> startTile, std::vector<uint8_t> endTile, std::string metric, 
+                          std::optional<int> ch0 = std::nullopt, std::optional<int> ch1 = std::nullopt, std::optional<std::string> bytes = std::nullopt);
+      // Constructor based on column and row per tile
+      TileBasedMetricEntry(uint8_t col, uint8_t row, std::string metric,
                           std::optional<int> ch0 = std::nullopt, std::optional<int> ch1 = std::nullopt, std::optional<std::string> bytes = std::nullopt);
       // Create from ptree
       static std::unique_ptr<Metric> processSettings(const boost::property_tree::ptree& obj);
       std::vector<uint8_t> getStartTile() const override;
       std::vector<uint8_t> getEndTile() const override;
+      uint8_t getCol() const override { return col; }
+      uint8_t getRow() const override { return row; }
+
+      void setAllTilesRange(bool allTiles) override { allTilesRange = allTiles; }
+      bool isAllTilesRangeSet() const { return allTilesRange; }
       
       // Convert to ptree
       boost::property_tree::ptree toPtree() const override;

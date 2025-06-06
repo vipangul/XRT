@@ -32,6 +32,7 @@
 // #include "xdp/profile/plugin/aie_profile/aie_profile_metadata_json.cpp"
 #include "xdp/profile/plugin/aie_profile/parser/metrics_collection_manager.h"
 #include "xdp/profile/plugin/aie_profile/parser/metrics_factory.h"
+#include "xdp/profile/plugin/aie_profile/parser/parser_utils.h"
 
 namespace xdp {
   using severity_level = xrt_core::message::severity_level;
@@ -77,7 +78,22 @@ namespace xdp {
         std::cout << "!!! Processing Key: " << key << "& moduleType: "<< moduleType << std::endl;
         MetricCollection collection;
         for (const auto& item : value) {
-          collection.addMetric(MetricsFactory::createMetric(type, item.second));
+            auto metric = MetricsFactory::createMetric(type, item.second);
+            if (xdp::jsonContainsAllRange(item.second)) {
+              std::cout << "!!! Setting Metric True for all tiles range" << std::endl;
+              metric->setAllTilesRange(true);
+            }
+            collection.addMetric(std::move(metric));
+        }
+
+        // Check if both tile range or all tiles range is set along with individual tiles
+        // NOTE: Tile range and individual tiles settings together is not supported.
+        if (collection.hasAllTileRanges() && collection.hasIndividualTiles()) {
+          std::stringstream msg;
+          msg << "Metric collection for key " << key << " has both All tile range and individual tiles set. "
+              << "This is not supported. Please check your settings json file.";
+          xrt_core::message::send(severity_level::error, "XRT", msg.str());
+          continue;
         }
 
         for (auto& metric : collection.metrics) {

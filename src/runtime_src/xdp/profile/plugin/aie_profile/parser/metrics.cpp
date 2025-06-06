@@ -32,6 +32,16 @@ namespace xdp {
     return (channel0.has_value() && channel1.has_value());
   }
 
+  bool
+  Metric::isChannel0Set() const {
+    return channel0.has_value();
+  }
+  
+  bool
+  Metric::isChannel1Set() const {
+    return channel1.has_value();
+  }
+
   int
   Metric::getChannel0() const {
     if (channel0.has_value()) {
@@ -113,6 +123,13 @@ namespace xdp {
     TileBasedMetricEntry::TileBasedMetricEntry(std::vector<uint8_t> startTile, std::vector<uint8_t> endTile, std::string metric, 
                          std::optional<int> ch0, std::optional<int> ch1, std::optional<std::string> bytes)
         : Metric(std::move(metric), ch0, ch1, bytes), startTile(std::move(startTile)), endTile(std::move(endTile)) {}
+    
+    TileBasedMetricEntry::TileBasedMetricEntry(uint8_t c, uint8_t r, std::string metric, 
+                         std::optional<int> ch0, std::optional<int> ch1, std::optional<std::string> bytes)
+        : Metric(std::move(metric), ch0, ch1, bytes) {
+        col = c;
+        row = r;
+      }
 
     // Convert to ptree
     boost::property_tree::ptree
@@ -144,15 +161,19 @@ namespace xdp {
     // Create from ptree
     std::unique_ptr<Metric>
     TileBasedMetricEntry::processSettings(const boost::property_tree::ptree& obj) {
-        // Helper function to parse arrays of uint8_t
-        // auto parseArray = [](const boost::property_tree::ptree& arrayNode) {
-        //     std::vector<uint8_t> result;
-        //     for (const auto& item : arrayNode) {
-        //         result.push_back(static_cast<uint8_t>(std::stoi(item.second.data())));
-        //     }
-        //     return result;
-        // };
-
+      // Check if start tile range is not specified to use col, row constructor
+      if (obj.get_child_optional("start") == boost::none) {
+        std::cout << "!!! TileBasedMetricEntry::processSettings(): Using col, row constructor" << std::endl;
+        return std::make_unique<TileBasedMetricEntry>(
+            obj.get<uint8_t>("col", 0),
+            obj.get<uint8_t>("row", 0),
+            obj.get<std::string>("metric", "NA"),
+            obj.get_optional<int>("ch0") ? std::make_optional<int>(obj.get<int>("ch0")) : std::nullopt,
+            obj.get_optional<int>("ch1") ? std::make_optional<int>(obj.get<int>("ch1")) : std::nullopt,
+            obj.get_optional<std::string>("bytes") ? std::make_optional(obj.get<std::string>("bytes")) : std::nullopt
+        );
+      } else {
+        std::cout << "!!! TileBasedMetricEntry::processSettings(): Using start, end constructor" << std::endl;
         return std::make_unique<TileBasedMetricEntry>(
             obj.get_child_optional("start") ? parseArray(obj.get_child("start")) : std::vector<uint8_t>{},
             obj.get_child_optional("end") ? parseArray(obj.get_child("end")) : std::vector<uint8_t>{},
@@ -161,6 +182,7 @@ namespace xdp {
             obj.get_optional<int>("ch1") ? std::make_optional<int>(obj.get<int>("ch1")) : std::nullopt,
             obj.get_optional<std::string>("bytes") ? std::make_optional(obj.get<std::string>("bytes")) : std::nullopt
         );
+      }
     }
 
     std::vector<uint8_t>

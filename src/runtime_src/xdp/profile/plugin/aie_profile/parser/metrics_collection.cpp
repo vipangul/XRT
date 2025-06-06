@@ -15,6 +15,30 @@ namespace xdp {
         }
     }
 
+    bool
+    MetricCollection::hasAllTileRanges() const {
+        // Check if all tile ranges are present in the collection
+        for (const auto& metric : metrics) {
+            if (metric && metric->isAllTilesRangeSet()) {
+                xrt_core::message::send(severity_level::debug, "XRT", "Metric \"all\" tile range found");
+                return true;
+            }
+        }
+        return false;
+    }
+
+    bool
+    MetricCollection::hasIndividualTiles() const {
+        // Check if the collection contains a metric with all tiles range
+        for (const auto& metric : metrics) {
+            if (metric && !metric->isAllTilesRangeSet()) {
+                return false;
+            }
+        }
+        xrt_core::message::send(severity_level::debug, "XRT", "Metric all individual tiles found");
+        return true;
+    }
+
     // Convert to ptree array
     boost::property_tree::ptree
     MetricCollection::toPtree() const {
