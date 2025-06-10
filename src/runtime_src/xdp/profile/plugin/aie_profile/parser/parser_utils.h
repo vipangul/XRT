@@ -10,8 +10,8 @@
 
 namespace xdp {
 
-  XDP_CORE_EXPORT bool jsonContainsRange(const boost::property_tree::ptree& jsonObj);
-  XDP_CORE_EXPORT bool jsonContainsAllRange(const boost::property_tree::ptree& jsonObj);
+  // XDP_CORE_EXPORT bool jsonContainsRange(const boost::property_tree::ptree& jsonObj);
+  // XDP_CORE_EXPORT bool jsonContainsAllRange(const boost::property_tree::ptree& jsonObj);
 
 } // end namespace xdp
 #endif

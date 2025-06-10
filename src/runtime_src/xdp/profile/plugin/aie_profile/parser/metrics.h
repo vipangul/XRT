@@ -79,6 +79,8 @@ namespace xdp {
       virtual uint8_t getRow() const = 0;
       virtual void setAllTilesRange(bool allTiles) = 0;
       virtual bool isAllTilesRangeSet() const = 0;
+      virtual void setTilesRange(bool tileRange) = 0;
+      virtual bool isTilesRangeSet() const = 0;
     
       virtual void print() const;
       // Convert metric to ptree
@@ -108,6 +110,7 @@ namespace xdp {
       std::string port;
       uint8_t col, row;
       bool allTilesRange = false;
+      bool tileRange = false;
 
       // Constructor
       GraphBasedMetricEntry(std::string graph, std::string port, std::string metric, 
@@ -118,6 +121,8 @@ namespace xdp {
       uint8_t getRow() const override { return row; }
       void setAllTilesRange(bool allTiles) override { allTilesRange = allTiles; }
       bool isAllTilesRangeSet() const { return allTilesRange; }
+      virtual void setTilesRange(bool tileRange) override { tileRange = tileRange; }
+      virtual bool isTilesRangeSet() const { return tileRange; }
       
       // Convert to ptree
       boost::property_tree::ptree toPtree() const override;
@@ -131,6 +136,7 @@ namespace xdp {
       std::vector<uint8_t> endTile;
       uint8_t col, row;
       bool allTilesRange = false;
+      bool tileRange = false;
 
       // Constructor based on start and end tiles range or "all" tiles
       TileBasedMetricEntry(std::vector<uint8_t> startTile, std::vector<uint8_t> endTile, std::string metric, 
@@ -147,7 +153,9 @@ namespace xdp {
 
       void setAllTilesRange(bool allTiles) override { allTilesRange = allTiles; }
       bool isAllTilesRangeSet() const { return allTilesRange; }
-      
+      virtual void setTilesRange(bool tileRange) override { tileRange = tileRange; }
+      virtual bool isTilesRangeSet() const { return tileRange; }
+ 
       // Convert to ptree
       boost::property_tree::ptree toPtree() const override;
       void print() const;

@@ -33,6 +33,7 @@
 #include "xdp/profile/plugin/aie_profile/parser/metrics_collection_manager.h"
 #include "xdp/profile/plugin/aie_profile/parser/metrics_factory.h"
 #include "xdp/profile/plugin/aie_profile/parser/parser_utils.h"
+#include "xdp/profile/plugin/vp_base/utility.h"
 
 namespace xdp {
   using severity_level = xrt_core::message::severity_level;
@@ -79,9 +80,13 @@ namespace xdp {
         MetricCollection collection;
         for (const auto& item : value) {
             auto metric = MetricsFactory::createMetric(type, item.second);
-            if (xdp::jsonContainsAllRange(item.second)) {
+            if (jsonContainsAllRange(item.second)) {
               std::cout << "!!! Setting Metric True for all tiles range" << std::endl;
               metric->setAllTilesRange(true);
+            }
+            else if(jsonContainsRange(item.second)) {
+              std::cout << "!!! Setting Metric True for tile range" << std::endl;
+              metric->setTilesRange(true);
             }
             collection.addMetric(std::move(metric));
         }

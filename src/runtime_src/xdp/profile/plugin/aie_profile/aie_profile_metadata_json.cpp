@@ -94,7 +94,9 @@ namespace xdp {
     for (size_t i = 0; i < metrics.size(); ++i) {
       if (isAllTilesSet)
         break;
-
+      if (!metrics[i]->isTilesRangeSet())
+        break;
+ 
       uint8_t minRow = 0, minCol = 0;
       uint8_t maxRow = 0, maxCol = 0;
 
@@ -360,7 +362,10 @@ namespace xdp {
         for (size_t i = 0; i < metrics.size(); ++i) {
           if (isAllTilesSet)
             break;
-
+          
+          if (!metrics[i]->isTilesRangeSet())
+            break;
+ 
           // TODO: Add Support for Profile API metric sets
           // if (!isSupported(metrics[i]->metric, true))
           //   continue;
@@ -560,9 +565,12 @@ namespace xdp {
 
       // Step 1b: Process only range of tiles metric setting
       for (size_t i = 0; i < metrics.size(); ++i) {
-      if (isAllTilesSet)
-        break;
+        if (isAllTilesSet)
+          break;
 
+        if (!metrics[i]->isTilesRangeSet())
+          break;
+ 
         uint8_t minCol = 0;
         minCol = metrics[i]->getStartTile().front();
 
