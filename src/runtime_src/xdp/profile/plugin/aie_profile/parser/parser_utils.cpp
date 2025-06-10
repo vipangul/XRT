@@ -25,7 +25,11 @@ namespace xdp {
   bool jsonContainsAllRange(const boost::property_tree::ptree& jsonObj)
   {
     try {
-      auto startValue = jsonObj.get_optional<std::string>("start");
+      auto startValue = jsonObj.get_optional<std::string>("col");
+      if (startValue && *startValue == "all") {
+        return true;
+      }
+      startValue = jsonObj.get_optional<std::string>("row");
       if (startValue && *startValue == "all") {
         return true;
       }

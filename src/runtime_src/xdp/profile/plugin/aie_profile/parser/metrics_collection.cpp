@@ -32,11 +32,11 @@ namespace xdp {
         // Check if the collection contains a metric with all tiles range
         for (const auto& metric : metrics) {
             if (metric && !metric->isAllTilesRangeSet()) {
-                return false;
+                return true;
             }
         }
         xrt_core::message::send(severity_level::debug, "XRT", "Metric all individual tiles found");
-        return true;
+        return false;
     }
 
     // Convert to ptree array
