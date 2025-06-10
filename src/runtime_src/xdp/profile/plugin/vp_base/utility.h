@@ -18,12 +18,8 @@
 #ifndef UTILITY_DOT_H
 #define UTILITY_DOT_H
 
-#include <boost/property_tree/ptree.hpp>
-#include <boost/property_tree/json_parser.hpp>
-#include <optional>
 #include <string>
 #include "xdp/config.h"
-#include <iostream>
 
 // Functions that can be used in the database, the plugins, and the writers
 
@@ -61,8 +57,6 @@ namespace xdp {
   }
 
   XDP_CORE_EXPORT Flow getFlowMode();
-  XDP_CORE_EXPORT bool jsonContainsRange(const boost::property_tree::ptree& jsonObj);
-  XDP_CORE_EXPORT bool jsonContainsAllRange(const boost::property_tree::ptree& jsonObj);
 
 } // end namespace xdp
 

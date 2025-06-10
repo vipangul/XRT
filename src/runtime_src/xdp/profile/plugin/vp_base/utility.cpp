@@ -197,47 +197,4 @@ namespace xdp {
     return mode ;
   }
 
-  // Helper Functions
-  inline std::vector<uint8_t> parseArray(const boost::property_tree::ptree& arrayNode) {
-    std::vector<uint8_t> result;
-    for (const auto& item : arrayNode) {
-        result.push_back(static_cast<uint8_t>(item.second.get_value<int>()));
-    }
-    for (const auto& item : result) {
-        std::cout << "Parsed item: " << static_cast<int>(item) << std::endl;
-    }
-    return result;
-  }
-
-
-  bool jsonContainsRange(const boost::property_tree::ptree& jsonObj)
-  {
-    try {
-      if (jsonObj.get_child_optional("start") == boost::none) {
-        return false;
-      }
-      auto range = jsonObj.get_child_optional("start") ? parseArray(jsonObj.get_child("start")) : std::vector<uint8_t>{};
-      if (range.empty()) {
-        return false;
-      }
-      // NOTE: No need to check for "end" as it is optional and be same as start if not provided.
-      return true;
-    } catch (const boost::property_tree::ptree_error& e) {
-      return false;
-    }
-  }
-  
-  bool jsonContainsAllRange(const boost::property_tree::ptree& jsonObj)
-  {
-    try {
-      auto startValue = jsonObj.get_optional<std::string>("start");
-      if (startValue && *startValue == "all") {
-        return true;
-      }
-      return false;
-    } catch (const boost::property_tree::ptree_error& e) {
-      return false;
-    }
-  }
-
 } // end namespace xdp

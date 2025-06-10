@@ -14,23 +14,12 @@
 #include <iostream>
 #include "core/common/message.h"
 #include "xdp/profile/database/static_info/aie_constructs.h"
+#include "xdp/profile/plugin/aie_profile/parser/parser_utils.h"
 #include "metrics_type.h"
 
 namespace xdp {
   namespace pt = boost::property_tree;
   using severity_level = xrt_core::message::severity_level;
-
-  // Helper Functions
-  inline std::vector<uint8_t> parseArray(const boost::property_tree::ptree& arrayNode) {
-    std::vector<uint8_t> result;
-    for (const auto& item : arrayNode) {
-        result.push_back(static_cast<uint8_t>(item.second.get_value<int>()));
-    }
-    for (const auto& item : result) {
-        std::cout << "Parsed item: " << static_cast<int>(item) << std::endl;
-    }
-    return result;
-  }
 
   inline metric_type getMetricTypeFromKey(const std::string& key) {
     static const std::map<std::string, metric_type> keyToMetricType = {
