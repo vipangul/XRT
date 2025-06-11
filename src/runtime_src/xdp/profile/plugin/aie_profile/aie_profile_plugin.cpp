@@ -101,6 +101,33 @@ namespace xdp {
 #endif
   }
 
+  uint64_t AieProfilePlugin::getXdpDeviceUIDFromHandle(void* handle, bool hw_context_flow)
+  {
+    auto itr = handleToAIEData.find(handle);
+    if (itr != handleToAIEData.end())
+      return itr->second.deviceID;
+
+    int xdpUid = -1;
+    if (hw_context_flow) {
+      xdpUid = db->getStaticInfo().getXdpDeviceUID(handle, hw_context_flow);
+    }
+
+    std::string device_id = "";
+#ifdef XDP_CLIENT_BUILD
+    (void)(hw_context_flow);
+    device_id = "win_device";
+#else
+    if (hw_context_flow)
+      device_id = "ve2_device";
+    else
+      device_id = util::getDebugIpLayoutPath(handle);  // Get the unique device Id
+#endif
+    if (xdpUid >=0)
+      device_id += "_" + std::to_string(xdpUid);
+
+     return db->addDevice(device_id);
+  }
+
   void AieProfilePlugin::updateAIEDevice(void* handle, bool hw_context_flow)
   {
     xrt_core::message::send(severity_level::info, "XRT", "Calling AIE Profile update AIE device.");
