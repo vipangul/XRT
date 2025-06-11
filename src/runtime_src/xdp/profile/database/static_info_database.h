@@ -107,12 +107,16 @@ namespace xdp {
     // Device Specific Information mapped to the Unique Device Id
     std::map<uint64_t, std::unique_ptr<DeviceInfo>> deviceInfo;
 
+    // Map of hwCtxImpl Handle and xclbin UUID to unique ID to form device UID.
+    std::map<std::pair<void*, xrt::uuid>, uint8_t> xdpDeviceUIDMap;
+
     // Static info can be accessed via any host thread, so we have
     //  fine grained locks on each of the types of data.
     std::mutex summaryLock ;
     std::mutex openCLLock ;
     std::mutex deviceLock ;
     std::mutex aieLock ;
+    std::mutex uidMapLock;
 
     // AIE device (Supported devices only)
     void* aieDevInst = nullptr ; // XAie_DevInst
