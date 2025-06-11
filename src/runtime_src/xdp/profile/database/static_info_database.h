@@ -307,6 +307,9 @@ namespace xdp {
                                     bool readAIEMetadata = true,
                                     std::unique_ptr<xdp::Device> xdpDevice = nullptr);
 
+    XDP_CORE_EXPORT
+    int getXdpDeviceUID(void* handle, bool hw_context_flow);
+
     // *********************************************************
     // ***** Functions related to trace_processor tool *****
     // ***** which creates events from raw PL trace    *****
