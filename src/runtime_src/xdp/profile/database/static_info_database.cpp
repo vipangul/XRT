@@ -1601,10 +1601,6 @@ namespace xdp {
 
   int VPStaticDatabase::getXdpDeviceUID(void* handle, bool hw_context_flow)
   {
-    static std::map<std::pair<void*, xrt::uuid>, uint8_t> xdpDeviceUIDMap;
-    // TODO: Confirm if lock is needed here
-    static std::mutex uidMapLock;
-
     if (hw_context_flow) {
       std::lock_guard<std::mutex> lock(uidMapLock);
       xrt::hw_context context = xrt_core::hw_context_int::create_hw_context_from_implementation(handle);
