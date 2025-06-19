@@ -1616,7 +1616,7 @@ namespace xdp {
     auto it  = xdpDeviceUIDMap.find(handle);
     if (it == xdpDeviceUIDMap.end()) {
       // Assign a new UID
-      uint16_t uid = static_cast<uint16_t>(xdpDeviceUIDMap.size());
+      uint32_t uid = static_cast<uint32_t>(xdpDeviceUIDMap.size());
       xdpDeviceUIDMap[handle] = uid;
       return uid;
     } else {

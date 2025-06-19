@@ -98,7 +98,7 @@ namespace xdp {
     std::map<uint64_t, std::unique_ptr<DeviceInfo>> deviceInfo;
 
     // Map of hwCtxImpl Handle to unique ID to form device UID.
-    std::map<void*, uint16_t> xdpDeviceUIDMap;
+    std::map<void*, uint32_t> xdpDeviceUIDMap;
 
     // Static info can be accessed via any host thread, so we have
     //  fine grained locks on each of the types of data.
