@@ -97,8 +97,8 @@ namespace xdp {
     // Device Specific Information mapped to the Unique Device Id
     std::map<uint64_t, std::unique_ptr<DeviceInfo>> deviceInfo;
 
-    // Map of hwCtxImpl Handle and xclbin UUID to unique ID to form device UID.
-    std::map<std::pair<void*, xrt::uuid>, uint8_t> xdpDeviceUIDMap;
+    // Map of hwCtxImpl Handle to unique ID to form device UID.
+    std::map<void*, uint16_t> xdpDeviceUIDMap;
 
     // Static info can be accessed via any host thread, so we have
     //  fine grained locks on each of the types of data.
@@ -312,7 +312,7 @@ namespace xdp {
                                     std::unique_ptr<xdp::Device> xdpDevice = nullptr);
 
     XDP_CORE_EXPORT
-    int getXdpDeviceUID(void* handle, bool hw_context_flow);
+    int getXdpDeviceUID(void* handle);
 
     // *********************************************************
     // ***** Functions related to trace_processor tool *****

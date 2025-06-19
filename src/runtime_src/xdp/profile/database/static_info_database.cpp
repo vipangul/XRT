@@ -1599,28 +1599,28 @@ namespace xdp {
     updateDevice(deviceId, xrtXclbin, std::move(xdpDevice), isClient(), readAIEMetadata);
   }
 
-  int VPStaticDatabase::getXdpDeviceUID(void* handle, bool hw_context_flow)
+  int VPStaticDatabase::getXdpDeviceUID(void* handle)
   {
-    if (hw_context_flow) {
-      std::lock_guard<std::mutex> lock(uidMapLock);
-      xrt::hw_context context = xrt_core::hw_context_int::create_hw_context_from_implementation(handle);
-      if (!context) {
-        xrt_core::message::send(xrt_core::message::severity_level::debug, "XRT",
-                                "Failed to create hw_context from implementation handle.");
-        return -1;
-      }
+    // Unique XDP device UID is applicable in the REGISTER_XCLBIN_STYLE
+    // flow which could use multiple hw_contexts for device partitions.
+    if (this->getAppStyle() != AppStyle::REGISTER_XCLBIN_STYLE)
+      return -1;
 
-      xrt::uuid xclbin_uuid = context.get_xclbin_uuid();
-      auto key = std::make_pair(handle, xclbin_uuid);
-      auto it  = xdpDeviceUIDMap.find(key);
-      if (it == xdpDeviceUIDMap.end()) {
-        // Assign a new UID
-        uint8_t uid = static_cast<uint8_t>(xdpDeviceUIDMap.size());
-        xdpDeviceUIDMap[key] = uid;
-        return uid;
-      } else {
-        return it->second;
-      }
+    std::lock_guard<std::mutex> lock(uidMapLock);
+    if (!handle) {
+      xrt_core::message::send(xrt_core::message::severity_level::debug, "XRT",
+                              "Failed to get XDP device UID. Invalid device handle.");
+      return -1;
+    }
+
+    auto it  = xdpDeviceUIDMap.find(handle);
+    if (it == xdpDeviceUIDMap.end()) {
+      // Assign a new UID
+      uint16_t uid = static_cast<uint16_t>(xdpDeviceUIDMap.size());
+      xdpDeviceUIDMap[handle] = uid;
+      return uid;
+    } else {
+      return it->second;
     }
     return -1;
   }

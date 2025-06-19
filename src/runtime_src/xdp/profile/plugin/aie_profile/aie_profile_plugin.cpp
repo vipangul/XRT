@@ -77,27 +77,8 @@ namespace xdp {
     if (itr != handleToAIEData.end())
       return itr->second.deviceID;
 
-#ifdef XDP_CLIENT_BUILD
-    (void)(hw_context_flow);
-    return db->addDevice("win_device");
-#else
-    if (hw_context_flow)
-      return db->addDevice("ve2_device");
-    else
-      return db->addDevice(util::getDebugIpLayoutPath(handle));  // Get the unique device Id
-#endif
-  }
-
-  uint64_t AieProfilePlugin::getXdpDeviceUIDFromHandle(void* handle, bool hw_context_flow)
-  {
-    auto itr = handleToAIEData.find(handle);
-    if (itr != handleToAIEData.end())
-      return itr->second.deviceID;
-
     int xdpUid = -1;
-    if (hw_context_flow) {
-      xdpUid = db->getStaticInfo().getXdpDeviceUID(handle, hw_context_flow);
-    }
+    xdpUid = db->getStaticInfo().getXdpDeviceUID(handle);
 
     std::string device_id = "";
 #ifdef XDP_CLIENT_BUILD
@@ -105,14 +86,16 @@ namespace xdp {
     device_id = "win_device";
 #else
     if (hw_context_flow)
-      device_id = "ve2_device";
+      device_id = "ve2_device"; // TODO: check if VE2 xdna/zocl supports debugIpLayoutPath
     else
       device_id = util::getDebugIpLayoutPath(handle);  // Get the unique device Id
 #endif
     if (xdpUid >=0)
       device_id += "_" + std::to_string(xdpUid);
 
-     return db->addDevice(device_id);
+    // TODO: Remove this debug message after testing
+    xrt_core::message::send(severity_level::debug, "XRT", "AIE Profile : Device ID : " + device_id);
+    return db->addDevice(device_id);
   }
 
   void AieProfilePlugin::updateAIEDevice(void* handle, bool hw_context_flow)
@@ -216,13 +199,11 @@ auto time = std::time(nullptr);
     std::string deviceName = util::getDeviceName(handle, hw_context_flow);
 #endif
 
-    std::ostringstream timeOss;
-    timeOss << std::put_time(&tm, "_%Y_%m_%d_%H%M%S");
-    std::string timestamp = timeOss.str();
+    std::ostringstream outputFileOss;
+    outputFileOss << "aie_profile_" << deviceName << "_" << deviceID;
+    outputFileOss << "_" << std::put_time(&tm, "%Y_%m_%d_%H%M%S") << ".csv";
 
-    std::string outputFile = "aie_profile_" + deviceName + timestamp + ".csv";
-
-    VPWriter* writer = new AIEProfilingWriter(outputFile.c_str(), deviceName.c_str(), mIndex);
+    VPWriter* writer = new AIEProfilingWriter(outputFileOss.str().c_str(), deviceName.c_str(), mIndex);
     writers.push_back(writer);
     db->getStaticInfo().addOpenedFile(writer->getcurrentFileName(), "AIE_PROFILE");
 
