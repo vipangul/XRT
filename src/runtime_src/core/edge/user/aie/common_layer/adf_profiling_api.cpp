@@ -183,10 +183,7 @@ err_code profiling::profile_stream_start_to_transfer_complete_cycles(XAie_DevIns
     XAie_Events eventC = COMMON_XAIETILE_EVENT_SHIM_PORT_RUNNING[eventPortId];
     XAie_Events eventD = XAIE_EVENT_PORT_RUNNING_1_PL;
 
-    combo_events.push_back(eventA);
-    combo_events.push_back(eventB);
-    combo_events.push_back(eventC);
-    combo_events.push_back(eventD);
+    combo_events = { eventA, eventB, eventC, eventD };
 
     // This is NO-OP for COMBO3, necessary for FAL & generates COMBO 1 & 2 events as well
     combo_opts.push_back(XAIE_EVENT_COMBO_E1_OR_E2);
@@ -212,6 +209,12 @@ err_code profiling::profile_stream_start_to_transfer_complete_cycles(XAie_DevIns
 
     if (driverStatus != AieRC::XAIE_OK)
         return errorMsg(err_code::aie_driver_error, "ERROR: event::start_profiling: AIE driver error.");
+
+    //Note: For start_to_bytes_transferred API, user_event_1 is used twice as eventA & eventB to
+    //      to transition the FSM from Idle->State0->State1.
+    //      eventC = Port Running and eventD = stop event (counter event).
+    XAie_EventGenerate(dev, tileLoc, XAIE_PL_MOD, XAIE_EVENT_USER_EVENT_1_PL);
+    XAie_EventGenerate(dev, tileLoc, XAIE_PL_MOD, XAIE_EVENT_USER_EVENT_1_PL);
 
     return err_code::ok;
 }
