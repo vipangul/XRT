@@ -32,6 +32,11 @@
 #include "xdp/profile/plugin/vp_base/utility.h"
 #include "xdp/profile/plugin/vp_base/vp_base_plugin.h"
 #include "xdp/profile/database/static_info/aie_util.h"
+#include "xdp/profile/plugin/common/aie/parser/metrics.h"
+#include "xdp/profile/plugin/common/aie/parser/json_parser.h"
+#include "xdp/profile/plugin/common/aie/parser/metrics_collection_manager.h"
+#include "xdp/profile/plugin/common/aie/parser/metrics_factory.h"
+#include "xdp/profile/plugin/common/aie/parser/parser_utils.h"
 
 namespace {
   static bool tileCompare(xdp::tile_type tile1, xdp::tile_type tile2)
@@ -99,6 +104,52 @@ namespace xdp {
       return;
     }
 
+    bool useXdpJson = xrt_core::config::get_xdp_json();
+    JsonParser jsonParser;
+    MetricsCollectionManager metricsCollectionManager;
+    if (useXdpJson) {
+      // Parse the JSON file
+      auto jsonTree = jsonParser.parse("xdp.json");
+
+      // Process metrics
+      for (const auto& [key, value] : jsonTree.get_child("AIE_trace_settings")) {
+        metric_type type = getMetricTypeFromKey(key);
+        module_type moduleType = getModuleTypeFromKey(key);
+        std::cout << "!!! Processing Key: " << key << "& moduleType: "<< moduleType << std::endl;
+        MetricCollection collection;
+        for (const auto& item : value) {
+            auto metric = MetricsFactory::createMetric(type, item.second);
+            if (jsonContainsAllRange(item.second)) {
+              std::cout << "!!! Setting Metric True for all tiles range" << std::endl;
+              metric->setAllTilesRange(true);
+            }
+            else if(jsonContainsRange(item.second)) {
+              std::cout << "!!! Setting Metric True for tile range" << std::endl;
+              metric->setTilesRange(true);
+            }
+            collection.addMetric(std::move(metric));
+        }
+
+        // Check if both tile range or all tiles range is set along with individual tiles
+        // NOTE: Tile range and individual tiles settings together is not supported.
+        if (collection.hasAllTileRanges() && collection.hasIndividualTiles()) {
+          std::stringstream msg;
+          msg << "Metric collection for key " << key << " has both All tile range and individual tiles set. "
+              << "This is not supported. Please check your settings json file.";
+          xrt_core::message::send(severity_level::error, "XRT", msg.str());
+          continue;
+        }
+
+        for (auto& metric : collection.metrics) {
+          metric->print();
+        }
+        std::cout << "!!! Adding MetricCollection for Key: " << key << " for module type: " << moduleType << std::endl;
+        // metricsCollectionManager.addMetricCollection({module_type::core, key}, std::move(collection));
+        metricsCollectionManager.addMetricCollection(moduleType, key, std::move(collection));
+        std::cout << "-----------------------------------------" << std::endl;
+      }
+    }
+
     // Process AIE_trace_settings metrics
     auto aieTileMetricsSettings = 
         getSettingsVector(xrt_core::config::get_aie_trace_settings_tile_based_aie_tile_metrics());
@@ -112,17 +163,25 @@ namespace xdp {
         getSettingsVector(xrt_core::config::get_aie_trace_settings_tile_based_interface_tile_metrics());
     auto shimGraphMetricsSettings = 
         getSettingsVector(xrt_core::config::get_aie_trace_settings_graph_based_interface_tile_metrics());
-
-    if (aieTileMetricsSettings.empty() && aieGraphMetricsSettings.empty()
-        && memTileMetricsSettings.empty() && memGraphMetricsSettings.empty()
-        && shimTileMetricsSettings.empty() && shimGraphMetricsSettings.empty()) {
-      isValidMetrics = false;
-    } else {
-      // Use DMA type here to include both core-active tiles and DMA-only tiles
-      getConfigMetricsForTiles(aieTileMetricsSettings, aieGraphMetricsSettings, module_type::dma);
-      getConfigMetricsForTiles(memTileMetricsSettings, memGraphMetricsSettings, module_type::mem_tile);
-      getConfigMetricsForInterfaceTiles(shimTileMetricsSettings, shimGraphMetricsSettings);
+     
+    if (useXdpJson) {
+      getConfigMetricsForTilesUsingJson(module_type::dma, metricsCollectionManager);
+      getConfigMetricsForTilesUsingJson(module_type::mem_tile, metricsCollectionManager);
+      getConfigMetricsForInterfaceTilesUsingJson(metricsCollectionManager);
       setTraceStartControl(compilerOptions.graph_iterator_event);
+    }
+    else {
+      if (aieTileMetricsSettings.empty() && aieGraphMetricsSettings.empty()
+          && memTileMetricsSettings.empty() && memGraphMetricsSettings.empty()
+          && shimTileMetricsSettings.empty() && shimGraphMetricsSettings.empty()) {
+        isValidMetrics = false;
+      } else {
+        // Use DMA type here to include both core-active tiles and DMA-only tiles
+        getConfigMetricsForTiles(aieTileMetricsSettings, aieGraphMetricsSettings, module_type::dma);
+        getConfigMetricsForTiles(memTileMetricsSettings, memGraphMetricsSettings, module_type::mem_tile);
+        getConfigMetricsForInterfaceTiles(shimTileMetricsSettings, shimGraphMetricsSettings);
+        setTraceStartControl(compilerOptions.graph_iterator_event);
+      }
     }
   }
 

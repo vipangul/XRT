@@ -14,7 +14,7 @@
 #include <iostream>
 #include "core/common/message.h"
 #include "xdp/profile/database/static_info/aie_constructs.h"
-#include "xdp/profile/plugin/aie_profile/parser/parser_utils.h"
+#include "parser_utils.h"
 #include "metrics_type.h"
 
 namespace xdp {

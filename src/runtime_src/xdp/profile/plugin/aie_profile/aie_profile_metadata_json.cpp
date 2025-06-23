@@ -14,7 +14,7 @@
 #include "core/common/message.h"
 #include "xdp/profile/database/database.h"
 #include "xdp/profile/plugin/vp_base/vp_base_plugin.h"
-#include "xdp/profile/plugin/aie_profile/parser/metrics.h"
+#include "xdp/profile/plugin/common/aie/parser/metrics.h"
 
 namespace xdp {
   using severity_level = xrt_core::message::severity_level;

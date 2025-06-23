@@ -27,12 +27,12 @@
 #include "core/common/message.h"
 #include "xdp/profile/database/database.h"
 #include "xdp/profile/plugin/vp_base/vp_base_plugin.h"
-#include "xdp/profile/plugin/aie_profile/parser/metrics.h"
-#include "xdp/profile/plugin/aie_profile/parser/json_parser.h"
+#include "xdp/profile/plugin/common/aie/parser/metrics.h"
+#include "xdp/profile/plugin/common/aie/parser/json_parser.h"
 // #include "xdp/profile/plugin/aie_profile/aie_profile_metadata_json.cpp"
-#include "xdp/profile/plugin/aie_profile/parser/metrics_collection_manager.h"
-#include "xdp/profile/plugin/aie_profile/parser/metrics_factory.h"
-#include "xdp/profile/plugin/aie_profile/parser/parser_utils.h"
+#include "xdp/profile/plugin/common/aie/parser/metrics_collection_manager.h"
+#include "xdp/profile/plugin/common/aie/parser/metrics_factory.h"
+#include "xdp/profile/plugin/common/aie/parser/parser_utils.h"
 // #include "xdp/profile/plugin/vp_base/utility.h"
 
 namespace xdp {
