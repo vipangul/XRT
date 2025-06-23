@@ -7,6 +7,7 @@
 
 #include <list>
 #include <map>
+#include <unordered_map>
 #include <memory> // for unique_ptr
 #include <mutex>
 #include <set>
@@ -98,7 +99,7 @@ namespace xdp {
     std::map<uint64_t, std::unique_ptr<DeviceInfo>> deviceInfo;
 
     // Map of hwCtxImpl Handle to unique ID to form device UID.
-    std::map<void*, uint32_t> xdpDeviceUIDMap;
+    std::unordered_map<void*, uint32_t> xdpDeviceUIDMap;
 
     // Static info can be accessed via any host thread, so we have
     //  fine grained locks on each of the types of data.
