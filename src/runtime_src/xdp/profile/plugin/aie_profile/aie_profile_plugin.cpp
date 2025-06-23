@@ -85,10 +85,14 @@ namespace xdp {
     (void)(hw_context_flow);
     device_id = "win_device";
 #else
-    if (hw_context_flow)
-      device_id = "ve2_device"; // TODO: check if VE2 xdna/zocl supports debugIpLayoutPath
-    else
+    if (isEdge())
       device_id = util::getDebugIpLayoutPath(handle);  // Get the unique device Id
+    else {
+      if (hw_context_flow)
+        device_id = "versal_device"; // This will hit for both VE2 and Edge hw_context flow
+      else
+        device_id = util::getDebugIpLayoutPath(handle);  // Get the unique device Id. This will hit for Edge load device flow.
+    }
 #endif
     if (xdpUid >=0)
       device_id += "_" + std::to_string(xdpUid);
