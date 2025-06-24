@@ -181,7 +181,7 @@ err_code profiling::profile_stream_start_to_transfer_complete_cycles(XAie_DevIns
     XAie_Events eventA = XAIE_EVENT_USER_EVENT_1_PL;
     XAie_Events eventB = XAIE_EVENT_USER_EVENT_1_PL;
     XAie_Events eventC = COMMON_XAIETILE_EVENT_SHIM_PORT_RUNNING[eventPortId];
-    XAie_Events eventD = XAIE_EVENT_PORT_RUNNING_1_PL;
+    XAie_Events eventD = XAIE_EVENT_PERF_CNT_1_PL;
 
     combo_events = { eventA, eventB, eventC, eventD };
 
