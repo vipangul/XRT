@@ -6,7 +6,10 @@
 #include <boost/property_tree/ptree.hpp>
 #include <boost/property_tree/json_parser.hpp>
 #include <string>
+#include <iostream> // TODO: Delete this after debugging
+#include "core/common/config_reader.h"
 #include "xdp/config.h"
+// #include "xdp/profile/plugin/common/aie/parser/json_parser.h"
 
 namespace xdp {
 
@@ -21,6 +24,7 @@ namespace xdp {
 
   XDP_CORE_EXPORT bool jsonContainsRange(const boost::property_tree::ptree& jsonObj);
   XDP_CORE_EXPORT bool jsonContainsAllRange(const boost::property_tree::ptree& jsonObj);
+  // XDP_CORE_EXPORT bool parseXdpJson(JsonParser& jsonParser, boost::property_tree::ptree& jsonTree);
 
 } // end namespace xdp
 #endif

@@ -365,10 +365,10 @@ get_pl_deadlock_detection()
   return value;
 }
 
-inline bool
+inline std::string
 get_xdp_json()
 {
-  static bool value = detail::get_bool_value("Debug.xdp_json", false);
+  static std::string value = detail::get_string_value("Debug.profile_settings", "");
   return value;
 }
 

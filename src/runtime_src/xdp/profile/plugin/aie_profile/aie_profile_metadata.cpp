@@ -21,6 +21,7 @@
 #include <boost/algorithm/string.hpp>
 #include <boost/property_tree/json_parser.hpp>
 #include <boost/property_tree/ptree.hpp>
+#include <filesystem>
 
 #include "core/common/config_reader.h"
 #include "core/common/device.h"
@@ -65,51 +66,98 @@ namespace xdp {
     // Get AIE clock frequency
     clockFreqMhz = (db->getStaticInfo()).getClockRateMHz(deviceID, false);
 
-    bool useXdpJson = xrt_core::config::get_xdp_json();
+    bool useXdpJson = false;
+    std::string settingFile = xrt_core::config::get_xdp_json();
     JsonParser jsonParser;
+    boost::property_tree::ptree jsonTree;
+    if (std::filesystem::exists(settingFile)) {
+      try {
+        jsonTree = jsonParser.parse(settingFile);
+        useXdpJson = true;
+        std::cout << "!!! Valid XDP JSON file: " << settingFile << std::endl;
+      } catch (const boost::property_tree::ptree_error& e) {
+        std::cerr << "!!! Error parsing XDP JSON file: " << settingFile << std::endl;
+        std::cerr << "!!! " << e.what() << std::endl;
+      }
+    }
+    else {
+      std::cout << "!!! Using default AIE profile settings" << std::endl;
+    }
+
     MetricsCollectionManager metricsCollectionManager;
     if (useXdpJson) {
       // Parse the JSON file
-      auto jsonTree = jsonParser.parse("xdp.json");
+      // auto jsonTree = jsonParser.parse("xdp.json");
+      /*
+        "aie_profile": {
+              "tiles": {
+                "aie": [],
+                "aie_memory": [],
+                "memory": [],
+                "interface": [],
+                "microcontroller": []
+              },
+              "graphs": {
+                "aie": [],
+                "aie_memory": [],
+                "memory": [],
+                "interface": [],
+                "microcontroller": []
+              }
+          }
+      */
 
       // Process metrics
-      for (const auto& [key, value] : jsonTree.get_child("AIE_profile_settings")) {
-        metric_type type = getMetricTypeFromKey(key);
-        module_type moduleType = getModuleTypeFromKey(key);
-        std::cout << "!!! Processing Key: " << key << "& moduleType: "<< moduleType << std::endl;
-        MetricCollection collection;
-        for (const auto& item : value) {
-            auto metric = MetricsFactory::createMetric(type, item.second);
-            if (jsonContainsAllRange(item.second)) {
-              std::cout << "!!! Setting Metric True for all tiles range" << std::endl;
-              metric->setAllTilesRange(true);
-            }
-            else if(jsonContainsRange(item.second)) {
-              std::cout << "!!! Setting Metric True for tile range" << std::endl;
-              metric->setTilesRange(true);
-            }
-            collection.addMetric(std::move(metric));
-        }
+      for (const auto& [key, value] : jsonTree.get_child("aie_profile")) {
+        std::vector<std::string> settingsTypeKeys = {"tiles", "graphs"};
+        
+        for (const auto& settingsKey : settingsTypeKeys) {
+          if (!value.get_child_optional(settingsKey)) {
+            std::cout << "!!! No settings found for Key: " << key << " & settingsKey: " << settingsKey << std::endl;
+            continue;
+          }
 
-        // Check if both tile range or all tiles range is set along with individual tiles
-        // NOTE: Tile range and individual tiles settings together is not supported.
-        if (collection.hasAllTileRanges() && collection.hasIndividualTiles()) {
-          std::stringstream msg;
-          msg << "Metric collection for key " << key << " has both All tile range and individual tiles set. "
-              << "This is not supported. Please check your settings json file.";
-          xrt_core::message::send(severity_level::error, "XRT", msg.str());
-          continue;
-        }
+        
+        for (const auto& [moduleKey, moduleValue] : value.get_child(settingsKey)) {
+        
+          metric_type type       = getMetricTypeFromKey(settingsKey, moduleKey);
+          module_type moduleType = getModuleTypeFromKey(moduleKey);
+          std::cout << "!!! Processing Key: " << moduleKey << "& moduleType: "<< moduleType << std::endl;
+          MetricCollection collection;
+          for (const auto& item : moduleValue) {
+              auto metric = MetricsFactory::createMetric(type, item.second);
+              if (jsonContainsAllRange(item.second)) {
+                std::cout << "!!! Setting Metric True for all tiles range" << std::endl;
+                metric->setAllTilesRange(true);
+              }
+              else if(jsonContainsRange(item.second)) {
+                std::cout << "!!! Setting Metric True for tile range" << std::endl;
+                metric->setTilesRange(true);
+              }
+              collection.addMetric(std::move(metric));
+          }
 
-        for (auto& metric : collection.metrics) {
-          metric->print();
+          // Check if both tile range or all tiles range is set along with individual tiles
+          // NOTE: Tile range and individual tiles settings together is not supported.
+          if (collection.hasAllTileRanges() && collection.hasIndividualTiles()) {
+            std::stringstream msg;
+            msg << "Metric collection for key " << key << " has both All tile range and individual tiles set. "
+                << "This is not supported. Please check your settings json file.";
+            xrt_core::message::send(severity_level::error, "XRT", msg.str());
+            continue;
+          }
+
+          for (auto& metric : collection.metrics) {
+            metric->print();
+          }
+          std::cout << "!!! Adding MetricCollection for Key: " << key << " for module type: " << moduleType << std::endl;
+          // metricsCollectionManager.addMetricCollection({module_type::core, key}, std::move(collection));
+          metricsCollectionManager.addMetricCollection(moduleType, key, std::move(collection));
+          std::cout << "-----------------------------------------" << std::endl;
         }
-        std::cout << "!!! Adding MetricCollection for Key: " << key << " for module type: " << moduleType << std::endl;
-        // metricsCollectionManager.addMetricCollection({module_type::core, key}, std::move(collection));
-        metricsCollectionManager.addMetricCollection(moduleType, key, std::move(collection));
-        std::cout << "-----------------------------------------" << std::endl;
-      }
-    }
+      } // end of (for each settingsType ie "tiles", "graphs")
+    } // end of (for each key in jsonTree)
+  } // end of (useXdpJson)
 
     // Tile-based metrics settings
     std::vector<std::string> tileMetricsConfig;

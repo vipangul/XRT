@@ -7,131 +7,131 @@ namespace xdp {
 
     std::vector<uint8_t>
     Metric::getStartTile() const {
-      return {}; // Default implementation for base class
+        return {}; // Default implementation for base class
     }
-  
+
     std::vector<uint8_t>
     Metric::getEndTile() const {
-      return {}; // Default implementation for base class
+        return {}; // Default implementation for base class
     }
-  
+
     void 
     Metric::print() const {
-      std::cout << "Metric: " << metric;
-      if (channel0) {
-          std::cout << ", Channel 1: " << *channel0;
-      }
-      if (channel1) {
-          std::cout << ", Channel 2: " << *channel1;
-      }
-      std::cout << std::endl;
+        std::cout << "Metric: " << metric;
+        if (channels.has_value()) {
+            std::cout << ", Channels: ";
+            for (const auto& channel : *channels) {
+                std::cout << static_cast<int>(channel) << " ";
+            }
+        }
+        std::cout << std::endl;
     }
-  
-  bool
-  Metric::areChannelsSet() const {
-    return (channel0.has_value() && channel1.has_value());
-  }
 
-  bool
-  Metric::isChannel0Set() const {
-    return channel0.has_value();
-  }
-  
-  bool
-  Metric::isChannel1Set() const {
-    return channel1.has_value();
-  }
-
-  int
-  Metric::getChannel0() const {
-    if (channel0.has_value()) {
-      return *channel0;
+    bool
+    Metric::areChannelsSet() const {
+        return channels.has_value() && !channels->empty();
     }
-    return -1; // or throw an exception
-  }
 
-  int 
-  Metric::getChannel1() const {
-    if (channel1.has_value()) {
-      return *channel1;
+    int
+    Metric::getChannel0() const {
+        if (channels.has_value() && !channels->empty()) {
+            return (*channels)[0]; // Return the first channel (channel0)
+        }
+        return -1; // Return -1 if channels are not set or empty
     }
-    return -1; // or throw an exception
-  }
 
-  std::string
-  Metric::getBytesToTransfer() const {
-    if (bytes_to_transfer.has_value()) {
-      return *bytes_to_transfer;
+    int 
+    Metric::getChannel1() const {
+        if (channels.has_value() && channels->size() > 1) {
+            return (*channels)[1]; // Return the second channel (channel1)
+        }
+        return -1; // Return -1 if channels are not set or there is no second channel
     }
-    return ""; // or throw an exception
-  }
 
-  Metric::Metric(std::string metric, std::optional<int> ch0,
-                 std::optional<int> ch1, 
-                 std::optional<std::string> bytes): metric(std::move(metric)), 
-                 channel0(ch0), channel1(ch1), bytes_to_transfer(bytes) {}
+    std::string
+    Metric::getBytesToTransfer() const {
+        if (bytes_to_transfer.has_value()) {
+            return *bytes_to_transfer;
+        }
+        return ""; // or throw an exception
+    }
 
-  // Add common fields to ptree
-  void
-  Metric::addCommonFields(boost::property_tree::ptree& obj) const {
+    Metric::Metric(std::string metric, std::optional<std::vector<uint8_t>> channels, 
+                   std::optional<std::string> bytes)
+        : metric(std::move(metric)), channels(std::move(channels)), bytes_to_transfer(std::move(bytes)) {}
+
+    void
+    Metric::addCommonFields(boost::property_tree::ptree& obj) const {
         obj.put("metric", metric);
-        if (channel0) obj.put("ch0", *channel0);
-        if (channel1) obj.put("ch1", *channel1);
-        if (bytes_to_transfer) obj.put("bytes", *bytes_to_transfer);
+        if (channels.has_value()) {
+            boost::property_tree::ptree channelsNode;
+            for (const auto& channel : *channels) {
+                boost::property_tree::ptree channelNode;
+                channelNode.put("", static_cast<int>(channel)); // Convert uint8_t to int for JSON
+                channelsNode.push_back(std::make_pair("", channelNode));
+            }
+            obj.add_child("channels", channelsNode);
+        }
+        if (bytes_to_transfer) {
+            obj.put("bytes", *bytes_to_transfer);
+        }
     }
 
-// --------------------------------------------------------------------------------------------------------------------
-// GraphBasedMetricEntry class Definitions
-    // Constructor
-    GraphBasedMetricEntry::GraphBasedMetricEntry(std::string graph, std::string port, std::string metric, 
-                          std::optional<int> ch0, std::optional<int> ch1, std::optional<std::string> bytes)
-        : Metric(std::move(metric), ch0, ch1, bytes), graph(std::move(graph)), port(std::move(port)) {}
+    // --------------------------------------------------------------------------------------------------------------------
+    // GraphBasedMetricEntry class Definitions
+    GraphBasedMetricEntry::GraphBasedMetricEntry(std::string graph, std::string entity, std::string metric, 
+                          std::optional<std::vector<uint8_t>> channels, std::optional<std::string> bytes)
+        : Metric(std::move(metric), std::move(channels), std::move(bytes)), graph(std::move(graph)), entity(std::move(entity)) {}
 
-    // Convert to ptree
     boost::property_tree::ptree
     GraphBasedMetricEntry::toPtree() const {
         boost::property_tree::ptree obj;
         obj.put("graph", graph);
-        obj.put("port", port);
+        obj.put("entity", entity);
         addCommonFields(obj);
         return obj;
     }
 
-    // Create from ptree
     std::unique_ptr<Metric>
     GraphBasedMetricEntry::processSettings(const boost::property_tree::ptree& obj) {
+        std::optional<std::vector<uint8_t>> channels = std::nullopt;
+        if (obj.get_child_optional("channels")) {
+            std::vector<uint8_t> parsedChannels;
+            for (const auto& channelNode : obj.get_child("channels")) {
+                parsedChannels.push_back(static_cast<uint8_t>(channelNode.second.get_value<int>()));
+            }
+            channels = parsedChannels;
+        }
+
         return std::make_unique<GraphBasedMetricEntry>(
             obj.get<std::string>("graph", "all"),
-            obj.get<std::string>("port", "all"),
+            obj.get<std::string>("entity", "all"),
             obj.get<std::string>("metric", ""),
-            obj.get_optional<int>("ch0") ? std::make_optional<int>(obj.get<int>("ch0")) : std::nullopt,
-            obj.get_optional<int>("ch1") ? std::make_optional<int>(obj.get<int>("ch1")) : std::nullopt,
+            channels,
             obj.get_optional<std::string>("bytes") ? std::make_optional(obj.get<std::string>("bytes")) : std::nullopt
         );
     }
 
     void
     GraphBasedMetricEntry::print() const {
-        std::cout << "^^^ print GraphBasedMetricEntry: " << graph << ", Port: " << port;
+        std::cout << "^^^ print GraphBasedMetricEntry- Graph:" << graph << ", Entity: " << entity;
         Metric::print(); // Call the base class print method to show common fields
     }
 
-// --------------------------------------------------------------------------------------------------------------------
-// TileBasedMetricEntry class Definitions
-
-    // Constructor
-    TileBasedMetricEntry::TileBasedMetricEntry(std::vector<uint8_t> startTile, std::vector<uint8_t> endTile, std::string metric, 
-                         std::optional<int> ch0, std::optional<int> ch1, std::optional<std::string> bytes)
-        : Metric(std::move(metric), ch0, ch1, bytes), startTile(std::move(startTile)), endTile(std::move(endTile)) {}
-    
+    // --------------------------------------------------------------------------------------------------------------------
+    // TileBasedMetricEntry class Definitions
     TileBasedMetricEntry::TileBasedMetricEntry(uint8_t c, uint8_t r, std::string metric, 
-                         std::optional<int> ch0, std::optional<int> ch1, std::optional<std::string> bytes)
-        : Metric(std::move(metric), ch0, ch1, bytes) {
+                         std::optional<std::vector<uint8_t>> channels, std::optional<std::string> bytes)
+        : Metric(std::move(metric), std::move(channels), std::move(bytes)) {
         col = c;
         row = r;
-      }
+    }
 
-    // Convert to ptree
+    TileBasedMetricEntry::TileBasedMetricEntry(std::vector<uint8_t> startTile, std::vector<uint8_t> endTile, std::string metric, 
+                         std::optional<std::vector<uint8_t>> channels, std::optional<std::string> bytes)
+        : Metric(std::move(metric), std::move(channels), std::move(bytes)), startTile(std::move(startTile)), endTile(std::move(endTile)) {}
+    
+ 
     boost::property_tree::ptree
     TileBasedMetricEntry::toPtree() const {
         boost::property_tree::ptree obj;
@@ -158,43 +158,36 @@ namespace xdp {
         return obj;
     }
 
-    // Create from ptree
     std::unique_ptr<Metric>
     TileBasedMetricEntry::processSettings(const boost::property_tree::ptree& obj) {
-      // Check if start tile range is not specified to use col, row constructor
-      if (obj.get_child_optional("start") == boost::none) {
-        std::cout << "!!! TileBasedMetricEntry::processSettings(): Using col, row constructor" << std::endl;
-        return std::make_unique<TileBasedMetricEntry>(
-            obj.get<uint8_t>("col", 0),
-            obj.get<uint8_t>("row", 0),
-            obj.get<std::string>("metric", "NA"),
-            obj.get_optional<int>("ch0") ? std::make_optional<int>(obj.get<int>("ch0")) : std::nullopt,
-            obj.get_optional<int>("ch1") ? std::make_optional<int>(obj.get<int>("ch1")) : std::nullopt,
-            obj.get_optional<std::string>("bytes") ? std::make_optional(obj.get<std::string>("bytes")) : std::nullopt
-        );
-      } else {
-        std::cout << "!!! TileBasedMetricEntry::processSettings(): Using start, end constructor" << std::endl;
-        return std::make_unique<TileBasedMetricEntry>(
-            obj.get_child_optional("start") ? parseArray(obj.get_child("start")) : std::vector<uint8_t>{},
-            obj.get_child_optional("end") ? parseArray(obj.get_child("end")) : std::vector<uint8_t>{},
-            obj.get<std::string>("metric", "NA"),
-            obj.get_optional<int>("ch0") ? std::make_optional<int>(obj.get<int>("ch0")) : std::nullopt,
-            obj.get_optional<int>("ch1") ? std::make_optional<int>(obj.get<int>("ch1")) : std::nullopt,
-            obj.get_optional<std::string>("bytes") ? std::make_optional(obj.get<std::string>("bytes")) : std::nullopt
-        );
-      }
-    }
+        std::optional<std::vector<uint8_t>> channels = std::nullopt;
+        if (obj.get_child_optional("channels")) {
+            std::vector<uint8_t> parsedChannels;
+            for (const auto& channelNode : obj.get_child("channels")) {
+                parsedChannels.push_back(static_cast<uint8_t>(channelNode.second.get_value<int>()));
+            }
+            channels = parsedChannels;
+        }
 
-    std::vector<uint8_t>
-    TileBasedMetricEntry::getStartTile() const {
-      std::cout << "!!! TileBasedMetricEntry::getStartTile(): ";
-      return startTile;
-    }
-
-    std::vector<uint8_t>
-    TileBasedMetricEntry::getEndTile() const {
-      std::cout << "!!! TileBasedMetricEntry::getEndTile(): ";
-      return endTile;
+        if (obj.get_child_optional("start") == boost::none) {
+            std::cout << "!!! TileBasedMetricEntry::processSettings(): Using col, row constructor" << std::endl;
+            return std::make_unique<TileBasedMetricEntry>(
+                obj.get<uint8_t>("col", 0),
+                obj.get<uint8_t>("row", 0),
+                obj.get<std::string>("metric", "NA"),
+                channels,
+                obj.get_optional<std::string>("bytes") ? std::make_optional(obj.get<std::string>("bytes")) : std::nullopt
+            );
+        } else {
+            std::cout << "!!! TileBasedMetricEntry::processSettings(): Using start, end constructor" << std::endl;
+            return std::make_unique<TileBasedMetricEntry>(
+                obj.get_child_optional("start") ? parseArray(obj.get_child("start")) : std::vector<uint8_t>{},
+                obj.get_child_optional("end") ? parseArray(obj.get_child("end")) : std::vector<uint8_t>{},
+                obj.get<std::string>("metric", "NA"),
+                channels,
+                obj.get_optional<std::string>("bytes") ? std::make_optional(obj.get<std::string>("bytes")) : std::nullopt
+            );
+        }
     }
 
     void

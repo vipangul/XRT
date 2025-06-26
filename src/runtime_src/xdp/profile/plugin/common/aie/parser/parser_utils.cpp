@@ -39,4 +39,26 @@ namespace xdp {
     }
   }
 
+  // bool parseXdpJson(JsonParser& jsonParser, boost::property_tree::ptree& jsonTree)
+  // {
+  //   std::string settingFile = xrt_core::config::get_xdp_json();
+  //   JsonParser jsonParser;
+  //   boost::property_tree::ptree jsonTree;
+  //   if (std::filesystem::exists(settingFile)) {
+  //     try {
+  //       jsonTree = jsonParser.parse(settingFile);
+  //       std::cout << "!!! Valid XDP JSON file: " << settingFile << std::endl;
+  //       return true;
+  //     } catch (const boost::property_tree::ptree_error& e) {
+  //       std::cout << "!!! Error parsing XDP JSON file: " << settingFile << e.what() << std::endl;
+  //     }
+  //   }
+  //   else {
+  //     std::cout << "!!! Using default AIE profile settings" << std::endl;
+  //   }
+  //   return false
+  // }
+
+
+
 }

@@ -19,6 +19,7 @@
 #include "aie_trace_metadata.h"
 
 #include <cstdint>
+#include <filesystem>
 #include <boost/algorithm/string.hpp>
 #include <boost/property_tree/json_parser.hpp>
 #include <boost/property_tree/ptree.hpp>
@@ -104,16 +105,34 @@ namespace xdp {
       return;
     }
 
-    bool useXdpJson = xrt_core::config::get_xdp_json();
-    JsonParser jsonParser;
     MetricsCollectionManager metricsCollectionManager;
+    bool useXdpJson = false;
+    std::string settingFile = xrt_core::config::get_xdp_json();
+    JsonParser jsonParser;
+    boost::property_tree::ptree jsonTree;
+    if (std::filesystem::exists(settingFile)) {
+      try {
+        jsonTree = jsonParser.parse(settingFile);
+        useXdpJson = true;
+        std::cout << "!!! Valid XDP JSON file: " << settingFile << std::endl;
+      } catch (const boost::property_tree::ptree_error& e) {
+        std::cerr << "!!! Error parsing XDP JSON file: " << settingFile << std::endl;
+        std::cerr << "!!! " << e.what() << std::endl;
+      }
+    }
+    else {
+      std::cout << "!!! Using default AIE profile settings" << std::endl;
+    }
+
+
     if (useXdpJson) {
       // Parse the JSON file
       auto jsonTree = jsonParser.parse("xdp.json");
 
       // Process metrics
       for (const auto& [key, value] : jsonTree.get_child("AIE_trace_settings")) {
-        metric_type type = getMetricTypeFromKey(key);
+        std::string settingKey = "tiles";
+        metric_type type = getMetricTypeFromKey(settingKey, key);
         module_type moduleType = getModuleTypeFromKey(key);
         std::cout << "!!! Processing Key: " << key << "& moduleType: "<< moduleType << std::endl;
         MetricCollection collection;
@@ -165,10 +184,10 @@ namespace xdp {
         getSettingsVector(xrt_core::config::get_aie_trace_settings_graph_based_interface_tile_metrics());
      
     if (useXdpJson) {
-      getConfigMetricsForTilesUsingJson(module_type::dma, metricsCollectionManager);
-      getConfigMetricsForTilesUsingJson(module_type::mem_tile, metricsCollectionManager);
-      getConfigMetricsForInterfaceTilesUsingJson(metricsCollectionManager);
-      setTraceStartControl(compilerOptions.graph_iterator_event);
+      // getConfigMetricsForTilesUsingJson(module_type::dma, metricsCollectionManager);
+      // getConfigMetricsForTilesUsingJson(module_type::mem_tile, metricsCollectionManager);
+      // getConfigMetricsForInterfaceTilesUsingJson(metricsCollectionManager);
+      // setTraceStartControl(compilerOptions.graph_iterator_event);
     }
     else {
       if (aieTileMetricsSettings.empty() && aieGraphMetricsSettings.empty()
