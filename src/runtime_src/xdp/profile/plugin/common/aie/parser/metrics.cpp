@@ -32,6 +32,16 @@ namespace xdp {
         return channels.has_value() && !channels->empty();
     }
 
+    bool
+    Metric::isChannel0Set() const {
+        return channels.has_value() && !channels->empty();
+    }
+
+    bool
+    Metric::isChannel1Set() const {
+        return channels.has_value() && channels->size() > 1;
+    }
+
     int
     Metric::getChannel0() const {
         if (channels.has_value() && !channels->empty()) {
@@ -115,6 +125,15 @@ namespace xdp {
     void
     GraphBasedMetricEntry::print() const {
         std::cout << "^^^ print GraphBasedMetricEntry- Graph:" << graph << ", Entity: " << entity;
+        std::cout << "Col: " << static_cast<int>(col) << ", Row: " << static_cast<int>(row) << ", Metric: " << metric;
+        // std::cout << ", Channels: ";
+        // if (channels.has_value()) {
+        //     for (const auto& channel : *channels) {
+        //         std::cout << static_cast<int>(channel) << " "; // Print as int for readability
+        //     }
+        // } else {
+        //     std::cout << "Channels: None";
+        // }
         Metric::print(); // Call the base class print method to show common fields
     }
 
@@ -131,7 +150,20 @@ namespace xdp {
                          std::optional<std::vector<uint8_t>> channels, std::optional<std::string> bytes)
         : Metric(std::move(metric), std::move(channels), std::move(bytes)), startTile(std::move(startTile)), endTile(std::move(endTile)) {}
     
- 
+
+    std::vector<uint8_t>
+    TileBasedMetricEntry::getStartTile() const {
+      std::cout << "!!! TileBasedMetricEntry::getStartTile(): ";
+      return startTile;
+    }
+
+    std::vector<uint8_t>
+    TileBasedMetricEntry::getEndTile() const {
+      std::cout << "!!! TileBasedMetricEntry::getEndTile(): ";
+      return endTile;
+    }
+        
+    
     boost::property_tree::ptree
     TileBasedMetricEntry::toPtree() const {
         boost::property_tree::ptree obj;
@@ -193,6 +225,15 @@ namespace xdp {
     void
     TileBasedMetricEntry::print() const {
         std::cout << "^^^ print TileBasedMetricEntry: Start Tiles: ";
+        std::cout << "Col: " << static_cast<int>(col) << ", Row: " << static_cast<int>(row) << ", Metric: " << metric;
+        std::cout << ", Channels: ";
+        if (channels.has_value()) {
+            for (const auto& channel : *channels) {
+                std::cout << static_cast<int>(channel) << " "; // Print as int for readability
+            }
+        } else {
+            std::cout << "Channels: None";
+        }
         for (const auto& tile : startTile) {
             std::cout << static_cast<int>(tile) << " "; // Print as int for readability
         }

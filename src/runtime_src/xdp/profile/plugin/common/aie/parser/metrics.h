@@ -43,7 +43,7 @@ namespace xdp {
     static const std::map<std::string, module_type> keyToModuleType = {
         {"aie",             module_type::core},
         {"aie_memory",      module_type::dma},
-        {"interface",       module_type::shim},
+        {"interface_tile",  module_type::shim},
         {"memory_tile",     module_type::mem_tile},
         {"microcontroller", module_type::uc}
     };

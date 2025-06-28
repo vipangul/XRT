@@ -26,7 +26,7 @@ namespace xdp {
   void AieProfileMetadata::getConfigMetricsForTilesUsingJson(const int moduleIdx, 
       const module_type mod, MetricsCollectionManager& metricsCollectionManager)
   {
-    std::string metricSettingsName = "tile_based_" + moduleNames[moduleIdx] + "_metrics";
+    std::string metricSettingsName = moduleNames[moduleIdx];
 
     const std::vector<std::unique_ptr<Metric>>* metrics = nullptr;
     try {
@@ -311,7 +311,7 @@ namespace xdp {
   void AieProfileMetadata::getConfigMetricsForInterfaceTilesUsingJson(const int moduleIdx,
       MetricsCollectionManager& metricsCollectionManager)
     {
-      std::string metricSettingsName = "tile_based_" + moduleNames[moduleIdx] + "_metrics";
+      std::string metricSettingsName = moduleNames[moduleIdx];
       try {
         const MetricCollection& tilesMetricCollection = metricsCollectionManager.getMetricCollection(module_type::shim, metricSettingsName);
         const auto& metrics = tilesMetricCollection.metrics;
@@ -530,7 +530,7 @@ namespace xdp {
   void AieProfileMetadata::getConfigMetricsForMicrocontrollersUsingJson(const int moduleIdx,
       MetricsCollectionManager& metricsCollectionManager)
   {
-    std::string metricSettingsName = "tile_based_" + moduleNames[moduleIdx] + "_metrics";
+    std::string metricSettingsName = moduleNames[moduleIdx];
     try {
       const MetricCollection& tilesMetricCollection = metricsCollectionManager.getMetricCollection(module_type::uc, metricSettingsName);
       const auto& metrics = tilesMetricCollection.metrics;

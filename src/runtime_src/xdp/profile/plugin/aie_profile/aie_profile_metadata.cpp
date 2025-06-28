@@ -108,23 +108,25 @@ namespace xdp {
       */
 
       // Process metrics
+      std::set<std::string> settingsTypeKeys = {"tiles", "graphs"};
       for (const auto& [key, value] : jsonTree.get_child("aie_profile")) {
-        std::vector<std::string> settingsTypeKeys = {"tiles", "graphs"};
         
-        for (const auto& settingsKey : settingsTypeKeys) {
-          if (!value.get_child_optional(settingsKey)) {
-            std::cout << "!!! No settings found for Key: " << key << " & settingsKey: " << settingsKey << std::endl;
-            continue;
-          }
-
+        if (settingsTypeKeys.find(key) == settingsTypeKeys.end()) {
+          std::cout << "!!! No settings found for Key: " << key << std::endl;
+          continue;
+        }
         
-        for (const auto& [moduleKey, moduleValue] : value.get_child(settingsKey)) {
+        for (const auto& [moduleKey, moduleValue] : value) {
         
-          metric_type type       = getMetricTypeFromKey(settingsKey, moduleKey);
+          metric_type type       = getMetricTypeFromKey(key, moduleKey);
           module_type moduleType = getModuleTypeFromKey(moduleKey);
-          std::cout << "!!! Processing Key: " << moduleKey << "& moduleType: "<< moduleType << std::endl;
+          std::cout << "!!! Processing Key: " << moduleKey << " & moduleType: "<< moduleType << std::endl;
           MetricCollection collection;
           for (const auto& item : moduleValue) {
+              std::ostringstream oss;
+              boost::property_tree::write_json(oss, item.second, false);
+              std::cout << "!!! Processing Metric: " << item.first << " & Value: " << oss.str() << std::endl;
+
               auto metric = MetricsFactory::createMetric(type, item.second);
               if (jsonContainsAllRange(item.second)) {
                 std::cout << "!!! Setting Metric True for all tiles range" << std::endl;
@@ -134,6 +136,7 @@ namespace xdp {
                 std::cout << "!!! Setting Metric True for tile range" << std::endl;
                 metric->setTilesRange(true);
               }
+              metric->print();
               collection.addMetric(std::move(metric));
           }
 
@@ -150,13 +153,12 @@ namespace xdp {
           for (auto& metric : collection.metrics) {
             metric->print();
           }
-          std::cout << "!!! Adding MetricCollection for Key: " << key << " for module type: " << moduleType << std::endl;
+          std::cout << "!!! Adding MetricCollection for Key: " << moduleKey << " for module type: " << moduleType << std::endl;
           // metricsCollectionManager.addMetricCollection({module_type::core, key}, std::move(collection));
-          metricsCollectionManager.addMetricCollection(moduleType, key, std::move(collection));
+          metricsCollectionManager.addMetricCollection(moduleType, moduleKey, std::move(collection));
           std::cout << "-----------------------------------------" << std::endl;
-        }
-      } // end of (for each settingsType ie "tiles", "graphs")
-    } // end of (for each key in jsonTree)
+        } // end of each module settings
+    } // end of ("tiles"/"graphs" in jsonTree)
   } // end of (useXdpJson)
 
     // Tile-based metrics settings
