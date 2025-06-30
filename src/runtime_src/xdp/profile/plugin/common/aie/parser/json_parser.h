@@ -41,6 +41,15 @@ namespace xdp {
       std::string errorMessage;
   };
 
+  struct JsonParseResult {
+    pt::ptree tree;
+    bool success = false;
+    std::string errorMessage;
+
+    bool isValid() const { return success; }
+    bool isEmpty() const { return tree.empty(); }
+};
+
   // JsonParser for reading and writing JSON files
   class JsonParser {
     private:
@@ -52,6 +61,7 @@ namespace xdp {
       static const std::map<PluginType, std::vector<std::string>> PLUGIN_MODULES;
       static const std::map<PluginType, std::vector<std::string>> PLUGIN_SECTIONS;
       
+      JsonParseResult parseWithStatus(const std::string& jsonFilePath);
       // bool validatePluginSchema(const pt::ptree& tree, PluginType pluginType);
       PluginType getPluginTypeFromString(const std::string& pluginName);
       
@@ -62,6 +72,7 @@ namespace xdp {
       }
 
       pt::ptree parse(const std::string& jsonFilePath);
+      bool isValidJson(const std::string& jsonFilePath);
       void write(const std::string& filename, const MetricCollection& collection);
 
       // Enhanced parsing methods

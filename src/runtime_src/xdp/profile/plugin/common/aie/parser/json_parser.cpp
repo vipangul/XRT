@@ -1,23 +1,8 @@
 #include <unordered_map>
+#include <filesystem>
 #include "json_parser.h"
 
 namespace xdp {
-    // JsonParser for reading and writing JSON files
-    pt::ptree JsonParser::parse(const std::string& jsonFilePath) {
-      // std::string jsonFilePath = "xdp.json";
-      pt::ptree jsonTree;
-      std::ifstream jsonFile(jsonFilePath);
-      if (jsonFile.is_open()) {
-        try {
-          boost::property_tree::read_json(jsonFile, jsonTree);
-        } catch (const pt::json_parser_error& e) {
-          xrt_core::message::send(severity_level::warning, "XRT", "Failed to parse xdp.json: " + std::string(e.what()));
-        }
-      } else {
-        xrt_core::message::send(severity_level::info, "XRT", "xdp.json not found, proceeding with default settings.");
-      }
-      return jsonTree;
-    }
 
     void JsonParser::write(const std::string& filename, const MetricCollection& collection) {
         std::ofstream file(filename);
@@ -38,6 +23,61 @@ namespace xdp {
       
         boost::property_tree::ptree pt = collection.toPtree();
         boost::property_tree::write_json(file, pt);
+    }
+
+    // Implementation
+    JsonParseResult JsonParser::parseWithStatus(const std::string& jsonFilePath) {
+        JsonParseResult result;
+        
+        // Check if file exists
+        if (!std::filesystem::exists(jsonFilePath)) {
+            result.errorMessage = "File not found: " + jsonFilePath;
+            xrt_core::message::send(severity_level::info, "XRT", 
+                result.errorMessage + ", proceeding with default settings.");
+            return result;
+        }
+        
+        // Check if it's a regular file
+        if (!std::filesystem::is_regular_file(jsonFilePath)) {
+            result.errorMessage = "Path exists but is not a regular file: " + jsonFilePath;
+            xrt_core::message::send(severity_level::warning, "XRT", result.errorMessage);
+            return result;
+        }
+        
+        std::ifstream jsonFile(jsonFilePath);
+        if (!jsonFile.is_open()) {
+            result.errorMessage = "Failed to open file: " + jsonFilePath;
+            xrt_core::message::send(severity_level::warning, "XRT", result.errorMessage);
+            return result;
+        }
+        
+        try {
+            boost::property_tree::read_json(jsonFile, result.tree);
+            result.success = true;
+            xrt_core::message::send(severity_level::info, "XRT", 
+                "Successfully parsed JSON file: " + jsonFilePath);
+        } catch (const pt::json_parser_error& e) {
+            result.errorMessage = "JSON parse error: " + std::string(e.what());
+            xrt_core::message::send(severity_level::error, "XRT", 
+                "Failed to parse JSON file '" + jsonFilePath + "': " + result.errorMessage);
+            result.tree.clear();
+        }
+        return result;
+    }
+    
+    // Backward compatible version
+    pt::ptree JsonParser::parse(const std::string& jsonFilePath) {
+        return parseWithStatus(jsonFilePath).tree;
+    }
+
+    bool JsonParser::isValidJson(const std::string& jsonFilePath) {
+        try {
+            return parseWithStatus(jsonFilePath).isValid();
+        } catch (const std::exception& e) {
+            xrt_core::message::send(severity_level::warning, "XRT", 
+                "Invalid JSON file: " + std::string(e.what()));
+            return false;
+        }
     }
 
     // Static mappings for different plugins

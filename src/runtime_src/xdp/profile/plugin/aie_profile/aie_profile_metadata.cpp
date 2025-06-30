@@ -68,19 +68,10 @@ namespace xdp {
 
     bool useXdpJson = false;
     std::string settingFile = xrt_core::config::get_xdp_json();
-    boost::property_tree::ptree jsonTree;
-    if (std::filesystem::exists(settingFile)) {
-      try {
-        jsonTree = JsonParser::getInstance().parse(settingFile);
-        useXdpJson = true;
-      } catch (const boost::property_tree::ptree_error& e) {
-        xrt_core::message::send(severity_level::warning, "XRT",
-          std::string("Error parsing JSON file '") + settingFile + "': " + e.what());
-      }
-    }
-    else {
+    if (JsonParser::getInstance().isValidJson(settingFile)) {
       xrt_core::message::send(severity_level::info, "XRT",
-        "Using default AIE profile settings (no JSON settings found at '" + settingFile + "')");
+        "Using JSON settings from '" + settingFile + "'");
+      useXdpJson = true;
     }
 
     MetricsCollectionManager metricsCollectionManager;
