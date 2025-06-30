@@ -150,6 +150,8 @@ class AieProfileMetadata {
                                              const std::vector<std::string> graphMetricsSettings);
     void getConfigMetricsForMicrocontrollersUsingJson(const int moduleIdx,
                                                       MetricsCollectionManager& metricsCollectionManager);
+    
+    void processPluginConfig(const PluginConfig& config, MetricsCollectionManager& manager);
 
     int getPairModuleIndex(const std::string& metricSet, module_type mod);
     uint8_t getMetricSetIndex(const std::string& metricSet, module_type mod);

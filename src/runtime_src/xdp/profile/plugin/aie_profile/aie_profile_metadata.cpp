@@ -68,98 +68,43 @@ namespace xdp {
 
     bool useXdpJson = false;
     std::string settingFile = xrt_core::config::get_xdp_json();
-    JsonParser jsonParser;
     boost::property_tree::ptree jsonTree;
     if (std::filesystem::exists(settingFile)) {
       try {
-        jsonTree = jsonParser.parse(settingFile);
+        jsonTree = JsonParser::getInstance().parse(settingFile);
         useXdpJson = true;
-        std::cout << "!!! Valid XDP JSON file: " << settingFile << std::endl;
       } catch (const boost::property_tree::ptree_error& e) {
-        std::cerr << "!!! Error parsing XDP JSON file: " << settingFile << std::endl;
-        std::cerr << "!!! " << e.what() << std::endl;
+        xrt_core::message::send(severity_level::warning, "XRT",
+          std::string("Error parsing JSON file '") + settingFile + "': " + e.what());
       }
     }
     else {
-      std::cout << "!!! Using default AIE profile settings" << std::endl;
+      xrt_core::message::send(severity_level::info, "XRT",
+        "Using default AIE profile settings (no JSON settings found at '" + settingFile + "')");
     }
 
     MetricsCollectionManager metricsCollectionManager;
+  
+    // Process JSON settings for AIE_PROFILE plugin
     if (useXdpJson) {
-      // Parse the JSON file
-      // auto jsonTree = jsonParser.parse("xdp.json");
-      /*
-        "aie_profile": {
-              "tiles": {
-                "aie": [],
-                "aie_memory": [],
-                "memory": [],
-                "interface": [],
-                "microcontroller": []
-              },
-              "graphs": {
-                "aie": [],
-                "aie_memory": [],
-                "memory": [],
-                "interface": [],
-                "microcontroller": []
-              }
-          }
-      */
-
-      // Process metrics
-      std::set<std::string> settingsTypeKeys = {"tiles", "graphs"};
-      for (const auto& [key, value] : jsonTree.get_child("aie_profile")) {
-        
-        if (settingsTypeKeys.find(key) == settingsTypeKeys.end()) {
-          std::cout << "!!! No settings found for Key: " << key << std::endl;
-          continue;
+        XdpConfig xdpConfig = JsonParser::getInstance().parseXdpConfig(settingFile, PluginType::AIE_PROFILE);
+        if (!xdpConfig.isValid) {
+              xrt_core::message::send(severity_level::warning, "XRT",
+                "Unable to parse JSON settings from " + settingFile +
+                ". Error: " + xdpConfig.errorMessage);
+            useXdpJson = false;
+        } else {
+            // Process only AIE_PROFILE plugin configuration
+            auto it = xdpConfig.plugins.find(PluginType::AIE_PROFILE);
+            if (it != xdpConfig.plugins.end()) {
+                processPluginConfig(it->second, metricsCollectionManager);
+            } else {
+                xrt_core::message::send(severity_level::info, "XRT",
+                   "No valid aie_profile configuration found in JSON settings");
+            }
         }
-        
-        for (const auto& [moduleKey, moduleValue] : value) {
-        
-          metric_type type       = getMetricTypeFromKey(key, moduleKey);
-          module_type moduleType = getModuleTypeFromKey(moduleKey);
-          std::cout << "!!! Processing Key: " << moduleKey << " & moduleType: "<< moduleType << std::endl;
-          MetricCollection collection;
-          for (const auto& item : moduleValue) {
-              std::ostringstream oss;
-              boost::property_tree::write_json(oss, item.second, false);
-              std::cout << "!!! Processing Metric: " << item.first << " & Value: " << oss.str() << std::endl;
-
-              auto metric = MetricsFactory::createMetric(type, item.second);
-              if (jsonContainsAllRange(item.second)) {
-                std::cout << "!!! Setting Metric True for all tiles range" << std::endl;
-                metric->setAllTilesRange(true);
-              }
-              else if(jsonContainsRange(item.second)) {
-                std::cout << "!!! Setting Metric True for tile range" << std::endl;
-                metric->setTilesRange(true);
-              }
-              metric->print();
-              collection.addMetric(std::move(metric));
-          }
-
-          // Check if both tile range or all tiles range is set along with individual tiles
-          // NOTE: Tile range and individual tiles settings together is not supported.
-          if (collection.hasAllTileRanges() && collection.hasIndividualTiles()) {
-            std::stringstream msg;
-            msg << "Metric collection for key " << key << " has both All tile range and individual tiles set. "
-                << "This is not supported. Please check your settings json file.";
-            xrt_core::message::send(severity_level::error, "XRT", msg.str());
-            continue;
-          }
-
-          for (auto& metric : collection.metrics) {
-            metric->print();
-          }
-          std::cout << "!!! Adding MetricCollection for Key: " << moduleKey << " for module type: " << moduleType << std::endl;
-          // metricsCollectionManager.addMetricCollection({module_type::core, key}, std::move(collection));
-          metricsCollectionManager.addMetricCollection(moduleType, moduleKey, std::move(collection));
-          std::cout << "-----------------------------------------" << std::endl;
-        } // end of each module settings
-    } // end of ("tiles"/"graphs" in jsonTree)
-  } // end of (useXdpJson)
+    }
+ 
 
     // Tile-based metrics settings
     std::vector<std::string> tileMetricsConfig;
@@ -214,7 +159,46 @@ namespace xdp {
     xrt_core::message::send(severity_level::info,
                             "XRT", "Finished Parsing AIE Profile Metadata."); 
   }
-
+ 
+  void AieProfileMetadata::processPluginConfig(const PluginConfig& config, 
+                                             MetricsCollectionManager& manager)
+  {
+      for (const auto& [sectionKey, modules] : config.sections) {
+          for (const auto& [moduleKey, metrics] : modules) {
+              
+              // Handle plugin-specific module key mappings
+              std::string mappedModuleKey = moduleKey;
+              if (config.type == PluginType::AIE_TRACE) {
+                  // Map aie_trace modules to aie_profile equivalents if needed
+                  if (moduleKey == "aie_tile") {
+                      // Handle aie_tile differently - might need special processing
+                  }
+              }
+              
+              metric_type type = getMetricTypeFromKey(sectionKey, mappedModuleKey);
+              module_type moduleType = getModuleTypeFromKey(mappedModuleKey);
+              
+              std::cout << "!!! Processing " << sectionKey << " Key: " << moduleKey 
+                        << " & moduleType: " << moduleType << std::endl;
+              
+              MetricCollection collection;
+              for (const auto& metricData : metrics) {
+                  auto metric = MetricsFactory::createMetric(type, metricData);
+                  
+                  if (jsonContainsAllRange(metricData)) {
+                      metric->setAllTilesRange(true);
+                  } else if (jsonContainsRange(metricData)) {
+                      metric->setTilesRange(true);
+                  }
+                  
+                  collection.addMetric(std::move(metric));
+              }
+              
+              manager.addMetricCollection(moduleType, moduleKey, std::move(collection));
+          }
+      }
+  }
+  
   /****************************************************************************
    * Compare tiles (used for sorting)
    ***************************************************************************/

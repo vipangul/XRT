@@ -13,29 +13,65 @@
 #include <fstream>
 #include <sstream>
 #include <iostream>
+#include <map>
 #include "core/common/message.h"
 #include "metrics_collection.h"
 #include "xdp/profile/database/static_info/aie_constructs.h"
 
 namespace xdp {
-namespace pt = boost::property_tree;
-using severity_level = xrt_core::message::severity_level;
+  namespace pt = boost::property_tree;
+  using severity_level = xrt_core::message::severity_level;
 
-// JsonParser for reading and writing JSON files
-class JsonParser {
-  private:
-  // public:
-    // Data structure to store MetricCollection objects for different plugin types
-    // static std::map<std::string, MetricCollection> pluginMetricCollections;
-    // static std::map<module_type, std::map<std::string, MetricCollection>> allModulesMetricCollections;
-  public:
-    // static MetricCollection& parse(const std::string& jsonFilePath) {
-    pt::ptree parse(const std::string& jsonFilePath);
-    static void write(const std::string& filename, const MetricCollection& collection);
-    // const MetricCollection& getMetricCollection(module_type mod, const std::string& settingName);
-    
-    };
+  enum class PluginType {
+      AIE_PROFILE,
+      AIE_TRACE,
+      UNKNOWN
+  };
 
-};
+  struct PluginConfig {
+      PluginType type;
+      std::map<std::string, std::map<std::string, std::vector<pt::ptree>>> sections;
+      bool isValid = false;
+      std::string errorMessage;
+  };
+
+  struct XdpConfig {
+      std::map<PluginType, PluginConfig> plugins;
+      bool isValid = false;
+      std::string errorMessage;
+  };
+
+  // JsonParser for reading and writing JSON files
+  class JsonParser {
+    private:
+      JsonParser() = default;
+      JsonParser(const JsonParser&) = delete;
+      JsonParser& operator=(const JsonParser&) = delete;
+
+      // Plugin-specific module mappings
+      static const std::map<PluginType, std::vector<std::string>> PLUGIN_MODULES;
+      static const std::map<PluginType, std::vector<std::string>> PLUGIN_SECTIONS;
+      
+      // bool validatePluginSchema(const pt::ptree& tree, PluginType pluginType);
+      PluginType getPluginTypeFromString(const std::string& pluginName);
+      
+    public:
+      static JsonParser& getInstance() {
+        static JsonParser instance;
+        return instance;
+      }
+
+      pt::ptree parse(const std::string& jsonFilePath);
+      void write(const std::string& filename, const MetricCollection& collection);
+
+      // Enhanced parsing methods
+      XdpConfig parseXdpConfig(const std::string& jsonFilePath, PluginType queryPluginType);
+      PluginConfig parsePluginConfig(const pt::ptree& tree, PluginType pluginType);
+      
+      // Plugin-specific validation
+      std::vector<std::string> getSupportedModules(PluginType pluginType);
+      std::vector<std::string> getSupportedSections(PluginType pluginType);
+  };
+} // namespace xdp
 
 #endif

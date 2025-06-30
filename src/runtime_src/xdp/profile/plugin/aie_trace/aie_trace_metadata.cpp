@@ -108,66 +108,65 @@ namespace xdp {
     MetricsCollectionManager metricsCollectionManager;
     bool useXdpJson = false;
     std::string settingFile = xrt_core::config::get_xdp_json();
-    JsonParser jsonParser;
-    boost::property_tree::ptree jsonTree;
-    if (std::filesystem::exists(settingFile)) {
-      try {
-        jsonTree = jsonParser.parse(settingFile);
-        useXdpJson = true;
-        std::cout << "!!! Valid XDP JSON file: " << settingFile << std::endl;
-      } catch (const boost::property_tree::ptree_error& e) {
-        std::cerr << "!!! Error parsing XDP JSON file: " << settingFile << std::endl;
-        std::cerr << "!!! " << e.what() << std::endl;
-      }
-    }
-    else {
-      std::cout << "!!! Using default AIE profile settings" << std::endl;
-    }
+    // boost::property_tree::ptree jsonTree;
+    // if (std::filesystem::exists(settingFile)) {
+    //   try {
+    //     jsonTree = JsonParser::getInstance().parse(settingFile);
+    //     useXdpJson = true;
+    //     std::cout << "!!! Valid XDP JSON file: " << settingFile << std::endl;
+    //   } catch (const boost::property_tree::ptree_error& e) {
+    //     std::cerr << "!!! Error parsing XDP JSON file: " << settingFile << std::endl;
+    //     std::cerr << "!!! " << e.what() << std::endl;
+    //   }
+    // }
+    // else {
+    //   std::cout << "!!! Using default AIE profile settings" << std::endl;
+    // }
 
 
-    if (useXdpJson) {
-      // Parse the JSON file
-      auto jsonTree = jsonParser.parse("xdp.json");
+    // if (useXdpJson) {
+    //   // Parse the JSON file
+    //   auto jsonTree = jsonParser.parse("xdp.json");
 
-      // Process metrics
-      for (const auto& [key, value] : jsonTree.get_child("AIE_trace_settings")) {
-        std::string settingKey = "tiles";
-        metric_type type = getMetricTypeFromKey(settingKey, key);
-        module_type moduleType = getModuleTypeFromKey(key);
-        std::cout << "!!! Processing Key: " << key << "& moduleType: "<< moduleType << std::endl;
-        MetricCollection collection;
-        for (const auto& item : value) {
-            auto metric = MetricsFactory::createMetric(type, item.second);
-            if (jsonContainsAllRange(item.second)) {
-              std::cout << "!!! Setting Metric True for all tiles range" << std::endl;
-              metric->setAllTilesRange(true);
-            }
-            else if(jsonContainsRange(item.second)) {
-              std::cout << "!!! Setting Metric True for tile range" << std::endl;
-              metric->setTilesRange(true);
-            }
-            collection.addMetric(std::move(metric));
-        }
+    //   // Process metrics
+    //   for (const auto& [key, value] : jsonTree.get_child("AIE_trace_settings")) {
+    //     std::string settingKey = "tiles";
+    //     metric_type type = getMetricTypeFromKey(settingKey, key);
+    //     module_type moduleType = getModuleTypeFromKey(key);
+    //     std::cout << "!!! Processing Key: " << key << "& moduleType: "<< moduleType << std::endl;
+    //     MetricCollection collection;
+    //     for (const auto& item : value) {
+    //         auto metric = MetricsFactory::createMetric(type, item.second);
+    //         if (jsonContainsAllRange(item.second)) {
+    //           std::cout << "!!! Setting Metric True for all tiles range" << std::endl;
+    //           metric->setAllTilesRange(true);
+    //         }
+    //         else if(jsonContainsRange(item.second)) {
+    //           std::cout << "!!! Setting Metric True for tile range" << std::endl;
+    //           metric->setTilesRange(true);
+    //         }
+    //         collection.addMetric(std::move(metric));
+    //     }
 
-        // Check if both tile range or all tiles range is set along with individual tiles
-        // NOTE: Tile range and individual tiles settings together is not supported.
-        if (collection.hasAllTileRanges() && collection.hasIndividualTiles()) {
-          std::stringstream msg;
-          msg << "Metric collection for key " << key << " has both All tile range and individual tiles set. "
-              << "This is not supported. Please check your settings json file.";
-          xrt_core::message::send(severity_level::error, "XRT", msg.str());
-          continue;
-        }
+    //     // Check if both tile range or all tiles range is set along with individual tiles
+    //     // NOTE: Tile range and individual tiles settings together is not supported.
+    //     if (collection.hasAllTileRanges() && collection.hasIndividualTiles()) {
+    //       std::stringstream msg;
+    //       msg << "Metric collection for key " << key << " has both All tile range and individual tiles set. "
+    //           << "This is not supported. Please check your settings json file.";
+    //       xrt_core::message::send(severity_level::error, "XRT", msg.str());
+    //       continue;
+    //     }
 
-        for (auto& metric : collection.metrics) {
-          metric->print();
-        }
-        std::cout << "!!! Adding MetricCollection for Key: " << key << " for module type: " << moduleType << std::endl;
-        // metricsCollectionManager.addMetricCollection({module_type::core, key}, std::move(collection));
-        metricsCollectionManager.addMetricCollection(moduleType, key, std::move(collection));
-        std::cout << "-----------------------------------------" << std::endl;
-      }
-    }
+    //     for (auto& metric : collection.metrics) {
+    //       metric->print();
+    //     }
+    //     std::cout << "!!! Adding MetricCollection for Key: " << key << " for module type: " << moduleType << std::endl;
+    //     // metricsCollectionManager.addMetricCollection({module_type::core, key}, std::move(collection));
+    //     metricsCollectionManager.addMetricCollection(moduleType, key, std::move(collection));
+    //     std::cout << "-----------------------------------------" << std::endl;
+    //   }
+    // }
 
     // Process AIE_trace_settings metrics
     auto aieTileMetricsSettings = 
