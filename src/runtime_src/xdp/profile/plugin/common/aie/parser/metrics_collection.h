@@ -31,7 +31,7 @@ namespace xdp {
       MetricCollection& operator=(MetricCollection&&) = default;
 
       // static MetricCollection processSettings(const boost::property_tree::ptree& ptArr, 
-      //                                         metric_type type);
+      //                                         MetricType type);
       
       void addMetric(std::unique_ptr<Metric> metric);
       bool hasAllTileRanges() const;

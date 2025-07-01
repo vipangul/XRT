@@ -21,22 +21,22 @@ namespace xdp {
   namespace pt = boost::property_tree;
   using severity_level = xrt_core::message::severity_level;
 
-  inline metric_type getMetricTypeFromKey(const std::string& settingsKey, const std::string& key) {
+  inline MetricType getMetricTypeFromKey(const std::string& settingsKey, const std::string& key) {
     if (settingsKey == "tiles") {
-      if (key == "aie_tile")        return metric_type::TILE_BASED_AIE_TILE;
-      if (key == "aie")             return metric_type::TILE_BASED_CORE_MOD;
-      if (key == "aie_memory")      return metric_type::TILE_BASED_MEM_MOD;
-      if (key == "interface_tile")  return metric_type::TILE_BASED_INTERFACE_TILE;
-      if (key == "memory_tile")     return metric_type::TILE_BASED_MEM_TILE;
-      if (key == "microcontroller") return metric_type::TILE_BASED_UC;
+      if (key == "aie_tile")        return MetricType::TILE_BASED_AIE_TILE;
+      if (key == "aie")             return MetricType::TILE_BASED_CORE_MOD;
+      if (key == "aie_memory")      return MetricType::TILE_BASED_MEM_MOD;
+      if (key == "interface_tile")  return MetricType::TILE_BASED_INTERFACE_TILE;
+      if (key == "memory_tile")     return MetricType::TILE_BASED_MEM_TILE;
+      if (key == "microcontroller") return MetricType::TILE_BASED_UC;
     } else if (settingsKey == "graphs") {
-      if (key == "aie_tile")        return metric_type::GRAPH_BASED_AIE_TILE;
-      if (key == "aie")             return metric_type::GRAPH_BASED_CORE_MOD;
-      if (key == "aie_memory")      return metric_type::GRAPH_BASED_MEM_MOD;
-      if (key == "interface_tile")  return metric_type::GRAPH_BASED_INTERFACE_TILE;
-      if (key == "memory_tile")     return metric_type::GRAPH_BASED_MEM_TILE;
+      if (key == "aie_tile")        return MetricType::GRAPH_BASED_AIE_TILE;
+      if (key == "aie")             return MetricType::GRAPH_BASED_CORE_MOD;
+      if (key == "aie_memory")      return MetricType::GRAPH_BASED_MEM_MOD;
+      if (key == "interface_tile")  return MetricType::GRAPH_BASED_INTERFACE_TILE;
+      if (key == "memory_tile")     return MetricType::GRAPH_BASED_MEM_TILE;
     }
-    return metric_type::NUM_TYPES;
+    return MetricType::NUM_TYPES;
   }
 
   inline module_type getModuleTypeFromKey(const std::string& key) {

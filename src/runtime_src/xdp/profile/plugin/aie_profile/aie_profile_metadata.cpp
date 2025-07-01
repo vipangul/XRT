@@ -166,7 +166,7 @@ namespace xdp {
                   }
               }
               
-              metric_type type = getMetricTypeFromKey(sectionKey, mappedModuleKey);
+              MetricType type        = getMetricTypeFromKey(sectionKey, mappedModuleKey);
               module_type moduleType = getModuleTypeFromKey(mappedModuleKey);
               
               std::cout << "!!! Processing " << sectionKey << " Key: " << moduleKey 
@@ -176,9 +176,9 @@ namespace xdp {
               for (const auto& metricData : metrics) {
                   auto metric = MetricsFactory::createMetric(type, metricData);
                   
-                  if (jsonContainsAllRange(metricData)) {
+                  if (jsonContainsAllRange(type, metricData)) {
                       metric->setAllTiles(true);
-                  } else if (jsonContainsRange(metricData)) {
+                  } else if (jsonContainsRange(type, metricData)) {
                       metric->setTilesRange(true);
                   }
                   

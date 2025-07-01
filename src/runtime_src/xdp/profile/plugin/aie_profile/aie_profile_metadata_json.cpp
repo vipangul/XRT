@@ -60,15 +60,15 @@ namespace xdp {
     std::unique_copy(validTilesVec.begin(), validTilesVec.end(), std::inserter(allValidTiles, allValidTiles.end()),
                      xdp::aie::tileCompare);
 
-    // Step 1a: Process "all" tiles metric setting
+    // NOTE: Only one of the following setting type can be specified in the JSON for a tile type.
+    // Step 1a: Process all tiles metric setting ( "all_tiles"/"all_graphs" )
     // Step 1b: Process only range of tiles metric setting
     // Step 1c: Process single tile metric setting
-    // NOTE: Only one of these can be specified in the JSON file for a tile type.
 
     bool isAllTilesSet = false;
     bool isTileRangeSet = false;
 
-    // Step 1a: Process "all" tiles metric setting
+    // Step 1a: Process "all_tiles"/"all_graphs" tiles metric setting
     for (size_t i = 0; i < metrics.size(); ++i) {
 
       if (!metrics[i]->isAllTilesSet())
@@ -92,6 +92,7 @@ namespace xdp {
 
     // Step 1b: Process tiles range metric settings
     for (size_t i = 0; i < metrics.size(); ++i) {
+      // NOTE: If all tiles/graphs are already set, skip this pass
       if (isAllTilesSet)
         break;
       if (!metrics[i]->isTilesRangeSet())
