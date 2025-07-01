@@ -71,7 +71,7 @@ namespace xdp {
     // Step 1a: Process "all" tiles metric setting
     for (size_t i = 0; i < metrics.size(); ++i) {
 
-      if (!metrics[i]->isAllTilesRangeSet())
+      if (!metrics[i]->isAllTilesSet())
         break;
 
       auto tiles = metadataReader->getTiles("all", mod, "all");
@@ -334,7 +334,7 @@ namespace xdp {
 
         // Pass 1a : process only "all" metric setting
         for (size_t i = 0; i < metrics.size(); ++i) {
-          if (!metrics[i]->isAllTilesRangeSet())
+          if (!metrics[i]->isAllTilesSet())
             break;
         
           // By-default select both the channels
@@ -552,7 +552,7 @@ namespace xdp {
 
       // Step 1a: Process "all" tiles metric setting
       for (size_t i = 0; i < metrics.size(); ++i) {
-        if (metrics[i]->isAllTilesRangeSet() == false)
+        if (metrics[i]->isAllTilesSet() == false)
           break;
 
         auto tiles = metadataReader->getMicrocontrollers(false);

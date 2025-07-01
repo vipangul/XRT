@@ -63,8 +63,8 @@ namespace xdp {
       virtual std::vector<uint8_t> getEndTile() const;
       virtual uint8_t getCol() const = 0;
       virtual uint8_t getRow() const = 0;
-      virtual void setAllTilesRange(bool allTiles) = 0;
-      virtual bool isAllTilesRangeSet() const = 0;
+      virtual void setAllTiles(bool allTiles) = 0;
+      virtual bool isAllTilesSet() const = 0;
       virtual void setTilesRange(bool tileRange) = 0;
       virtual bool isTilesRangeSet() const = 0;
     
@@ -105,8 +105,8 @@ namespace xdp {
       static std::unique_ptr<Metric> processSettings(const boost::property_tree::ptree& obj);
       uint8_t getCol() const override { return col; }
       uint8_t getRow() const override { return row; }
-      void setAllTilesRange(bool allTiles) override { allTilesRange = allTiles; }
-      bool isAllTilesRangeSet() const { return allTilesRange; }
+      void setAllTiles(bool allTiles) override { allTilesRange = allTiles; }
+      bool isAllTilesSet() const { return allTilesRange; }
       virtual void setTilesRange(bool tileRange) override { tileRange = tileRange; }
       virtual bool isTilesRangeSet() const { return tileRange; }
       
@@ -138,8 +138,8 @@ namespace xdp {
       uint8_t getCol() const override { return col; }
       uint8_t getRow() const override { return row; }
 
-      void setAllTilesRange(bool allTiles) override { allTilesRange = allTiles; }
-      bool isAllTilesRangeSet() const { return allTilesRange; }
+      void setAllTiles(bool allTiles) override { allTilesRange = allTiles; }
+      bool isAllTilesSet() const { return allTilesRange; }
       virtual void setTilesRange(bool tileRange) override { tileRange = tileRange; }
       virtual bool isTilesRangeSet() const { return tileRange; }
  

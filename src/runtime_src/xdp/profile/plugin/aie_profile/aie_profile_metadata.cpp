@@ -177,7 +177,7 @@ namespace xdp {
                   auto metric = MetricsFactory::createMetric(type, metricData);
                   
                   if (jsonContainsAllRange(metricData)) {
-                      metric->setAllTilesRange(true);
+                      metric->setAllTiles(true);
                   } else if (jsonContainsRange(metricData)) {
                       metric->setTilesRange(true);
                   }

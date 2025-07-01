@@ -19,7 +19,7 @@ namespace xdp {
     MetricCollection::hasAllTileRanges() const {
         // Check if all tile ranges are present in the collection
         for (const auto& metric : metrics) {
-            if (metric && metric->isAllTilesRangeSet()) {
+            if (metric && metric->isAllTilesSet()) {
                 xrt_core::message::send(severity_level::debug, "XRT", "Metric \"all\" tile range found");
                 return true;
             }
@@ -31,7 +31,7 @@ namespace xdp {
     MetricCollection::hasIndividualTiles() const {
         // Check if the collection contains a metric with all tiles range
         for (const auto& metric : metrics) {
-            if (metric && !metric->isAllTilesRangeSet()) {
+            if (metric && !metric->isAllTilesSet()) {
                 return true;
             }
         }
