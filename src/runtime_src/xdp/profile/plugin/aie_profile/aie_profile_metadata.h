@@ -135,27 +135,27 @@ class AieProfileMetadata {
                                   const std::vector<std::string>& metricsSettings,
                                   const std::vector<std::string>& graphMetricsSettings,
                                   const module_type mod);
-    void getConfigMetricsForTilesUsingJson(const int moduleIdx, 
-                                           const module_type mod,
-                                           MetricsCollectionManager& metricsCollectionManager);
-
     void getConfigMetricsForInterfaceTiles(const int moduleIdx,
                                            const std::vector<std::string>& metricsSettings,
                                            const std::vector<std::string> graphMetricsSettings);
-    void getConfigMetricsForInterfaceTilesUsingJson(const int moduleIdx,
-                                           MetricsCollectionManager& metricsCollectionManager);
-
     void getConfigMetricsForMicrocontrollers(const int moduleIdx,
                                              const std::vector<std::string>& metricsSettings,
                                              const std::vector<std::string> graphMetricsSettings);
+
+    // Functions to configure settings derieved from JSON
+    void getConfigMetricsUsingJson(const int module, const module_type type,
+                                  MetricsCollectionManager& metricsCollectionManager);
+    void getConfigMetricsForTilesUsingJson(const int moduleIdx,
+                                           const module_type mod,
+                                           MetricsCollectionManager& metricsCollectionManager);
+    void getConfigMetricsForInterfaceTilesUsingJson(const int moduleIdx,
+                                           MetricsCollectionManager& metricsCollectionManager);
     void getConfigMetricsForMicrocontrollersUsingJson(const int moduleIdx,
                                                       MetricsCollectionManager& metricsCollectionManager);
-
     void populateGraphConfigMetricsForTilesUsingJson(const int moduleIdx, const module_type mod,
                             MetricsCollectionManager& metricsCollectionManager);
     void populateTilesConfigMetricsForTilesUsingJson(const int moduleIdx, 
       const module_type mod, MetricsCollectionManager& metricsCollectionManager);
-
     void processJsonPluginConfig(const JsonPluginConfig& config, MetricsCollectionManager& manager);
 
     int getPairModuleIndex(const std::string& metricSet, module_type mod);

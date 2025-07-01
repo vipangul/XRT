@@ -119,12 +119,7 @@ namespace xdp {
     for (int module = 0; module < NUM_MODULES; ++module) {
       auto type = moduleTypes[module];
       if (useXdpJson) {
-        if (type == module_type::shim)
-            getConfigMetricsForInterfaceTilesUsingJson(module, metricsCollectionManager);
-        else if (type == module_type::uc)
-            getConfigMetricsForMicrocontrollersUsingJson(module, metricsCollectionManager);
-        else 
-            getConfigMetricsForTilesUsingJson(module, type, metricsCollectionManager);
+        getConfigMetricsUsingJson(module, type, metricsCollectionManager);
       }
       else {
         auto metricsSettings      = getSettingsVector(tileMetricsConfig[module]);

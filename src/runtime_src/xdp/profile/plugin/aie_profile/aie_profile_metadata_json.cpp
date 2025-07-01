@@ -20,6 +20,17 @@ namespace xdp {
   using severity_level = xrt_core::message::severity_level;
   namespace pt = boost::property_tree;
 
+  void AieProfileMetadata::getConfigMetricsUsingJson(const int module, const module_type type,
+                                  MetricsCollectionManager& metricsCollectionManager)
+  {
+    if (type == module_type::shim)
+        getConfigMetricsForInterfaceTilesUsingJson(module, metricsCollectionManager);
+    else if (type == module_type::uc)
+        getConfigMetricsForMicrocontrollersUsingJson(module, metricsCollectionManager);
+    else
+        getConfigMetricsForTilesUsingJson(module, type, metricsCollectionManager);
+  }
+
   /****************************************************************************
    * Resolve metrics for AIE or Memory tiles
    ***************************************************************************/
