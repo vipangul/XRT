@@ -34,8 +34,8 @@ file(GLOB AIE_PROFILE_CONFIG_FILES
   "${PROFILE_DIR}/plugin/aie_profile/util/aie_profile_config.cpp"
 )
 file(GLOB AIE_JSON_PARSER_FILES
-  "${PROFILE_DIR}/plugin/common/aie/parser/*.h"
-  "${PROFILE_DIR}/plugin/common/aie/parser/*.cpp"
+  "${PROFILE_DIR}/plugin/parser/*.h"
+  "${PROFILE_DIR}/plugin/parser/*.cpp"
 )
 file(GLOB AIE_DRIVER_COMMON_UTIL_FILES
   "${PROFILE_DIR}/device/common/*.h"

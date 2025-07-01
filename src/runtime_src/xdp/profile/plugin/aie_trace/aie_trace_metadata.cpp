@@ -32,11 +32,11 @@
 #include "xdp/profile/plugin/vp_base/utility.h"
 #include "xdp/profile/plugin/vp_base/vp_base_plugin.h"
 #include "xdp/profile/database/static_info/aie_util.h"
-#include "xdp/profile/plugin/common/aie/parser/metrics.h"
-#include "xdp/profile/plugin/common/aie/parser/json_parser.h"
-#include "xdp/profile/plugin/common/aie/parser/metrics_collection_manager.h"
-#include "xdp/profile/plugin/common/aie/parser/metrics_factory.h"
-#include "xdp/profile/plugin/common/aie/parser/parser_utils.h"
+#include "xdp/profile/plugin/parser/metrics.h"
+#include "xdp/profile/plugin/parser/json_parser.h"
+#include "xdp/profile/plugin/parser/metrics_collection_manager.h"
+#include "xdp/profile/plugin/parser/metrics_factory.h"
+#include "xdp/profile/plugin/parser/parser_utils.h"
 
 namespace {
   static bool tileCompare(xdp::tile_type tile1, xdp::tile_type tile2)
@@ -109,7 +109,7 @@ namespace xdp {
     // boost::property_tree::ptree jsonTree;
     // if (std::filesystem::exists(settingFile)) {
     //   try {
-    //     jsonTree = JsonParser::getInstance().parse(settingFile);
+    //     jsonTree = SettingsJsonParser::getInstance().parse(settingFile);
     //     useXdpJson = true;
     //   } catch (const boost::property_tree::ptree_error& e) {
     //     xrt_core::message::send(severity_level::warning, "XRT",
@@ -125,7 +125,7 @@ namespace xdp {
   
     // // Process JSON settings for AIE_PROFILE plugin
     // if (useXdpJson) {
-    //     XdpConfig xdpConfig = JsonParser::getInstance().parseXdpConfig(settingFile, PluginType::AIE_PROFILE);
+    //     XdpConfig xdpConfig = SettingsJsonParser::getInstance().parseXdpConfig(settingFile, PluginType::AIE_PROFILE);
     //     if (!xdpConfig.isValid) {
     //           xrt_core::message::send(severity_level::warning, "XRT",
     //             "Unable to parse JSON settings from " + settingFile +
@@ -135,7 +135,7 @@ namespace xdp {
     //         // Process only AIE_PROFILE plugin configuration
     //         auto it = xdpConfig.plugins.find(PluginType::AIE_PROFILE);
     //         if (it != xdpConfig.plugins.end()) {
-    //             processPluginConfig(it->second, metricsCollectionManager);
+    //             processJsonPluginConfig(it->second, metricsCollectionManager);
     //         } else {
     //             xrt_core::message::send(severity_level::info, "XRT",
     //                "No valid aie_profile configuration found in JSON settings");

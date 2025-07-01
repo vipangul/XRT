@@ -28,7 +28,7 @@ namespace xdp {
       UNKNOWN
   };
 
-  struct PluginConfig {
+  struct JsonPluginConfig {
       PluginType type;
       std::map<std::string, std::map<std::string, std::vector<pt::ptree>>> sections;
       bool isValid = false;
@@ -36,7 +36,7 @@ namespace xdp {
   };
 
   struct XdpConfig {
-      std::map<PluginType, PluginConfig> plugins;
+      std::map<PluginType, JsonPluginConfig> plugins;
       bool isValid = false;
       std::string errorMessage;
   };
@@ -50,12 +50,12 @@ namespace xdp {
     bool isEmpty() const { return tree.empty(); }
 };
 
-  // JsonParser for reading and writing JSON files
-  class JsonParser {
+  // SettingsJsonParser for reading and writing JSON files
+  class SettingsJsonParser {
     private:
-      JsonParser() = default;
-      JsonParser(const JsonParser&) = delete;
-      JsonParser& operator=(const JsonParser&) = delete;
+      SettingsJsonParser() = default;
+      SettingsJsonParser(const SettingsJsonParser&) = delete;
+      SettingsJsonParser& operator=(const SettingsJsonParser&) = delete;
 
       // Plugin-specific module mappings
       static const std::map<PluginType, std::vector<std::string>> PLUGIN_MODULES;
@@ -66,8 +66,8 @@ namespace xdp {
       PluginType getPluginTypeFromString(const std::string& pluginName);
       
     public:
-      static JsonParser& getInstance() {
-        static JsonParser instance;
+      static SettingsJsonParser& getInstance() {
+        static SettingsJsonParser instance;
         return instance;
       }
 
@@ -77,7 +77,7 @@ namespace xdp {
 
       // Enhanced parsing methods
       XdpConfig parseXdpConfig(const std::string& jsonFilePath, PluginType queryPluginType);
-      PluginConfig parsePluginConfig(const pt::ptree& tree, PluginType pluginType);
+      JsonPluginConfig parseJsonPluginConfig(const pt::ptree& tree, PluginType pluginType);
       
       // Plugin-specific validation
       std::vector<std::string> getSupportedModules(PluginType pluginType);

@@ -28,12 +28,12 @@
 #include "core/common/message.h"
 #include "xdp/profile/database/database.h"
 #include "xdp/profile/plugin/vp_base/vp_base_plugin.h"
-#include "xdp/profile/plugin/common/aie/parser/metrics.h"
-#include "xdp/profile/plugin/common/aie/parser/json_parser.h"
+#include "xdp/profile/plugin/parser/metrics.h"
+#include "xdp/profile/plugin/parser/json_parser.h"
 // #include "xdp/profile/plugin/aie_profile/aie_profile_metadata_json.cpp"
-#include "xdp/profile/plugin/common/aie/parser/metrics_collection_manager.h"
-#include "xdp/profile/plugin/common/aie/parser/metrics_factory.h"
-#include "xdp/profile/plugin/common/aie/parser/parser_utils.h"
+#include "xdp/profile/plugin/parser/metrics_collection_manager.h"
+#include "xdp/profile/plugin/parser/metrics_factory.h"
+#include "xdp/profile/plugin/parser/parser_utils.h"
 // #include "xdp/profile/plugin/vp_base/utility.h"
 
 namespace xdp {
@@ -68,7 +68,7 @@ namespace xdp {
 
     bool useXdpJson = false;
     std::string settingFile = xrt_core::config::get_xdp_json();
-    if (JsonParser::getInstance().isValidJson(settingFile)) {
+    if (SettingsJsonParser::getInstance().isValidJson(settingFile)) {
       xrt_core::message::send(severity_level::info, "XRT",
         "Using JSON settings from '" + settingFile + "'");
       useXdpJson = true;
@@ -78,7 +78,7 @@ namespace xdp {
   
     // Process JSON settings for AIE_PROFILE plugin
     if (useXdpJson) {
-        XdpConfig xdpConfig = JsonParser::getInstance().parseXdpConfig(settingFile, PluginType::AIE_PROFILE);
+        XdpConfig xdpConfig = SettingsJsonParser::getInstance().parseXdpConfig(settingFile, PluginType::AIE_PROFILE);
         if (!xdpConfig.isValid) {
               xrt_core::message::send(severity_level::warning, "XRT",
                 "Unable to parse JSON settings from " + settingFile +
@@ -88,7 +88,7 @@ namespace xdp {
             // Process only AIE_PROFILE plugin configuration
             auto it = xdpConfig.plugins.find(PluginType::AIE_PROFILE);
             if (it != xdpConfig.plugins.end()) {
-                processPluginConfig(it->second, metricsCollectionManager);
+                processJsonPluginConfig(it->second, metricsCollectionManager);
             } else {
                 xrt_core::message::send(severity_level::info, "XRT",
                    "No valid aie_profile configuration found in JSON settings");
@@ -150,7 +150,7 @@ namespace xdp {
                             "XRT", "Finished Parsing AIE Profile Metadata."); 
   }
  
-  void AieProfileMetadata::processPluginConfig(const PluginConfig& config, 
+  void AieProfileMetadata::processJsonPluginConfig(const JsonPluginConfig& config, 
                                              MetricsCollectionManager& manager)
   {
       for (const auto& [sectionKey, modules] : config.sections) {

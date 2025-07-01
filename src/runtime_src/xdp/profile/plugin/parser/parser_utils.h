@@ -9,7 +9,7 @@
 #include <iostream> // TODO: Delete this after debugging
 #include "core/common/config_reader.h"
 #include "xdp/config.h"
-#include "xdp/profile/plugin/common/aie/parser/metrics_type.h"
+#include "xdp/profile/plugin/parser/metrics_type.h"
 
 namespace xdp {
 
@@ -24,7 +24,7 @@ namespace xdp {
 
   XDP_CORE_EXPORT bool jsonContainsRange(MetricType metricType, const boost::property_tree::ptree& jsonObj);
   XDP_CORE_EXPORT bool jsonContainsAllRange(MetricType metricType, const boost::property_tree::ptree& jsonObj);
-  // XDP_CORE_EXPORT bool parseXdpJson(JsonParser& jsonParser, boost::property_tree::ptree& jsonTree);
+  // XDP_CORE_EXPORT bool parseXdpJson(SettingsJsonParser& jsonParser, boost::property_tree::ptree& jsonTree);
 
 } // end namespace xdp
 #endif
