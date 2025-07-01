@@ -46,28 +46,59 @@ namespace xdp {
 
     // Parse per-graph or per-kernel settings
 
-    /* AIE_profile_settings config format
+    /*
+     * Example JSON config format for AI Engine Tiles:
      *
-     * AI Engine Tiles
-     * graph_based_aie_metrics = <graph name|all>:<kernel name|all>
-     *   :<off|heat_map|stalls|execution|floating_point|write_throughputs|read_throughputs|aie_trace>
-     * graph_based_aie_memory_metrics = <graph name|all>:<kernel name|all>
-     *   :<off|conflicts|dma_locks|dma_stalls_s2mm|dma_stalls_mm2s|write_throughputs|read_throughputs>
-     * 
-     * Memory Tiles
-     * Memory tiles (AIE2 and beyond)
-     * graph_based_memory_tile_metrics = <graph name|all>:<buffer name|all>
-     *   :<off|input_channels|input_channels_details|output_channels|output_channels_details|memory_stats|mem_trace>[:<channel>]
+     * {
+     *   "graphs": {
+     *     "aie": [
+     *       {
+     *         "graph": "<graph name|all>",
+     *         "entity": "<kernel name|all>",
+     *         "metric": "<off|heat_map|stalls|execution|floating_point|write_throughputs|read_throughputs|aie_trace>"
+     *       }
+     *     ],
+     *     "aie_memory": [
+     *       {
+     *         "graph": "<graph name|all>",
+     *         "entity": "<kernel name|all>",
+     *         "metric": "<off|conflicts|dma_locks|dma_stalls_s2mm|dma_stalls_mm2s|write_throughputs|read_throughputs>"
+     *       }
+     *     ]
+     *   }
+     * }
+     *
+     * For Memory Tiles (AIE2 and beyond):
+     * {
+     *   "graphs": {
+     *     "memory_tile": [
+     *       {
+     *         "graph": "<graph name|all>",
+     *         "entity": "<buffer name|all>",
+     *         "metric": "<off|input_channels|input_channels_details|output_channels|output_channels_details|memory_stats|mem_trace>",
+     *         "channels": [<optional channel numbers>]
+     *       }
+     *     ]
+     *   }
+     * }
      */
 
+    // Only one graphs setting type is supported at a time in JSON.
+    // Step 1a: Process all graphs metric setting ( "all_graphs" )
+    // Step 1b: Process single graph metric setting
 
     bool allGraphs = false;
-    // Graph Pass 1.a : process "all" graph metric setting
+    // Step 1a: Process all graphs metric setting ( "all_graphs" )
     for (size_t i = 0; i < metrics.size(); ++i) {
 
       // Check if graph is not all or if invalid kernel
       if (!metrics[i]->isAllTilesSet())
         continue;
+      
+      // Check if all graphs setting is already processed
+      if (allGraphs)
+        break;
+
       std::string graphName = metrics[i]->getGraph();
       std::string graphEntity = metrics[i]->getGraphEntity();
       if ((graphEntity != "all") &&
@@ -104,9 +135,9 @@ namespace xdp {
         }
       }
       allGraphs = true;
-    } // Graph Pass 1
+    } // Graph Pass 1a
 
-    // Graph Pass 2 : process per graph metric setting
+    // Step 1b: Process single graph metric setting
     for (size_t i = 0; i < metrics.size(); ++i) {
       // Check if already processed or if invalid
       if (allGraphs)
@@ -147,7 +178,7 @@ namespace xdp {
           xrt_core::message::send(severity_level::warning, "XRT", msg.str());
         }
       }
-    } // Graph Pass 2
+    } // Graph Pass 1b
   }
 
   void AieProfileMetadata::populateTilesConfigMetricsForTilesUsingJson(const int moduleIdx, 
@@ -180,7 +211,8 @@ namespace xdp {
     // Step 1a: Process "all_tiles"/"all_graphs" tiles metric setting
     for (size_t i = 0; i < metrics.size(); ++i) {
 
-      if (!metrics[i]->isAllTilesSet())
+      // Check if all tiles are set or is already processed
+      if ((!metrics[i]->isAllTilesSet()) || isAllTilesSet)
         break;
 
       auto tiles = metadataReader->getTiles("all", mod, "all");

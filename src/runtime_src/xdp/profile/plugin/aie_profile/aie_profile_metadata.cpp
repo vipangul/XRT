@@ -96,7 +96,6 @@ namespace xdp {
         }
     }
  
-
     // Tile-based metrics settings
     std::vector<std::string> tileMetricsConfig;
     tileMetricsConfig.push_back(xrt_core::config::get_aie_profile_settings_tile_based_aie_metrics());
@@ -177,6 +176,11 @@ namespace xdp {
               MetricCollection collection;
               for (const auto& metricData : metrics) {
                   auto metric = MetricsFactory::createMetric(type, metricData);
+                  if (!metric) {
+                        xrt_core::message::send(severity_level::warning, "XRT",
+                        "Failed to create metric for type: " + std::to_string(static_cast<int>(type)));
+                      continue;
+                  }
                   
                   if (jsonContainsAllRange(type, metricData)) {
                       metric->setAllTiles(true);
