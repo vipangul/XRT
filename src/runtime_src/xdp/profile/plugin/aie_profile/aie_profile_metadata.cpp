@@ -156,6 +156,8 @@ namespace xdp {
   {
       for (const auto& [sectionKey, modules] : config.sections) {
           for (const auto& [moduleKey, metrics] : modules) {
+
+              bool isGraphsType = (sectionKey == "graphs");
               
               // Handle plugin-specific module key mappings
               std::string mappedModuleKey = moduleKey;
@@ -184,6 +186,8 @@ namespace xdp {
                   
                   collection.addMetric(std::move(metric));
               }
+              if (isGraphsType)
+                collection.setGraphBased(true);
               
               manager.addMetricCollection(moduleType, moduleKey, std::move(collection));
           }

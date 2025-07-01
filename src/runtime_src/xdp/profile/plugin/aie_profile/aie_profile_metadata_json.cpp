@@ -23,29 +23,10 @@ namespace xdp {
   /****************************************************************************
    * Resolve metrics for AIE or Memory tiles
    ***************************************************************************/
-  void AieProfileMetadata::getConfigMetricsForTilesUsingJson(const int moduleIdx, 
+  void AieProfileMetadata::populateGraphConfigMetricsForTilesUsingJson(const int moduleIdx, 
       const module_type mod, MetricsCollectionManager& metricsCollectionManager)
   {
     std::string metricSettingsName = moduleNames[moduleIdx];
-
-    const std::vector<std::unique_ptr<Metric>>* metrics = nullptr;
-    try {
-      const MetricCollection& tilesMetricCollection = metricsCollectionManager.getMetricCollection(mod, metricSettingsName);
-      const auto& metrics = tilesMetricCollection.metrics;
-
-    if (metrics.empty()) {
-      xrt_core::message::send(severity_level::debug, "XRT",
-                              "No metric collection found for " + metricSettingsName);
-      return;
-    }
-
-    if ((metadataReader->getHardwareGeneration() == 1) && (mod == module_type::mem_tile)) {
-      xrt_core::message::send(severity_level::warning, "XRT",
-                              "Memory tiles are not available in AIE1. Profile "
-                              "settings will be ignored.");
-      return;
-    }
-    
     uint8_t rowOffset     = (mod == module_type::mem_tile) ? 1 : metadataReader->getAIETileRowOffset();
     std::string entryName = (mod == module_type::mem_tile) ? "buffer" : "kernel";
     std::string modName   = (mod == module_type::core) ? "aie" 
@@ -59,6 +40,134 @@ namespace xdp {
     auto validTilesVec = metadataReader->getTiles("all", mod, "all");
     std::unique_copy(validTilesVec.begin(), validTilesVec.end(), std::inserter(allValidTiles, allValidTiles.end()),
                      xdp::aie::tileCompare);
+    const MetricCollection& tilesMetricCollection = metricsCollectionManager.getMetricCollection(mod, metricSettingsName);
+    const auto& metrics = tilesMetricCollection.metrics;
+
+
+    // Parse per-graph or per-kernel settings
+
+    /* AIE_profile_settings config format
+     *
+     * AI Engine Tiles
+     * graph_based_aie_metrics = <graph name|all>:<kernel name|all>
+     *   :<off|heat_map|stalls|execution|floating_point|write_throughputs|read_throughputs|aie_trace>
+     * graph_based_aie_memory_metrics = <graph name|all>:<kernel name|all>
+     *   :<off|conflicts|dma_locks|dma_stalls_s2mm|dma_stalls_mm2s|write_throughputs|read_throughputs>
+     * 
+     * Memory Tiles
+     * Memory tiles (AIE2 and beyond)
+     * graph_based_memory_tile_metrics = <graph name|all>:<buffer name|all>
+     *   :<off|input_channels|input_channels_details|output_channels|output_channels_details|memory_stats|mem_trace>[:<channel>]
+     */
+
+
+    bool allGraphs = false;
+    // Graph Pass 1.a : process "all" graph metric setting
+    for (size_t i = 0; i < metrics.size(); ++i) {
+
+      // Check if graph is not all or if invalid kernel
+      if (!metrics[i]->isAllTilesSet())
+        continue;
+      std::string graphName = metrics[i]->getGraph();
+      std::string graphEntity = metrics[i]->getGraphEntity();
+      if ((graphEntity != "all") &&
+          (std::find(allValidEntries.begin(), allValidEntries.end(), graphEntity) == allValidEntries.end())) {
+        std::stringstream msg;
+        msg << "Could not find " << entryName << " " << graphEntity
+            << " as specified in graph_based_" << modName << "_metrics setting."
+            << " The following " << entryName << "s are valid : " << allValidEntries[0];
+
+        for (size_t j = 1; j < allValidEntries.size(); j++)
+          msg << ", " << allValidEntries[j];
+
+        xrt_core::message::send(severity_level::warning, "XRT", msg.str());
+        continue;
+      }
+
+      auto tiles = metadataReader->getTiles(graphName, mod, graphEntity);
+      for (auto& e : tiles) {
+        configMetrics[moduleIdx][e] = metrics[i]->getMetric();
+      }
+
+      // Grab channel numbers (if specified; memory tiles only)
+      if ((metrics[i]->isChannel0Set()) && (metrics[i]->isChannel1Set())) {
+        try {
+          for (auto& e : tiles) {
+            configChannel0[e] = metrics[i]->getChannel0();
+            configChannel1[e] = metrics[i]->getChannel1();
+          }
+        }
+        catch (...) {
+          std::stringstream msg;
+          msg << "Channel specifications in graph_based_" << modName << "_metrics are not valid and hence ignored.";
+          xrt_core::message::send(severity_level::warning, "XRT", msg.str());
+        }
+      }
+      allGraphs = true;
+    } // Graph Pass 1
+
+    // Graph Pass 2 : process per graph metric setting
+    for (size_t i = 0; i < metrics.size(); ++i) {
+      // Check if already processed or if invalid
+      if (allGraphs)
+        break;
+      const std::string& graphName = metrics[i]->getGraph();
+      const std::string& graphEntity = metrics[i]->getGraphEntity();
+      if ((graphEntity != "all") &&
+          (std::find(allValidEntries.begin(), allValidEntries.end(), graphEntity) == allValidEntries.end())) {
+        std::stringstream msg;
+        msg << "Could not find " << entryName << " " << graphEntity
+            << " as specified in graph_based_" << modName << "_metrics setting."
+            << " The following " << entryName << "s are valid : " << allValidEntries[0];
+
+        for (size_t j = 1; j < allValidEntries.size(); j++)
+          msg << ", " << allValidEntries[j];
+
+        xrt_core::message::send(severity_level::warning, "XRT", msg.str());
+        continue;
+      }
+
+      // Capture all tiles in given graph
+      auto tiles = metadataReader->getTiles(graphName, mod, graphEntity);
+      for (auto& e : tiles) {
+        configMetrics[moduleIdx][e] = metrics[i]->getMetric();
+      }
+
+      // Grab channel numbers (if specified; memory tiles only)
+      if ((metrics[i]->isChannel0Set()) && (metrics[i]->isChannel1Set())) {
+        try {
+          for (auto& e : tiles) {
+            configChannel0[e] = metrics[i]->getChannel0();
+            configChannel1[e] = metrics[i]->getChannel1();
+          }
+        }
+        catch (...) {
+          std::stringstream msg;
+          msg << "Channel specifications in graph_based_" << modName << "_metrics are not valid and hence ignored.";
+          xrt_core::message::send(severity_level::warning, "XRT", msg.str());
+        }
+      }
+    } // Graph Pass 2
+  }
+
+  void AieProfileMetadata::populateTilesConfigMetricsForTilesUsingJson(const int moduleIdx, 
+        const module_type mod, MetricsCollectionManager& metricsCollectionManager)
+  {
+    std::string metricSettingsName = moduleNames[moduleIdx];
+    uint8_t rowOffset     = (mod == module_type::mem_tile) ? 1 : metadataReader->getAIETileRowOffset();
+    std::string entryName = (mod == module_type::mem_tile) ? "buffer" : "kernel";
+    std::string modName   = (mod == module_type::core) ? "aie" 
+                          : ((mod == module_type::dma) ? "aie_memory" : "memory_tile");
+
+    std::set<tile_type> allValidTiles;
+    auto validTilesVec = metadataReader->getTiles("all", mod, "all");
+    std::unique_copy(validTilesVec.begin(), validTilesVec.end(), std::inserter(allValidTiles, allValidTiles.end()),
+                     xdp::aie::tileCompare);
+
+ 
+
+      const MetricCollection& tilesMetricCollection = metricsCollectionManager.getMetricCollection(mod, metricSettingsName);
+      const auto& metrics = tilesMetricCollection.metrics;
 
     // NOTE: Only one of the following setting type can be specified in the JSON for a tile type.
     // Step 1a: Process all tiles metric setting ( "all_tiles"/"all_graphs" )
@@ -76,7 +185,7 @@ namespace xdp {
 
       auto tiles = metadataReader->getTiles("all", mod, "all");
       for (auto& e : tiles)
-        configMetrics[moduleIdx][e] = metrics[i]->metric;
+        configMetrics[moduleIdx][e] = metrics[i]->getMetric();
 
       // Use channel numbers if specified
       if (metrics[i]->isChannel0Set()) {
@@ -175,7 +284,7 @@ namespace xdp {
             continue;
           }
 
-          configMetrics[moduleIdx][tile] = metrics[i]->metric;
+          configMetrics[moduleIdx][tile] = metrics[i]->getMetric();
 
           // Grab channel numbers (if specified; memory tiles only)
           if (metrics[i]->areChannelsSet()) {
@@ -215,7 +324,7 @@ namespace xdp {
           continue;
         }
 
-        configMetrics[moduleIdx][tile] = metrics[i]->metric;
+        configMetrics[moduleIdx][tile] = metrics[i]->getMetric();
 
         // Grab channel numbers (if specified; memory tiles only)
         if (metrics[i]->areChannelsSet()) {
@@ -230,6 +339,49 @@ namespace xdp {
         continue;
       }
     } // End of pass 1c
+} // end of populateTilesConfigMetricsForTilesUsingJson
+
+  void AieProfileMetadata::getConfigMetricsForTilesUsingJson(const int moduleIdx, 
+      const module_type mod, MetricsCollectionManager& metricsCollectionManager)
+  {
+    std::string metricSettingsName = moduleNames[moduleIdx];
+
+    const std::vector<std::unique_ptr<Metric>>* metrics = nullptr;
+    try {
+      const MetricCollection& tilesMetricCollection = metricsCollectionManager.getMetricCollection(mod, metricSettingsName);
+      const auto& metrics = tilesMetricCollection.metrics;
+
+    if (metrics.empty()) {
+      xrt_core::message::send(severity_level::debug, "XRT",
+                              "No metric collection found for " + metricSettingsName);
+      return;
+    }
+
+    if ((metadataReader->getHardwareGeneration() == 1) && (mod == module_type::mem_tile)) {
+      xrt_core::message::send(severity_level::warning, "XRT",
+                              "Memory tiles are not available in AIE1. Profile "
+                              "settings will be ignored.");
+      return;
+    }
+
+    if (tilesMetricCollection.isGraphBased())
+      populateGraphConfigMetricsForTilesUsingJson(moduleIdx, mod, metricsCollectionManager);
+    else if (tilesMetricCollection.isTileBased())
+      populateTilesConfigMetricsForTilesUsingJson(moduleIdx, mod, metricsCollectionManager);
+
+    // uint8_t rowOffset     = (mod == module_type::mem_tile) ? 1 : metadataReader->getAIETileRowOffset();
+    // std::string entryName = (mod == module_type::mem_tile) ? "buffer" : "kernel";
+    // std::string modName   = (mod == module_type::core) ? "aie" 
+    //                       : ((mod == module_type::dma) ? "aie_memory" : "memory_tile");
+
+    // auto allValidGraphs  = metadataReader->getValidGraphs();
+    // std::vector<std::string> allValidEntries = (mod == module_type::mem_tile) ?
+    //   metadataReader->getValidBuffers() : metadataReader->getValidKernels();
+
+    // std::set<tile_type> allValidTiles;
+    // auto validTilesVec = metadataReader->getTiles("all", mod, "all");
+    // std::unique_copy(validTilesVec.begin(), validTilesVec.end(), std::inserter(allValidTiles, allValidTiles.end()),
+    //                  xdp::aie::tileCompare);
 
     // Set default, check validity, and remove "off" tiles
     auto defaultSet = defaultSets[moduleIdx];
@@ -346,13 +498,13 @@ namespace xdp {
           if (metrics[i]->isChannel0Set()) {
             channelId0 = metrics[i]->getChannel0();
             channelId1 = metrics[i]->isChannel1Set() ? metrics[i]->getChannel1() : channelId0;
-            tiles = metadataReader->getInterfaceTiles("all", "all", metrics[i]->metric, channelId0);
+            tiles = metadataReader->getInterfaceTiles("all", "all", metrics[i]->getMetric(), channelId0);
           }
           else
-            tiles = metadataReader->getInterfaceTiles("all", "all", metrics[i]->metric);
+            tiles = metadataReader->getInterfaceTiles("all", "all", metrics[i]->getMetric());
 
           for (auto& t : tiles) {
-            configMetrics[moduleIdx][t] = metrics[i]->metric;
+            configMetrics[moduleIdx][t] = metrics[i]->getMetric();
             configChannel0[t] = channelId0;
             configChannel1[t] = channelId1;
           }
@@ -368,7 +520,7 @@ namespace xdp {
             break;
  
           // TODO: Add Support for Profile API metric sets
-          // if (!isSupported(metrics[i]->metric, true))
+          // if (!isSupported(metrics[i]->getMetric(), true))
           //   continue;
 
           uint8_t minCol = 0, maxCol = 0;
@@ -431,14 +583,14 @@ namespace xdp {
             // }
 
           int16_t channelNum = (foundChannels) ? channelId0 : -1;
-          auto tiles = metadataReader->getInterfaceTiles("all", "all", metrics[i]->metric, channelNum, true, minCol, maxCol);
+          auto tiles = metadataReader->getInterfaceTiles("all", "all", metrics[i]->getMetric(), channelNum, true, minCol, maxCol);
           std::cout << "!!! Total tiles: " << tiles.size() << std::endl;
           
           for (auto& t : tiles) {
             std::cout << "\t !!! Tile: (" << std::to_string(t.col) << ","
                       << std::to_string(t.row) << ")" << std::endl;
             std::cout << t << std::endl;
-            configMetrics[moduleIdx][t] = metrics[i]->metric;
+            configMetrics[moduleIdx][t] = metrics[i]->getMetric();
             configChannel0[t] = channelId0;
             configChannel1[t] = channelId1;
           }
@@ -470,13 +622,13 @@ namespace xdp {
             }
                 
             int16_t channelNum = (foundChannels) ? channelId0 : -1;
-            auto tiles = metadataReader->getInterfaceTiles("all", "all", metrics[i]->metric, channelNum, true, col, col);
+            auto tiles = metadataReader->getInterfaceTiles("all", "all", metrics[i]->getMetric(), channelNum, true, col, col);
             
             for (auto& t : tiles) {
-              configMetrics[moduleIdx][t] = metrics[i]->metric;
+              configMetrics[moduleIdx][t] = metrics[i]->getMetric();
               configChannel0[t] = channelId0;
               configChannel1[t] = channelId1;
-              // if (metrics[i]->metric == METRIC_BYTE_COUNT)
+              // if (metrics[i]->getMetric() == METRIC_BYTE_COUNT)
               //   setUserSpecifiedBytes(t, bytes);
             }
           } // Pass 1c: process single tile metric setting
@@ -559,7 +711,7 @@ namespace xdp {
         auto tiles = metadataReader->getMicrocontrollers(false);
 
         for (auto& t : tiles)
-          configMetrics[moduleIdx][t] = metrics[i]->metric;
+          configMetrics[moduleIdx][t] = metrics[i]->getMetric();
         
         isAllTilesSet = true;
       } // end of pass 1a
@@ -581,7 +733,7 @@ namespace xdp {
         auto tiles = metadataReader->getMicrocontrollers(true, minCol, maxCol);
         
         for (auto& t : tiles)
-          configMetrics[moduleIdx][t] = metrics[i]->metric;
+          configMetrics[moduleIdx][t] = metrics[i]->getMetric();
         
         isTileRangeSet = true;
       } // end of pass 1b
@@ -606,7 +758,7 @@ namespace xdp {
         auto tiles = metadataReader->getMicrocontrollers(true, col, col);
           
         for (auto& t : tiles)
-          configMetrics[moduleIdx][t] = metrics[i]->metric;
+          configMetrics[moduleIdx][t] = metrics[i]->getMetric();
       }
 
       // Set default, check validity, and remove "off" tiles

@@ -63,6 +63,8 @@ namespace xdp {
       virtual std::vector<uint8_t> getEndTile() const;
       virtual uint8_t getCol() const = 0;
       virtual uint8_t getRow() const = 0;
+      virtual std::string getGraph()  const { return ""; }
+      virtual std::string getGraphEntity() const { return ""; }
       virtual void setAllTiles(bool allTiles) = 0;
       virtual bool isAllTilesSet() const = 0;
       virtual void setTilesRange(bool tileRange) = 0;
@@ -76,6 +78,7 @@ namespace xdp {
     std::optional<std::vector<uint8_t>> channels;
     std::optional<std::string> bytes_to_transfer;
 
+    const std::string& getMetric() const { return metric; }
     bool areChannelsSet() const;
     bool isChannel0Set() const;
     bool isChannel1Set() const;
@@ -103,6 +106,8 @@ namespace xdp {
                             std::optional<std::vector<uint8_t>> ch = std::nullopt, std::optional<std::string> bytes = std::nullopt);
       // Create from ptree
       static std::unique_ptr<Metric> processSettings(const boost::property_tree::ptree& obj);
+      std::string getGraph() const override  { return graph; }
+      std::string getGraphEntity() const override { return entity; }
       uint8_t getCol() const override { return col; }
       uint8_t getRow() const override { return row; }
       void setAllTiles(bool allTiles) override { allTilesRange = allTiles; }

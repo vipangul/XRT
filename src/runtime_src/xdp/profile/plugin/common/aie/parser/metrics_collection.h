@@ -18,6 +18,8 @@
 namespace xdp {
   // MetricCollection class for managing a collection of metrics
   class MetricCollection {
+    bool tileBased = true;   // collection is tile-based, Default
+    bool graphBased = false; // collection is graph-based
   public:
       std::vector<std::unique_ptr<Metric>> metrics;
 
@@ -36,6 +38,11 @@ namespace xdp {
       void addMetric(std::unique_ptr<Metric> metric);
       bool hasAllTileRanges() const;
       bool hasIndividualTiles() const;
+
+      bool isTileBased() const { return tileBased; }
+      bool isGraphBased() const { return graphBased; }
+      void setTileBased(bool value) { tileBased = value; }
+      void setGraphBased(bool value) { graphBased = value; }
 
       // Convert to ptree array
       boost::property_tree::ptree toPtree() const;
