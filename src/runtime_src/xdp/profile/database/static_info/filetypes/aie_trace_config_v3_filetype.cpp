@@ -47,7 +47,7 @@ AIETraceConfigV3Filetype::getValidKernels() const
         // TODO: code review this usecase
         // Store the complete function name
         // e.g. "graph_name.kernel_name" or "graph_name.kernel_name.sub_kernel
-        functions.push_back(functionStr);
+        kernels.push_back(functionStr);
     }
     return kernels;
 }
