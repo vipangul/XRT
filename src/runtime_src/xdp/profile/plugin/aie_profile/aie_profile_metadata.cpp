@@ -30,11 +30,9 @@
 #include "xdp/profile/plugin/vp_base/vp_base_plugin.h"
 #include "xdp/profile/plugin/parser/metrics.h"
 #include "xdp/profile/plugin/parser/json_parser.h"
-// #include "xdp/profile/plugin/aie_profile/aie_profile_metadata_json.cpp"
 #include "xdp/profile/plugin/parser/metrics_collection_manager.h"
 #include "xdp/profile/plugin/parser/metrics_factory.h"
 #include "xdp/profile/plugin/parser/parser_utils.h"
-// #include "xdp/profile/plugin/vp_base/utility.h"
 
 namespace xdp {
   using severity_level = xrt_core::message::severity_level;

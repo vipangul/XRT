@@ -10,6 +10,7 @@
 #include "core/common/config_reader.h"
 #include "xdp/config.h"
 #include "xdp/profile/plugin/parser/metrics_type.h"
+#include "xdp/profile/database/static_info/aie_constructs.h"
 
 namespace xdp {
 
@@ -22,6 +23,8 @@ namespace xdp {
     return result;
   }
 
+  XDP_CORE_EXPORT MetricType getMetricTypeFromKey(const std::string& settingsKey, const std::string& key);
+  XDP_CORE_EXPORT module_type getModuleTypeFromKey(const std::string& key);
   XDP_CORE_EXPORT bool jsonContainsRange(MetricType metricType, const boost::property_tree::ptree& jsonObj);
   XDP_CORE_EXPORT bool jsonContainsAllRange(MetricType metricType, const boost::property_tree::ptree& jsonObj);
   // XDP_CORE_EXPORT bool parseXdpJson(SettingsJsonParser& jsonParser, boost::property_tree::ptree& jsonTree);

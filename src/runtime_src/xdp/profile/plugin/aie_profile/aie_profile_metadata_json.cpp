@@ -102,6 +102,12 @@ namespace xdp {
     // Step 1a: Process all graphs metric setting ( "all_graphs" )
     for (size_t i = 0; i < metrics.size(); ++i) {
 
+      if (!metrics[i]->isGraphBased()) {
+        std::cout << "!!! [1] WARNING: Skipping metric " << metrics[i]->getMetric()
+                  << " as it is not graph-based." << std::endl;
+        continue;
+      }
+
       // Check if graph is not all or if invalid kernel
       if (!metrics[i]->isAllTilesSet())
         continue;
@@ -153,6 +159,12 @@ namespace xdp {
       // Check if already processed or if invalid
       if (allGraphs)
         break;
+      if (!metrics[i]->isGraphBased()) {
+        std::cout << "!!! [2] WARNING: Skipping metric " << metrics[i]->getMetric()
+                  << " as it is not graph-based." << std::endl;
+        continue;
+      }
+
       const std::string& graphName = metrics[i]->getGraph();
       const std::string& graphEntity = metrics[i]->getGraphEntity();
       if ((graphEntity != "all") &&
@@ -219,8 +231,14 @@ namespace xdp {
     bool isAllTilesSet = false;
     bool isTileRangeSet = false;
 
-    // Step 1a: Process "all_tiles"/"all_graphs" tiles metric setting
+    // Step 1a: Process "all_tiles" tiles metric setting
     for (size_t i = 0; i < metrics.size(); ++i) {
+
+      if (!metrics[i]->isTileBased()) {
+        std::cout << "!!! [1] WARNING: Skipping metric " << metrics[i]->getMetric()
+                  << " as it is not tile-based." << std::endl;
+        continue;
+      }
 
       // Check if all tiles are set or is already processed
       if ((!metrics[i]->isAllTilesSet()) || isAllTilesSet)
@@ -247,6 +265,13 @@ namespace xdp {
       // NOTE: If all tiles/graphs are already set, skip this pass
       if (isAllTilesSet)
         break;
+
+      if (!metrics[i]->isTileBased()) {
+        std::cout << "!!! [2] WARNING: Skipping metric " << metrics[i]->getMetric()
+                  << " as it is not tile-based." << std::endl;
+        continue;
+      }
+
       if (!metrics[i]->isTilesRangeSet())
         break;
  
@@ -344,7 +369,13 @@ namespace xdp {
     for (size_t i = 0; i < metrics.size(); ++i) {
       if (isAllTilesSet || isTileRangeSet)
         break;
-      
+
+      if (!metrics[i]->isTileBased()) {
+        std::cout << "!!! [3] WARNING: Skipping metric " << metrics[i]->getMetric()
+                  << " as it is not tile-based." << std::endl;
+        continue;
+      }      
+
       try {
         uint8_t col, row;
         col = metrics[i]->getCol();

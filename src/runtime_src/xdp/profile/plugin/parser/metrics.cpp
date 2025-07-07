@@ -5,16 +5,6 @@
 
 namespace xdp {
 
-    std::vector<uint8_t>
-    Metric::getStartTile() const {
-        return {}; // Default implementation for base class
-    }
-
-    std::vector<uint8_t>
-    Metric::getEndTile() const {
-        return {}; // Default implementation for base class
-    }
-
     void 
     Metric::print() const {
         std::cout << "Metric: " << metric;
@@ -125,7 +115,7 @@ namespace xdp {
     void
     GraphBasedMetricEntry::print() const {
         std::cout << "^^^ print GraphBasedMetricEntry- Graph:" << graph << ", Entity: " << entity;
-        std::cout << "Col: " << static_cast<int>(col) << ", Row: " << static_cast<int>(row) << ", Metric: " << metric;
+        std::cout <<  ", Metric: " << metric;
         // std::cout << ", Channels: ";
         // if (channels.has_value()) {
         //     for (const auto& channel : *channels) {
@@ -149,20 +139,6 @@ namespace xdp {
     TileBasedMetricEntry::TileBasedMetricEntry(std::vector<uint8_t> startTile, std::vector<uint8_t> endTile, std::string metric, 
                          std::optional<std::vector<uint8_t>> channels, std::optional<std::string> bytes)
         : Metric(std::move(metric), std::move(channels), std::move(bytes)), startTile(std::move(startTile)), endTile(std::move(endTile)) {}
-    
-
-    std::vector<uint8_t>
-    TileBasedMetricEntry::getStartTile() const {
-      std::cout << "!!! TileBasedMetricEntry::getStartTile(): ";
-      return startTile;
-    }
-
-    std::vector<uint8_t>
-    TileBasedMetricEntry::getEndTile() const {
-      std::cout << "!!! TileBasedMetricEntry::getEndTile(): ";
-      return endTile;
-    }
-        
     
     boost::property_tree::ptree
     TileBasedMetricEntry::toPtree() const {

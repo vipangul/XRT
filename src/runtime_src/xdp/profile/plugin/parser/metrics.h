@@ -21,55 +21,28 @@ namespace xdp {
   namespace pt = boost::property_tree;
   using severity_level = xrt_core::message::severity_level;
 
-  inline MetricType getMetricTypeFromKey(const std::string& settingsKey, const std::string& key) {
-    if (settingsKey == "tiles") {
-      if (key == "aie_tile")        return MetricType::TILE_BASED_AIE_TILE;
-      if (key == "aie")             return MetricType::TILE_BASED_CORE_MOD;
-      if (key == "aie_memory")      return MetricType::TILE_BASED_MEM_MOD;
-      if (key == "interface_tile")  return MetricType::TILE_BASED_INTERFACE_TILE;
-      if (key == "memory_tile")     return MetricType::TILE_BASED_MEM_TILE;
-      if (key == "microcontroller") return MetricType::TILE_BASED_UC;
-    } else if (settingsKey == "graphs") {
-      if (key == "aie_tile")        return MetricType::GRAPH_BASED_AIE_TILE;
-      if (key == "aie")             return MetricType::GRAPH_BASED_CORE_MOD;
-      if (key == "aie_memory")      return MetricType::GRAPH_BASED_MEM_MOD;
-      if (key == "interface_tile")  return MetricType::GRAPH_BASED_INTERFACE_TILE;
-      if (key == "memory_tile")     return MetricType::GRAPH_BASED_MEM_TILE;
-    }
-    return MetricType::NUM_TYPES;
-  }
-
-  inline module_type getModuleTypeFromKey(const std::string& key) {
-    static const std::map<std::string, module_type> keyToModuleType = {
-        {"aie",             module_type::core},
-        {"aie_memory",      module_type::dma},
-        {"interface_tile",  module_type::shim},
-        {"memory_tile",     module_type::mem_tile},
-        {"microcontroller", module_type::uc}
-    };
-
-    auto it = keyToModuleType.find(key);
-    return (it != keyToModuleType.end()) ? it->second : module_type::num_types;
-  }
-
   // --------------------------------------------------------------------------------------------------------------------
   // Base interface for all metrics
   class Metric {
   public:
       virtual ~Metric() = default;
-      // Create a metric from ptree
-      static std::unique_ptr<Metric> processSettings(const boost::property_tree::ptree& obj);
-      virtual std::vector<uint8_t> getStartTile() const;
-      virtual std::vector<uint8_t> getEndTile() const;
-      virtual uint8_t getCol() const = 0;
-      virtual uint8_t getRow() const = 0;
-      virtual std::string getGraph()  const { return ""; }
+
+      virtual void setAllTiles(bool allTiles) { allTilesRange = allTiles; }
+      virtual bool isAllTilesSet() const      { return allTilesRange; }
+      virtual void setTilesRange(bool range)  { tileRange = range; }
+      virtual bool isTilesRangeSet() const    { return tileRange; }
+
+      virtual std::string getGraph() const { return ""; }
       virtual std::string getGraphEntity() const { return ""; }
-      virtual void setAllTiles(bool allTiles) = 0;
-      virtual bool isAllTilesSet() const = 0;
-      virtual void setTilesRange(bool tileRange) = 0;
-      virtual bool isTilesRangeSet() const = 0;
-    
+
+      virtual std::vector<uint8_t> getStartTile() const { return {}; }
+      virtual std::vector<uint8_t> getEndTile() const { return {}; }
+      virtual uint8_t getCol() const { return 0; }
+      virtual uint8_t getRow() const { return 0; }
+
+      virtual bool isGraphBased() const { return false; }
+      virtual bool isTileBased() const { return false; }
+ 
       virtual void print() const;
       // Convert metric to ptree
       virtual boost::property_tree::ptree toPtree() const = 0;
@@ -77,6 +50,8 @@ namespace xdp {
     std::string metric;
     std::optional<std::vector<uint8_t>> channels;
     std::optional<std::string> bytes_to_transfer;
+    bool allTilesRange = false;
+    bool tileRange = false;
 
     const std::string& getMetric() const { return metric; }
     bool areChannelsSet() const;
@@ -97,24 +72,17 @@ namespace xdp {
   public:
       std::string graph;
       std::string entity;
-      uint8_t col, row;
-      bool allTilesRange = false;
-      bool tileRange = false;
-
+      
       // Constructor
       GraphBasedMetricEntry(std::string graph, std::string entity, std::string metric, 
                             std::optional<std::vector<uint8_t>> ch = std::nullopt, std::optional<std::string> bytes = std::nullopt);
       // Create from ptree
       static std::unique_ptr<Metric> processSettings(const boost::property_tree::ptree& obj);
-      std::string getGraph() const override  { return graph; }
+      std::string getGraph() const override       { return graph; }
       std::string getGraphEntity() const override { return entity; }
-      uint8_t getCol() const override { return col; }
-      uint8_t getRow() const override { return row; }
-      void setAllTiles(bool allTiles) override { allTilesRange = allTiles; }
-      bool isAllTilesSet() const { return allTilesRange; }
-      virtual void setTilesRange(bool tileRange) override { tileRange = tileRange; }
-      virtual bool isTilesRangeSet() const { return tileRange; }
-      
+      virtual bool isGraphBased() const override  { return true; }
+      virtual bool isTileBased() const override   { return false; }
+     
       // Debug Methods
       boost::property_tree::ptree toPtree() const override;
       void print() const;
@@ -126,8 +94,6 @@ namespace xdp {
       std::vector<uint8_t> startTile;
       std::vector<uint8_t> endTile;
       uint8_t col, row;
-      bool allTilesRange = false;
-      bool tileRange = false;
 
       // Constructor based on column and row per tile
       TileBasedMetricEntry(uint8_t col, uint8_t row, std::string metric,
@@ -138,15 +104,14 @@ namespace xdp {
                            std::optional<std::vector<uint8_t>> ch = std::nullopt, std::optional<std::string> bytes = std::nullopt);
       // Create from ptree
       static std::unique_ptr<Metric> processSettings(const boost::property_tree::ptree& obj);
-      std::vector<uint8_t> getStartTile() const override;
-      std::vector<uint8_t> getEndTile() const override;
-      uint8_t getCol() const override { return col; }
-      uint8_t getRow() const override { return row; }
-
-      void setAllTiles(bool allTiles) override { allTilesRange = allTiles; }
-      bool isAllTilesSet() const { return allTilesRange; }
-      virtual void setTilesRange(bool tileRange) override { tileRange = tileRange; }
-      virtual bool isTilesRangeSet() const { return tileRange; }
+      
+      virtual std::vector<uint8_t> getStartTile() const override { return startTile; }
+      virtual std::vector<uint8_t> getEndTile() const override   { return endTile; }
+      virtual uint8_t getCol() const override { return col; }
+      virtual uint8_t getRow() const override { return row; }
+      
+      virtual bool isGraphBased() const override { return false; }
+      virtual bool isTileBased() const override  { return true; }
  
       // Debug Methods
       boost::property_tree::ptree toPtree() const override;
