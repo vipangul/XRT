@@ -56,9 +56,9 @@ namespace xdp {
         return ""; // or throw an exception
     }
 
-    Metric::Metric(std::string metric, std::optional<std::vector<uint8_t>> channels, 
-                   std::optional<std::string> bytes)
-        : metric(std::move(metric)), channels(std::move(channels)), bytes_to_transfer(std::move(bytes)) {}
+    // Metric::Metric(std::string metric, std::optional<std::vector<uint8_t>> channels, 
+    //                std::optional<std::string> bytes)
+    //     : metric(std::move(metric)), channels(std::move(channels)), bytes_to_transfer(std::move(bytes)) {}
 
     void
     Metric::addCommonFields(boost::property_tree::ptree& obj) const {
@@ -79,10 +79,6 @@ namespace xdp {
 
     // --------------------------------------------------------------------------------------------------------------------
     // GraphBasedMetricEntry class Definitions
-    GraphBasedMetricEntry::GraphBasedMetricEntry(std::string graph, std::string entity, std::string metric, 
-                          std::optional<std::vector<uint8_t>> channels, std::optional<std::string> bytes)
-        : Metric(std::move(metric), std::move(channels), std::move(bytes)), graph(std::move(graph)), entity(std::move(entity)) {}
-
     boost::property_tree::ptree
     GraphBasedMetricEntry::toPtree() const {
         boost::property_tree::ptree obj;
@@ -129,17 +125,6 @@ namespace xdp {
 
     // --------------------------------------------------------------------------------------------------------------------
     // TileBasedMetricEntry class Definitions
-    TileBasedMetricEntry::TileBasedMetricEntry(uint8_t c, uint8_t r, std::string metric, 
-                         std::optional<std::vector<uint8_t>> channels, std::optional<std::string> bytes)
-        : Metric(std::move(metric), std::move(channels), std::move(bytes)) {
-        col = c;
-        row = r;
-    }
-
-    TileBasedMetricEntry::TileBasedMetricEntry(std::vector<uint8_t> startTile, std::vector<uint8_t> endTile, std::string metric, 
-                         std::optional<std::vector<uint8_t>> channels, std::optional<std::string> bytes)
-        : Metric(std::move(metric), std::move(channels), std::move(bytes)), startTile(std::move(startTile)), endTile(std::move(endTile)) {}
-    
     boost::property_tree::ptree
     TileBasedMetricEntry::toPtree() const {
         boost::property_tree::ptree obj;
