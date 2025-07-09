@@ -168,6 +168,22 @@ namespace xdp {
                         continue;
                     }
 
+                    // Validate each metric entry
+                    for (const auto& item : moduleArray) {
+                        ValidationResult result = validateMetricEntry(item.second, moduleKey);
+                        for (const auto& error : result.errors) {
+                            xrt_core::message::send(severity_level::error, "XRT", 
+                                "Schema error in " + moduleKey + ": " + error);
+                        }
+                        for (const auto& warning : result.warnings) {
+                            xrt_core::message::send(severity_level::warning, "XRT", 
+                                "Schema warning in " + moduleKey + ": " + warning);
+                        }
+                        if (!result.isValid) {
+                          continue;
+                        }
+                    }
+
                     // Check for conflict - same module in different section
                     if (moduleToFirstSection.find(moduleKey) != moduleToFirstSection.end()) {
                         std::string firstSection = moduleToFirstSection[moduleKey];
@@ -217,4 +233,98 @@ namespace xdp {
         auto it = PLUGIN_SECTIONS.find(pluginType);
         return (it != PLUGIN_SECTIONS.end()) ? it->second : std::vector<std::string>{};
     }
+
+    const std::map<std::string, std::vector<SchemaField>> SettingsJsonParser::MODULE_SCHEMAS = {
+    {"aie", {
+        SchemaField("graph", true, "string"),
+        SchemaField("kernel", true, "string"),
+        SchemaField("metric", true, "string"),
+        SchemaField("channels", false, "array")
+    }},
+    {"aie_memory", {
+        SchemaField("graph", true, "string"),
+        SchemaField("kernel", true, "string"),
+        SchemaField("metric", true, "string"),
+        SchemaField("channels", false, "array"),
+    }},
+    {"memory_tile", {
+        SchemaField("graph", true, "string"),
+        SchemaField("buffer", true, "string"),
+        SchemaField("metric", true, "string"),
+        SchemaField("channels", false, "array")
+    }},
+    {"interface_tile", {
+        SchemaField("graph", true, "string"),
+        SchemaField("port", true, "string"),
+        SchemaField("metric", true, "string"),
+        SchemaField("channels", false, "array"),
+        SchemaField("bytes", false, "string")
+    }}
+  };
+
+  ValidationResult SettingsJsonParser::validateMetricEntry(const pt::ptree& entry, const std::string& moduleName) {
+    ValidationResult result;
+    
+    auto schema = getSchemaForModule(moduleName);
+    
+    for (const auto& field : schema) {
+        ValidationResult fieldResult = validateField(entry, field);
+        result.errors.insert(result.errors.end(), fieldResult.errors.begin(), fieldResult.errors.end());
+        result.warnings.insert(result.warnings.end(), fieldResult.warnings.begin(), fieldResult.warnings.end());
+        if (!fieldResult.isValid) {
+            result.isValid = false;
+        }
+    }
+    
+    return result;
+}
+
+ValidationResult SettingsJsonParser::validateField(const pt::ptree& entry, const SchemaField& field) {
+    ValidationResult result;
+    
+    auto fieldOpt = entry.get_child_optional(field.name);
+    
+    if (field.required && fieldOpt == boost::none) {
+        result.addError("Required field '" + field.name + "' is missing");
+        return result;
+    }
+    
+    // if (fieldOpt == boost::none) {
+    //     return result; // Optional field not present
+    // }
+    
+    try {
+        if (field.type == "string") {
+            fieldOpt->get_value<std::string>();
+        } else if (field.type == "array" && field.name == "channels") {
+            if (!isValidChannelArray(*fieldOpt)) {
+                result.addError("Invalid channels array format");
+            }
+        }
+    } catch (const std::exception& e) {
+        result.addError("Invalid value for field '" + field.name + "': " + e.what());
+    }
+    
+    return result;
+}
+
+bool SettingsJsonParser::isValidChannelArray(const pt::ptree& channelsArray) const {
+    try {
+        for (const auto& channelNode : channelsArray) {
+            int channel = channelNode.second.get_value<int>();
+            if (channel < 0 || channel > 255) {
+                return false;
+            }
+        }
+        return true;
+    } catch (const std::exception&) {
+        return false;
+    }
+}
+
+std::vector<SchemaField> SettingsJsonParser::getSchemaForModule(const std::string& moduleName) const {
+    auto it = MODULE_SCHEMAS.find(moduleName);
+    return (it != MODULE_SCHEMAS.end()) ? it->second : std::vector<SchemaField>{};
+}
+
 };

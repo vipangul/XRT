@@ -22,6 +22,32 @@ namespace xdp {
   namespace pt = boost::property_tree;
   using severity_level = xrt_core::message::severity_level;
 
+  // Datastructures for JSON validation
+    struct ValidationResult {
+      bool isValid = true;
+      std::vector<std::string> errors;
+      std::vector<std::string> warnings;
+      
+      void addError(const std::string& message) {
+          errors.push_back(message);
+          isValid = false;
+      }
+      
+      void addWarning(const std::string& message) {
+          warnings.push_back(message);
+      }
+  };
+
+  struct SchemaField {
+      std::string name; // Json field name
+      bool required;    // Is this field required?
+      std::string type; // Expected type of the field (e.g. "string", "int", "array", etc.)
+      
+      SchemaField(const std::string& n, bool req, const std::string& t)
+          : name(n), required(req), type(t) {}
+  };
+
+  // Datastructures for valid JSON parsing and configuration
   enum class PluginType {
       AIE_PROFILE,
       AIE_TRACE,
@@ -30,6 +56,7 @@ namespace xdp {
 
   struct JsonPluginConfig {
       PluginType type;
+      // "tiles"/"graphs" , <aie/aie_memory/memory_tile/interface_tile>, <JSON objects>>
       std::map<std::string, std::map<std::string, std::vector<pt::ptree>>> sections;
       bool isValid = false;
       std::string errorMessage;
@@ -62,8 +89,20 @@ namespace xdp {
       static const std::map<PluginType, std::vector<std::string>> PLUGIN_SECTIONS;
       
       JsonParseResult parseWithStatus(const std::string& jsonFilePath);
-      // bool validatePluginSchema(const pt::ptree& tree, PluginType pluginType);
+
+      // Plugin-specific validation
       PluginType getPluginTypeFromString(const std::string& pluginName);
+      std::vector<std::string> getSupportedModules(PluginType pluginType);
+      std::vector<std::string> getSupportedSections(PluginType pluginType);
+
+      // JSON validation methods
+      static const std::map<std::string, std::vector<SchemaField>> MODULE_SCHEMAS;
+      
+      bool validatePluginSchema(const pt::ptree& tree, PluginType pluginType);
+      ValidationResult validateMetricEntry(const pt::ptree& entry, const std::string& moduleName);
+      ValidationResult validateField(const pt::ptree& entry, const SchemaField& field);
+      bool isValidChannelArray(const pt::ptree& channelsArray) const;
+      std::vector<SchemaField> getSchemaForModule(const std::string& moduleName) const;
       
     public:
       static SettingsJsonParser& getInstance() {
@@ -79,9 +118,6 @@ namespace xdp {
       XdpConfig parseXdpConfig(const std::string& jsonFilePath, PluginType queryPluginType);
       JsonPluginConfig parseJsonPluginConfig(const pt::ptree& tree, PluginType pluginType);
       
-      // Plugin-specific validation
-      std::vector<std::string> getSupportedModules(PluginType pluginType);
-      std::vector<std::string> getSupportedSections(PluginType pluginType);
   };
 } // namespace xdp
 
