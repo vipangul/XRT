@@ -79,17 +79,17 @@ namespace xdp {
 
     // --------------------------------------------------------------------------------------------------------------------
     // GraphBasedMetricEntry class Definitions
-    boost::property_tree::ptree
-    GraphBasedMetricEntry::toPtree() const {
-        boost::property_tree::ptree obj;
-        obj.put("graph", graph);
-        obj.put("entity", entity);
-        addCommonFields(obj);
-        return obj;
-    }
+    // boost::property_tree::ptree
+    // GraphBasedMetricEntry::toPtree() const {
+    //     boost::property_tree::ptree obj;
+    //     obj.put("graph", graph);
+    //     obj.put("entity", entity);
+    //     addCommonFields(obj);
+    //     return obj;
+    // }
 
     std::unique_ptr<Metric>
-    GraphBasedMetricEntry::processSettings(const boost::property_tree::ptree& obj) {
+    GraphBasedMetricEntry::processSettings(const MetricType& type, const boost::property_tree::ptree& obj) {
         std::optional<std::vector<uint8_t>> channels = std::nullopt;
         if (obj.get_child_optional("channels")) {
             std::vector<uint8_t> parsedChannels;
@@ -99,29 +99,48 @@ namespace xdp {
             channels = parsedChannels;
         }
 
-        return std::make_unique<GraphBasedMetricEntry>(
-            obj.get<std::string>("graph", "all"),
-            obj.get<std::string>("entity", "all"),
-            obj.get<std::string>("metric", ""),
-            channels,
-            obj.get_optional<std::string>("bytes") ? std::make_optional(obj.get<std::string>("bytes")) : std::nullopt
-        );
+        // return std::make_unique<GraphBasedMetricEntry>(
+        //     obj.get<std::string>("graph", "all"),
+        //     obj.get<std::string>("entity", "all"),
+        //     obj.get<std::string>("metric", ""),
+        //     channels,
+        //     obj.get_optional<std::string>("bytes") ? std::make_optional(obj.get<std::string>("bytes")) : std::nullopt
+        // );
+
+        std::string graph = obj.get<std::string>("graph", "all");
+        std::string metric = obj.get<std::string>("metric", "");
+        auto bytes = obj.get_optional<std::string>("bytes") ? std::make_optional(obj.get<std::string>("bytes")) : std::nullopt;
+    
+        if ((type == MetricType::GRAPH_BASED_CORE_MOD) || (type == MetricType::GRAPH_BASED_MEM_MOD)) {
+            std::string kernel = obj.get<std::string>("kernel", "all");
+            return std::make_unique<AIEGraphBasedMetricEntry>(graph, kernel, metric, channels, bytes);
+        }
+        else if (type == MetricType::GRAPH_BASED_MEM_TILE) {
+            std::string buffer = obj.get<std::string>("buffer", "all");
+            return std::make_unique<MemoryTileGraphBasedMetricEntry>(graph, buffer, metric, channels, bytes);
+        }
+        else if (type == MetricType::GRAPH_BASED_INTERFACE_TILE) {
+            std::string port = obj.get<std::string>("port", "all");
+            return std::make_unique<InterfaceTileGraphBasedMetricEntry>(graph, port, metric, channels, bytes);
+        }
+        
+        throw std::invalid_argument("Unknown module type: " + std::to_string(static_cast<int>(type)));
     }
 
-    void
-    GraphBasedMetricEntry::print() const {
-        std::cout << "^^^ print GraphBasedMetricEntry- Graph:" << graph << ", Entity: " << entity;
-        std::cout <<  ", Metric: " << metric;
-        // std::cout << ", Channels: ";
-        // if (channels.has_value()) {
-        //     for (const auto& channel : *channels) {
-        //         std::cout << static_cast<int>(channel) << " "; // Print as int for readability
-        //     }
-        // } else {
-        //     std::cout << "Channels: None";
-        // }
-        Metric::print(); // Call the base class print method to show common fields
-    }
+    // void
+    // GraphBasedMetricEntry::print() const {
+    //     std::cout << "^^^ print GraphBasedMetricEntry- Graph:" << graph << ", Entity: " << entity;
+    //     std::cout <<  ", Metric: " << metric;
+    //     // std::cout << ", Channels: ";
+    //     // if (channels.has_value()) {
+    //     //     for (const auto& channel : *channels) {
+    //     //         std::cout << static_cast<int>(channel) << " "; // Print as int for readability
+    //     //     }
+    //     // } else {
+    //     //     std::cout << "Channels: None";
+    //     // }
+    //     Metric::print(); // Call the base class print method to show common fields
+    // }
 
     // --------------------------------------------------------------------------------------------------------------------
     // TileBasedMetricEntry class Definitions

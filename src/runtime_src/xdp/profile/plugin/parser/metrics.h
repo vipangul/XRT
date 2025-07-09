@@ -70,29 +70,6 @@ namespace xdp {
     void addCommonFields(boost::property_tree::ptree& obj) const;
   };
 
-  // GraphBasedMetricEntry class
-  class GraphBasedMetricEntry : public Metric {
-  public:
-      std::string graph;
-      std::string entity;
-      
-      // Constructor
-      GraphBasedMetricEntry(std::string graph, std::string entity, std::string metric, 
-                          std::optional<std::vector<uint8_t>> channels, std::optional<std::string> bytes)
-        : Metric(std::move(metric), std::move(channels), std::move(bytes)), graph(std::move(graph)), entity(std::move(entity)) {}
-
-      // Create from ptree
-      static std::unique_ptr<Metric> processSettings(const boost::property_tree::ptree& obj);
-      std::string getGraph() const override       { return graph; }
-      std::string getGraphEntity() const override { return entity; }
-      virtual bool isGraphBased() const override  { return true; }
-      virtual bool isTileBased() const override   { return false; }
-     
-      // Debug Methods
-      boost::property_tree::ptree toPtree() const override;
-      void print() const;
-  };
-
   // TileBasedMetricEntry class
   class TileBasedMetricEntry : public Metric {
   public:
@@ -125,6 +102,131 @@ namespace xdp {
       boost::property_tree::ptree toPtree() const override;
       void print() const;
   };
+
+  class GraphBasedMetricEntry : public Metric {
+  public:
+    std::string graph;
+    
+    GraphBasedMetricEntry(std::string graph, std::string metric, 
+                         std::optional<std::vector<uint8_t>> channels = std::nullopt, 
+                         std::optional<std::string> bytes = std::nullopt)
+        : Metric(std::move(metric), std::move(channels), std::move(bytes))
+        , graph(std::move(graph)) {}
+
+    static std::unique_ptr<Metric> processSettings(const MetricType& type, const boost::property_tree::ptree& obj);
+ 
+    // Override base class methods
+    std::string getGraph() const override { return graph; }
+    bool isGraphBased() const override { return true; }
+    
+    // Virtual methods with default implementations (empty for base class)
+    virtual std::string getKernel() const { return ""; }
+    virtual std::string getBuffer() const { return ""; }
+    virtual std::string getPort() const { return ""; }
+    
+    // For backward compatibility
+    std::string getGraphEntity() const override {
+        // Try each entity type and return the first non-empty one
+        std::string entity = getKernel();
+        if (!entity.empty()) return entity;
+        
+        entity = getBuffer();
+        if (!entity.empty()) return entity;
+        
+        entity = getPort();
+        if (!entity.empty()) return entity;
+        
+        return "all";  // fallback
+    }
+    
+    // Base implementation for ptree and print
+    virtual boost::property_tree::ptree toPtree() const = 0;
+    virtual void print() const = 0;
+};
+
+// AIE-specific (kernel-based)
+class AIEGraphBasedMetricEntry : public GraphBasedMetricEntry {
+public:
+    std::string kernel;
+    
+    AIEGraphBasedMetricEntry(std::string graph, std::string kernel, std::string metric,
+                            std::optional<std::vector<uint8_t>> channels = std::nullopt,
+                            std::optional<std::string> bytes = std::nullopt)
+        : GraphBasedMetricEntry(std::move(graph), std::move(metric), std::move(channels), std::move(bytes))
+        , kernel(std::move(kernel)) {}
+
+    // Override base class method
+    std::string getKernel() const override { return kernel; }
+
+   
+    boost::property_tree::ptree toPtree() const override {
+        boost::property_tree::ptree obj;
+        obj.put("graph", graph);
+        obj.put("kernel", kernel);
+        addCommonFields(obj);
+        return obj;
+    }
+
+    void print() const override {
+        std::cout << "AIE Graph-Based Metric - Graph: " << graph 
+                  << ", Kernel: " << kernel << ", Metric: " << metric << std::endl;
+    }
+};
+
+// Memory tile-specific (buffer-based)
+class MemoryTileGraphBasedMetricEntry : public GraphBasedMetricEntry {
+public:
+    std::string buffer;
+    
+    MemoryTileGraphBasedMetricEntry(std::string graph, std::string buffer, std::string metric,
+                                   std::optional<std::vector<uint8_t>> channels = std::nullopt,
+                                   std::optional<std::string> bytes = std::nullopt)
+        : GraphBasedMetricEntry(std::move(graph), std::move(metric), std::move(channels), std::move(bytes))
+        , buffer(std::move(buffer)) {}
+
+    std::string getBuffer() const override { return buffer; }
+    
+    boost::property_tree::ptree toPtree() const override {
+        boost::property_tree::ptree obj;
+        obj.put("graph", graph);
+        obj.put("buffer", buffer);
+        addCommonFields(obj);
+        return obj;
+    }
+
+    void print() const override {
+        std::cout << "Memory Tile Graph-Based Metric - Graph: " << graph 
+                  << ", Buffer: " << buffer << ", Metric: " << metric << std::endl;
+    }
+};
+
+// Interface tile-specific (port-based)
+class InterfaceTileGraphBasedMetricEntry : public GraphBasedMetricEntry {
+public:
+    std::string port;
+    
+    InterfaceTileGraphBasedMetricEntry(std::string graph, std::string port, std::string metric,
+                                      std::optional<std::vector<uint8_t>> channels = std::nullopt,
+                                      std::optional<std::string> bytes = std::nullopt)
+        : GraphBasedMetricEntry(std::move(graph), std::move(metric), std::move(channels), std::move(bytes))
+        , port(std::move(port)) {}
+
+    std::string getPort() const override { return port; }
+    
+    boost::property_tree::ptree toPtree() const override {
+        boost::property_tree::ptree obj;
+        obj.put("graph", graph);
+        obj.put("port", port);
+        addCommonFields(obj);
+        return obj;
+    }
+
+    void print() const override {
+        std::cout << "Interface Tile Graph-Based Metric - Graph: " << graph 
+                  << ", Port: " << port << ", Metric: " << metric << std::endl;
+    }
+};
+
 
 }
 
