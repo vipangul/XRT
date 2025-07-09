@@ -65,14 +65,14 @@ namespace xdp {
      *     "aie": [
      *       {
      *         "graph": "<graph name|all>",
-     *         "entity": "<kernel name|all>",
+     *         "kernel": "<kernel name|all>",
      *         "metric": "<off|heat_map|stalls|execution|floating_point|write_throughputs|read_throughputs|aie_trace>"
      *       }
      *     ],
      *     "aie_memory": [
      *       {
      *         "graph": "<graph name|all>",
-     *         "entity": "<kernel name|all>",
+     *         "kernel": "<kernel name|all>",
      *         "metric": "<off|conflicts|dma_locks|dma_stalls_s2mm|dma_stalls_mm2s|write_throughputs|read_throughputs>"
      *       }
      *     ]
@@ -85,7 +85,7 @@ namespace xdp {
      *     "memory_tile": [
      *       {
      *         "graph": "<graph name|all>",
-     *         "entity": "<buffer name|all>",
+     *         "buffer": "<buffer name|all>",
      *         "metric": "<off|input_channels|input_channels_details|output_channels|output_channels_details|memory_stats|mem_trace>",
      *         "channels": [<optional channel numbers>]
      *       }
@@ -95,8 +95,10 @@ namespace xdp {
      */
 
     // Only one graphs setting type is supported at a time in JSON.
-    // Step 1a: Process all graphs metric setting ( "all_graphs" )
-    // Step 1b: Process single graph metric setting
+    // Step 1a: Process all graphs metric setting ("graph": "all")
+    // Step 1b: Process single graph metric setting ("graph": "<graph name>")
+
+
 
     bool allGraphs = false;
     // Step 1a: Process all graphs metric setting ( "all_graphs" )
@@ -420,7 +422,7 @@ namespace xdp {
   {
     std::string metricSettingsName = moduleNames[moduleIdx];
 
-    const std::vector<std::unique_ptr<Metric>>* metrics = nullptr;
+    // const std::vector<std::unique_ptr<Metric>>* metrics = nullptr;
     try {
       const MetricCollection& tilesMetricCollection = metricsCollectionManager.getMetricCollection(mod, metricSettingsName);
       const auto& metrics = tilesMetricCollection.metrics;
@@ -442,20 +444,6 @@ namespace xdp {
       populateGraphConfigMetricsForTilesUsingJson(moduleIdx, mod, metricsCollectionManager);
     else if (tilesMetricCollection.isTileBased())
       populateTilesConfigMetricsForTilesUsingJson(moduleIdx, mod, metricsCollectionManager);
-
-    // uint8_t rowOffset     = (mod == module_type::mem_tile) ? 1 : metadataReader->getAIETileRowOffset();
-    // std::string entryName = (mod == module_type::mem_tile) ? "buffer" : "kernel";
-    // std::string modName   = (mod == module_type::core) ? "aie" 
-    //                       : ((mod == module_type::dma) ? "aie_memory" : "memory_tile");
-
-    // auto allValidGraphs  = metadataReader->getValidGraphs();
-    // std::vector<std::string> allValidEntries = (mod == module_type::mem_tile) ?
-    //   metadataReader->getValidBuffers() : metadataReader->getValidKernels();
-
-    // std::set<tile_type> allValidTiles;
-    // auto validTilesVec = metadataReader->getTiles("all", mod, "all");
-    // std::unique_copy(validTilesVec.begin(), validTilesVec.end(), std::inserter(allValidTiles, allValidTiles.end()),
-    //                  xdp::aie::tileCompare);
 
     // Set default, check validity, and remove "off" tiles
     auto defaultSet = defaultSets[moduleIdx];
@@ -539,6 +527,7 @@ namespace xdp {
       MetricsCollectionManager& metricsCollectionManager)
     {
       std::string metricSettingsName = moduleNames[moduleIdx];
+
       try {
         const MetricCollection& tilesMetricCollection = metricsCollectionManager.getMetricCollection(module_type::shim, metricSettingsName);
         const auto& metrics = tilesMetricCollection.metrics;
@@ -548,9 +537,224 @@ namespace xdp {
           return;
         }
 
-        auto allValidGraphs = metadataReader->getValidGraphs();
-        auto allValidPorts  = metadataReader->getValidPorts();
+        if (tilesMetricCollection.isGraphBased())
+          populateGraphConfigMetricsForInterfaceTilesUsingJson(moduleIdx, module_type::shim, metricsCollectionManager);
+        else if (tilesMetricCollection.isTileBased())
+          populateTilesConfigMetricsForInterfaceTilesUsingJson(moduleIdx, module_type::shim, metricsCollectionManager);
+
+
+        // auto allValidGraphs = metadataReader->getValidGraphs();
+        // auto allValidPorts  = metadataReader->getValidPorts();
       
+          // Set default, check validity, and remove "off" tiles
+          auto defaultSet = defaultSets[moduleIdx];
+          bool showWarning = true;
+          std::vector<tile_type> offTiles;
+          auto metricVec = metricStrings.at(module_type::shim);
+
+          for (auto& tileMetric : configMetrics[moduleIdx]) {
+            // Save list of "off" tiles
+            if (tileMetric.second.empty() || (tileMetric.second.compare("off") == 0)) {
+              offTiles.push_back(tileMetric.first);
+              continue;
+            }
+
+            // Ensure requested metric set is supported (if not, use default)
+            if (std::find(metricVec.begin(), metricVec.end(), tileMetric.second) == metricVec.end()) {
+              if (showWarning) {
+                std::string msg = "Unable to find interface_tile metric set " + tileMetric.second
+                                  + ". Using default of " + defaultSet + ". ";
+                xrt_core::message::send(severity_level::warning, "XRT", msg);
+                showWarning = false;
+              }
+
+              tileMetric.second = defaultSet;
+            }
+          }
+
+          // Remove all the "off" tiles
+          for (auto& t : offTiles) {
+            configMetrics[moduleIdx].erase(t);
+          }
+
+          // Print configMetrics for moduleIdx.
+          for (auto & tileMetric : configMetrics[moduleIdx]) {
+            auto tile = tileMetric.first;
+            auto metricSet = tileMetric.second;
+            std::cout << "!!! Module Index: " << moduleIdx << ", Tile: (" << std::to_string(tile.col) << ","
+                      << std::to_string(tile.row) << "), Metric Set: " << metricSet << std::endl;
+          }
+        } catch (const std::exception& e) {
+          xrt_core::message::send(severity_level::error, "XRT", e.what());
+          return;
+        }
+    } // end of getConfigMetricsForInterfaceTilesUsingJson
+
+
+   void AieProfileMetadata::populateGraphConfigMetricsForInterfaceTilesUsingJson(const int moduleIdx,
+      const module_type mod, MetricsCollectionManager& metricsCollectionManager)
+  {
+    std::string metricSettingsName = moduleNames[moduleIdx];
+    const MetricCollection& tilesMetricCollection = metricsCollectionManager.getMetricCollection(mod, metricSettingsName);
+    const auto& metrics = tilesMetricCollection.metrics;
+
+    auto allValidGraphs = metadataReader->getValidGraphs();
+    auto allValidPorts  = metadataReader->getValidPorts();
+ 
+    // Only one graphs setting type is supported at a time in JSON.
+    // Step 1a: Process all graphs metric setting ("graph": "all")
+    // Step 1b: Process single graph metric setting ("graph": "<graph name>")
+
+    bool allGraphs = false;
+
+    // Step 1a: Process all graphs metric setting ( "all_graphs" ) 
+    for (size_t i = 0; i < metrics.size(); ++i) {
+      if (!metrics[i]->isGraphBased()) {
+        std::cout << "!!! [1] WARNING: Skipping metric " << metrics[i]->getMetric()
+                  << " as it is not graph-based for module "<<  metricSettingsName << std::endl;
+        continue;
+      }
+
+      // Check if graph is not all or if invalid kernel
+      if (!metrics[i]->isAllTilesSet())
+        continue;
+      
+      // Check if all graphs setting is already processed
+      if (allGraphs)
+        break;
+
+      std::string graphName = metrics[i]->getGraph();
+      std::string graphEntity = metrics[i]->getGraphEntity();
+
+      if ((graphEntity != "all")
+          && (std::find(allValidPorts.begin(), allValidPorts.end(), graphEntity) == allValidPorts.end())) {
+        std::stringstream msg;
+        msg << "Could not find port " << graphEntity
+            << " as specified in graph_based_interface_tile_metrics setting."
+            << " The following ports are valid : " << allValidPorts[0];
+
+        for (size_t j = 1; j < allValidPorts.size(); j++)
+          msg << ", " << allValidPorts[j];
+
+        xrt_core::message::send(severity_level::warning, "XRT", msg.str());
+        continue;
+      }
+
+      auto tiles = metadataReader->getInterfaceTiles(graphName,
+                                          graphEntity,
+                                          metrics[i]->getMetric());
+
+      for (auto& e : tiles) {
+        configMetrics[moduleIdx][e] = metrics[i]->getMetric();
+      }
+
+      // Grab channel numbers (if specified; memory tiles only)
+        if (metrics[i]->getMetric() == METRIC_BYTE_COUNT) {
+          uint32_t bytes = processUserSpecifiedBytes(metrics[i]->getBytesToTransfer());
+          for (auto& e : tiles)
+            setUserSpecifiedBytes(e, bytes);
+        }
+        else {
+          try {
+            if (metrics[i]->isChannel0Set()) {
+              for (auto& e : tiles) {
+                configChannel0[e] = metrics[i]->getChannel0();
+                configChannel1[e] = metrics[i]->isChannel1Set() ? metrics[i]->getChannel1() : configChannel0[e];
+              }
+            }
+          }
+          catch (...) {
+            std::stringstream msg;
+            msg << "Channel specifications in graph_based_interface_metrics "
+                << "are not valid and hence ignored.";
+            xrt_core::message::send(severity_level::warning, "XRT", msg.str());
+          }
+        }
+      allGraphs = true;
+    } // Graph Pass 1a
+
+    // Step 1b: Process single graph metric setting
+    for (size_t i = 0; i < metrics.size(); ++i) {
+ 
+      // Check if already processed or if invalid
+      if (allGraphs)
+        break;
+
+      if (!metrics[i]->isGraphBased()) {
+        std::cout << "!!! [2] WARNING: Skipping metric " << metrics[i]->getMetric()
+                  << " as it is not graph-based for module "<<  metricSettingsName << std::endl;
+        continue;
+      }
+
+      const std::string& graphName = metrics[i]->getGraph();
+      const std::string& graphEntity = metrics[i]->getGraphEntity();
+      if (std::find(allValidGraphs.begin(), allValidGraphs.end(), graphName) == allValidGraphs.end()) {
+        std::stringstream msg;
+        msg << "Could not find graph " << graphName
+            << ", as specified in graph_based_interface_tile_metrics setting."
+            << " The following graphs are valid : " << allValidGraphs[0];
+
+        for (size_t j = 1; j < allValidGraphs.size(); j++)
+          msg << ", " << allValidGraphs[j];
+
+        xrt_core::message::send(severity_level::warning, "XRT", msg.str());
+        continue;
+      }
+
+      if ((graphEntity != "all")
+          && (std::find(allValidPorts.begin(), allValidPorts.end(), graphEntity) == allValidPorts.end())) {
+        std::stringstream msg;
+        msg << "Could not find port " << graphEntity
+            << ", as specified in graph_based_interface_tile_metrics setting."
+            << " The following ports are valid : " << allValidPorts[0];
+
+        for (size_t j = 1; j < allValidPorts.size(); j++)
+          msg << ", " << allValidPorts[j];
+
+        xrt_core::message::send(severity_level::warning, "XRT", msg.str());
+        continue;
+      }
+
+      auto tiles = metadataReader->getInterfaceTiles(graphName,
+                                          graphEntity,
+                                          metrics[i]->getMetric());
+
+      for (auto& e : tiles) {
+        configMetrics[moduleIdx][e] = metrics[i]->getMetric();
+      }
+
+      // Grab channel numbers (if specified; memory tiles only)
+        if (metrics[i]->getMetric() == METRIC_BYTE_COUNT) {
+          uint32_t bytes = processUserSpecifiedBytes(metrics[i]->getBytesToTransfer());
+          for (auto& e : tiles)
+            setUserSpecifiedBytes(e, bytes);
+        }
+        else {
+          try {
+            if (metrics[i]->isChannel0Set()) {
+              for (auto& e : tiles) {
+                configChannel0[e] = metrics[i]->getChannel0();
+                configChannel1[e] = metrics[i]->isChannel1Set() ? metrics[i]->getChannel1() : configChannel0[e];
+              }
+            }
+          }
+          catch (...) {
+            std::stringstream msg;
+            msg << "Channel specifications in graph_based_interface_tile_metrics "
+                << "are not valid and hence ignored.";
+            xrt_core::message::send(severity_level::warning, "XRT", msg.str());
+          }
+        }
+    } // Graph Pass 2
+  }
+
+  void AieProfileMetadata::populateTilesConfigMetricsForInterfaceTilesUsingJson(const int moduleIdx,
+      const module_type mod, MetricsCollectionManager& metricsCollectionManager)
+  {
+        std::string metricSettingsName = moduleNames[moduleIdx];
+        const MetricCollection& tilesMetricCollection = metricsCollectionManager.getMetricCollection(module_type::shim, metricSettingsName);
+        const auto& metrics = tilesMetricCollection.metrics;
+
         // Step 1a: Process "all" tiles metric setting
         // Step 1b: Process only range of tiles metric setting
         // Step 1c: Process single tile metric setting
@@ -707,49 +911,8 @@ namespace xdp {
             }
           } // Pass 1c: process single tile metric setting
 
-          // Set default, check validity, and remove "off" tiles
-          auto defaultSet = defaultSets[moduleIdx];
-          bool showWarning = true;
-          std::vector<tile_type> offTiles;
-          auto metricVec = metricStrings.at(module_type::shim);
 
-          for (auto& tileMetric : configMetrics[moduleIdx]) {
-            // Save list of "off" tiles
-            if (tileMetric.second.empty() || (tileMetric.second.compare("off") == 0)) {
-              offTiles.push_back(tileMetric.first);
-              continue;
-            }
-
-            // Ensure requested metric set is supported (if not, use default)
-            if (std::find(metricVec.begin(), metricVec.end(), tileMetric.second) == metricVec.end()) {
-              if (showWarning) {
-                std::string msg = "Unable to find interface_tile metric set " + tileMetric.second
-                                  + ". Using default of " + defaultSet + ". ";
-                xrt_core::message::send(severity_level::warning, "XRT", msg);
-                showWarning = false;
-              }
-
-              tileMetric.second = defaultSet;
-            }
-          }
-
-          // Remove all the "off" tiles
-          for (auto& t : offTiles) {
-            configMetrics[moduleIdx].erase(t);
-          }
-
-          // Print configMetrics for moduleIdx.
-          for (auto & tileMetric : configMetrics[moduleIdx]) {
-            auto tile = tileMetric.first;
-            auto metricSet = tileMetric.second;
-            std::cout << "!!! Module Index: " << moduleIdx << ", Tile: (" << std::to_string(tile.col) << ","
-                      << std::to_string(tile.row) << "), Metric Set: " << metricSet << std::endl;
-          }
-        } catch (const std::exception& e) {
-          xrt_core::message::send(severity_level::error, "XRT", e.what());
-          return;
-        }
-    } // end of getConfigMetricsForInterfaceTilesUsingJson
+  }
 
   /****************************************************************************
    * Resolve metrics for micrcontrollers

@@ -148,14 +148,23 @@ class AieProfileMetadata {
     void getConfigMetricsForTilesUsingJson(const int moduleIdx,
                                            const module_type mod,
                                            MetricsCollectionManager& metricsCollectionManager);
-    void getConfigMetricsForInterfaceTilesUsingJson(const int moduleIdx,
-                                           MetricsCollectionManager& metricsCollectionManager);
-    void getConfigMetricsForMicrocontrollersUsingJson(const int moduleIdx,
-                                                      MetricsCollectionManager& metricsCollectionManager);
     void populateGraphConfigMetricsForTilesUsingJson(const int moduleIdx, const module_type mod,
                             MetricsCollectionManager& metricsCollectionManager);
     void populateTilesConfigMetricsForTilesUsingJson(const int moduleIdx, 
       const module_type mod, MetricsCollectionManager& metricsCollectionManager);
+
+    void getConfigMetricsForInterfaceTilesUsingJson(const int moduleIdx,
+                                           MetricsCollectionManager& metricsCollectionManager);
+    void populateGraphConfigMetricsForInterfaceTilesUsingJson(const int moduleIdx,
+                                                      const module_type mod,
+                                                      MetricsCollectionManager& metricsCollectionManager);
+
+    void populateTilesConfigMetricsForInterfaceTilesUsingJson(const int moduleIdx,
+                                                          const module_type mod,
+                                                          MetricsCollectionManager& metricsCollectionManager);
+
+    void getConfigMetricsForMicrocontrollersUsingJson(const int moduleIdx,
+                                                      MetricsCollectionManager& metricsCollectionManager);
     void processPluginJsonSetting(const PluginJsonSetting& config, MetricsCollectionManager& manager);
 
     int getPairModuleIndex(const std::string& metricSet, module_type mod);

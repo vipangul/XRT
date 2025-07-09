@@ -289,9 +289,9 @@ ValidationResult SettingsJsonParser::validateField(const pt::ptree& entry, const
         return result;
     }
     
-    // if (fieldOpt == boost::none) {
-    //     return result; // Optional field not present
-    // }
+    if (fieldOpt == boost::none) {
+        return result; // Optional field not present
+    }
     
     try {
         if (field.type == "string") {
