@@ -182,7 +182,7 @@ namespace xdp {
         }
 
         if (obj.get_child_optional("start") == boost::none) {
-            std::cout << "!!! TileBasedMetricEntry::processSettings(): Using col, row constructor" << std::endl;
+            // std::cout << "!!! TileBasedMetricEntry::processSettings(): Using col, row constructor" << std::endl;
             return std::make_unique<TileBasedMetricEntry>(
                 obj.get<uint8_t>("col", 0),
                 obj.get<uint8_t>("row", 0),
@@ -191,7 +191,7 @@ namespace xdp {
                 obj.get_optional<std::string>("bytes") ? std::make_optional(obj.get<std::string>("bytes")) : std::nullopt
             );
         } else {
-            std::cout << "!!! TileBasedMetricEntry::processSettings(): Using start, end constructor" << std::endl;
+            // std::cout << "!!! TileBasedMetricEntry::processSettings(): Using start, end constructor" << std::endl;
             return std::make_unique<TileBasedMetricEntry>(
                 obj.get_child_optional("start") ? parseArray(obj.get_child("start")) : std::vector<uint8_t>{},
                 obj.get_child_optional("end") ? parseArray(obj.get_child("end")) : std::vector<uint8_t>{},

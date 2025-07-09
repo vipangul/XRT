@@ -82,6 +82,7 @@ namespace xdp {
                 "Unable to parse JSON settings from " + settingFile +
                 ". Error: " + XdpJsonSetting.errorMessage);
             useXdpJson = false;
+            return;
         } else {
             // Process only AIE_PROFILE plugin configuration
             auto it = XdpJsonSetting.plugins.find(info::aie_profile);
@@ -90,6 +91,8 @@ namespace xdp {
             } else {
                 xrt_core::message::send(severity_level::info, "XRT",
                    "No valid aie_profile configuration found in JSON settings");
+                useXdpJson = false;
+                return;
             }
         }
     }
@@ -163,8 +166,8 @@ namespace xdp {
               MetricType type        = getMetricTypeFromKey(sectionKey, mappedModuleKey);
               module_type moduleType = getModuleTypeFromKey(mappedModuleKey);
               
-              std::cout << "!!! Processing " << sectionKey << " Key: " << moduleKey 
-                        << " & moduleType: " << moduleType << std::endl;
+              // std::cout << "!!! Processing " << sectionKey << " Key: " << moduleKey 
+              //           << " & moduleType: " << moduleType << std::endl;
               
               MetricCollection collection;
               for (const auto& metricData : metrics) {

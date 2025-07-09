@@ -53,7 +53,7 @@ namespace xdp {
 
     void
     MetricCollection::print() const {
-        std::cout << "!!! Print MetricCollection:" << std::endl;
+        // std::cout << "!!! Print MetricCollection:" << std::endl;
         for (const auto& metric : metrics) {
             if (metric) {
                 metric->print();

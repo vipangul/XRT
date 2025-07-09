@@ -48,13 +48,6 @@ namespace xdp {
           : name(n), required(req), type(t) {}
   };
 
-  // // Datastructures for valid JSON parsing and configuration
-  // enum class PluginType {
-  //     AIE_PROFILE,
-  //     AIE_TRACE,
-  //     UNKNOWN
-  // };
-
   struct PluginJsonSetting {
       uint64_t pluginType;
       // "tiles"/"graphs" , <aie/aie_memory/memory_tile/interface_tile>, <JSON objects>>

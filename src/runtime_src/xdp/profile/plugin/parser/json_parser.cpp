@@ -11,7 +11,7 @@ namespace xdp {
         }
 
         // Print collection 
-        std::cout << "!!! After: Writing MetricCollection to JSON file: " << filename << std::endl;
+        // std::cout << "!!! After: Writing MetricCollection to JSON file: " << filename << std::endl;
         // Print all metrics for debugging purposes
         for (const auto& metric : collection.metrics) {
             if (metric) {
@@ -91,6 +91,34 @@ namespace xdp {
         {info::aie_trace,   {"tiles", "graphs"}}
     };
 
+    const std::map<std::string, std::vector<SchemaField>> SettingsJsonParser::MODULE_SCHEMAS = {
+    {"aie", {
+        SchemaField("graph", true, "string"),
+        SchemaField("kernel", true, "string"),
+        SchemaField("metric", true, "string"),
+        SchemaField("channels", false, "array")
+    }},
+    {"aie_memory", {
+        SchemaField("graph", true, "string"),
+        SchemaField("kernel", true, "string"),
+        SchemaField("metric", true, "string"),
+        SchemaField("channels", false, "array"),
+    }},
+    {"memory_tile", {
+        SchemaField("graph", true, "string"),
+        SchemaField("buffer", true, "string"),
+        SchemaField("metric", true, "string"),
+        SchemaField("channels", false, "array")
+    }},
+    {"interface_tile", {
+        SchemaField("graph", true, "string"),
+        SchemaField("port", true, "string"),
+        SchemaField("metric", true, "string"),
+        SchemaField("channels", false, "array"),
+        SchemaField("bytes", false, "string")
+    }}
+  };
+
     XdpJsonSetting SettingsJsonParser::parseXdpJsonSetting(const std::string& jsonFilePath,
                                          uint64_t queryPluginType)
     {
@@ -104,8 +132,12 @@ namespace xdp {
                 uint64_t pluginType = getPluginTypeFromString(pluginName);
                 
                 if (pluginType == 0) {
-                    xrt_core::message::send(severity_level::warning, "XRT", 
-                        "Unknown plugin: " + pluginName);
+                  std::stringstream msg;
+                  msg << "Unknown plugin name specified: " << pluginName;
+                  config.errorMessage = msg.str();
+                  // xrt_core::message::send(severity_level::warning, "XRT", msg.str());
+                  //   xrt_core::message::send(severity_level::warning, "XRT", 
+                  //       "Unknown plugin name specified: " + pluginName);
                     continue;
                 }
                 // Skip if plugin type does not match
@@ -139,11 +171,6 @@ namespace xdp {
         config.pluginType = pluginType;
         
         try {
-            // if (!validatePluginSchema(tree, pluginType)) {
-            //     config.errorMessage = "Invalid schema for plugin";
-            //     return config;
-            // }
-            
             auto supportedSections = getSupportedSections(pluginType);
             auto supportedModules  = getSupportedModules(pluginType);
 
@@ -234,34 +261,6 @@ namespace xdp {
         return (it != PLUGIN_SECTIONS.end()) ? it->second : std::vector<std::string>{};
     }
 
-    const std::map<std::string, std::vector<SchemaField>> SettingsJsonParser::MODULE_SCHEMAS = {
-    {"aie", {
-        SchemaField("graph", true, "string"),
-        SchemaField("kernel", true, "string"),
-        SchemaField("metric", true, "string"),
-        SchemaField("channels", false, "array")
-    }},
-    {"aie_memory", {
-        SchemaField("graph", true, "string"),
-        SchemaField("kernel", true, "string"),
-        SchemaField("metric", true, "string"),
-        SchemaField("channels", false, "array"),
-    }},
-    {"memory_tile", {
-        SchemaField("graph", true, "string"),
-        SchemaField("buffer", true, "string"),
-        SchemaField("metric", true, "string"),
-        SchemaField("channels", false, "array")
-    }},
-    {"interface_tile", {
-        SchemaField("graph", true, "string"),
-        SchemaField("port", true, "string"),
-        SchemaField("metric", true, "string"),
-        SchemaField("channels", false, "array"),
-        SchemaField("bytes", false, "string")
-    }}
-  };
-
   ValidationResult SettingsJsonParser::validateMetricEntry(const pt::ptree& entry, const std::string& moduleName) {
     ValidationResult result;
     
@@ -286,6 +285,7 @@ ValidationResult SettingsJsonParser::validateField(const pt::ptree& entry, const
     
     if (field.required && fieldOpt == boost::none) {
         result.addError("Required field '" + field.name + "' is missing");
+        result.isValid = false;
         return result;
     }
     
@@ -303,6 +303,7 @@ ValidationResult SettingsJsonParser::validateField(const pt::ptree& entry, const
         }
     } catch (const std::exception& e) {
         result.addError("Invalid value for field '" + field.name + "': " + e.what());
+        result.isValid = false;
     }
     
     return result;
