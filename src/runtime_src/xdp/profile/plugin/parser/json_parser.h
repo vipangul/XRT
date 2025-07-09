@@ -16,6 +16,7 @@
 #include <map>
 #include "core/common/message.h"
 #include "metrics_collection.h"
+#include "xdp/profile/plugin/vp_base/info.h"
 #include "xdp/profile/database/static_info/aie_constructs.h"
 
 namespace xdp {
@@ -47,15 +48,15 @@ namespace xdp {
           : name(n), required(req), type(t) {}
   };
 
-  // Datastructures for valid JSON parsing and configuration
-  enum class PluginType {
-      AIE_PROFILE,
-      AIE_TRACE,
-      UNKNOWN
-  };
+  // // Datastructures for valid JSON parsing and configuration
+  // enum class PluginType {
+  //     AIE_PROFILE,
+  //     AIE_TRACE,
+  //     UNKNOWN
+  // };
 
   struct PluginJsonSetting {
-      PluginType type;
+      uint64_t pluginType;
       // "tiles"/"graphs" , <aie/aie_memory/memory_tile/interface_tile>, <JSON objects>>
       std::map<std::string, std::map<std::string, std::vector<pt::ptree>>> sections;
       bool isValid = false;
@@ -63,7 +64,7 @@ namespace xdp {
   };
 
   struct XdpJsonSetting {
-      std::map<PluginType, PluginJsonSetting> plugins;
+      std::map<uint64_t, PluginJsonSetting> plugins;
       bool isValid = false;
       std::string errorMessage;
   };
@@ -85,20 +86,20 @@ namespace xdp {
       SettingsJsonParser& operator=(const SettingsJsonParser&) = delete;
 
       // Plugin-specific module mappings
-      static const std::map<PluginType, std::vector<std::string>> PLUGIN_MODULES;
-      static const std::map<PluginType, std::vector<std::string>> PLUGIN_SECTIONS;
+      static const std::map<uint64_t, std::vector<std::string>> PLUGIN_MODULES;
+      static const std::map<uint64_t, std::vector<std::string>> PLUGIN_SECTIONS;
       
       JsonParseResult parseWithStatus(const std::string& jsonFilePath);
 
       // Plugin-specific validation
-      PluginType getPluginTypeFromString(const std::string& pluginName);
-      std::vector<std::string> getSupportedModules(PluginType pluginType);
-      std::vector<std::string> getSupportedSections(PluginType pluginType);
+      uint64_t getPluginTypeFromString(const std::string& pluginName);
+      std::vector<std::string> getSupportedModules(uint64_t pluginType);
+      std::vector<std::string> getSupportedSections(uint64_t pluginType);
 
       // JSON validation methods
       static const std::map<std::string, std::vector<SchemaField>> MODULE_SCHEMAS;
       
-      bool validatePluginSchema(const pt::ptree& tree, PluginType pluginType);
+      bool validatePluginSchema(const pt::ptree& tree, uint64_t pluginType);
       ValidationResult validateMetricEntry(const pt::ptree& entry, const std::string& moduleName);
       ValidationResult validateField(const pt::ptree& entry, const SchemaField& field);
       bool isValidChannelArray(const pt::ptree& channelsArray) const;
@@ -115,8 +116,8 @@ namespace xdp {
       void write(const std::string& filename, const MetricCollection& collection);
 
       // Enhanced parsing methods
-      XdpJsonSetting parseXdpJsonSetting(const std::string& jsonFilePath, PluginType queryPluginType);
-      PluginJsonSetting parsePluginJsonSetting(const pt::ptree& tree, PluginType pluginType);
+      XdpJsonSetting parseXdpJsonSetting(const std::string& jsonFilePath, uint64_t queryPluginType);
+      PluginJsonSetting parsePluginJsonSetting(const pt::ptree& tree, uint64_t pluginType);
       
   };
 } // namespace xdp

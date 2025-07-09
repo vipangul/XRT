@@ -76,7 +76,7 @@ namespace xdp {
   
     // Process JSON settings for AIE_PROFILE plugin
     if (useXdpJson) {
-        XdpJsonSetting XdpJsonSetting = SettingsJsonParser::getInstance().parseXdpJsonSetting(settingFile, PluginType::AIE_PROFILE);
+        XdpJsonSetting XdpJsonSetting = SettingsJsonParser::getInstance().parseXdpJsonSetting(settingFile, info::aie_profile);
         if (!XdpJsonSetting.isValid) {
               xrt_core::message::send(severity_level::warning, "XRT",
                 "Unable to parse JSON settings from " + settingFile +
@@ -84,7 +84,7 @@ namespace xdp {
             useXdpJson = false;
         } else {
             // Process only AIE_PROFILE plugin configuration
-            auto it = XdpJsonSetting.plugins.find(PluginType::AIE_PROFILE);
+            auto it = XdpJsonSetting.plugins.find(info::aie_profile);
             if (it != XdpJsonSetting.plugins.end()) {
                 processPluginJsonSetting(it->second, metricsCollectionManager);
             } else {
@@ -153,7 +153,7 @@ namespace xdp {
               
               // Handle plugin-specific module key mappings
               std::string mappedModuleKey = moduleKey;
-              if (config.type == PluginType::AIE_TRACE) {
+              if (config.pluginType ==info::aie_trace) {
                   // Map aie_trace modules to aie_profile equivalents if needed
                   if (moduleKey == "aie_tile") {
                       // Handle aie_tile differently - might need special processing

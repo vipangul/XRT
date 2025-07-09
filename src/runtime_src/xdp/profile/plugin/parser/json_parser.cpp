@@ -81,18 +81,18 @@ namespace xdp {
     }
 
     // Static mappings for different plugins
-    const std::map<PluginType, std::vector<std::string>> SettingsJsonParser::PLUGIN_MODULES = {
-        {PluginType::AIE_PROFILE, {"aie", "aie_memory", "interface_tile", "memory_tile", "microcontroller"}},
-        {PluginType::AIE_TRACE,   {"aie_tile", "interface_tile", "memory_tile"}}
+    const std::map<uint64_t, std::vector<std::string>> SettingsJsonParser::PLUGIN_MODULES = {
+        {info::aie_profile, {"aie", "aie_memory", "interface_tile", "memory_tile", "microcontroller"}},
+        {info::aie_trace,   {"aie_tile", "interface_tile", "memory_tile"}}
     };
 
-    const std::map<PluginType, std::vector<std::string>> SettingsJsonParser::PLUGIN_SECTIONS = {
-        {PluginType::AIE_PROFILE, {"tiles", "graphs"}},
-        {PluginType::AIE_TRACE,   {"tiles", "graphs"}}
+    const std::map<uint64_t, std::vector<std::string>> SettingsJsonParser::PLUGIN_SECTIONS = {
+        {info::aie_profile, {"tiles", "graphs"}},
+        {info::aie_trace,   {"tiles", "graphs"}}
     };
 
     XdpJsonSetting SettingsJsonParser::parseXdpJsonSetting(const std::string& jsonFilePath,
-                                         PluginType queryPluginType)
+                                         uint64_t queryPluginType)
     {
         XdpJsonSetting config;
         
@@ -101,9 +101,9 @@ namespace xdp {
             
             // Parse each plugin section
             for (const auto& [pluginName, pluginTree] : jsonTree) {
-                PluginType pluginType = getPluginTypeFromString(pluginName);
+                uint64_t pluginType = getPluginTypeFromString(pluginName);
                 
-                if (pluginType == PluginType::UNKNOWN) {
+                if (pluginType == 0) {
                     xrt_core::message::send(severity_level::warning, "XRT", 
                         "Unknown plugin: " + pluginName);
                     continue;
@@ -134,9 +134,9 @@ namespace xdp {
         return config;
     }
 
-    PluginJsonSetting SettingsJsonParser::parsePluginJsonSetting(const pt::ptree& tree, PluginType pluginType) {
+    PluginJsonSetting SettingsJsonParser::parsePluginJsonSetting(const pt::ptree& tree, uint64_t pluginType) {
         PluginJsonSetting config;
-        config.type = pluginType;
+        config.pluginType = pluginType;
         
         try {
             // if (!validatePluginSchema(tree, pluginType)) {
@@ -218,18 +218,18 @@ namespace xdp {
         return config;
     }
 
-    PluginType SettingsJsonParser::getPluginTypeFromString(const std::string& pluginName) {
-        if (pluginName == "aie_profile") return PluginType::AIE_PROFILE;
-        if (pluginName == "aie_trace") return PluginType::AIE_TRACE;
-        return PluginType::UNKNOWN;
+    uint64_t SettingsJsonParser::getPluginTypeFromString(const std::string& pluginName) {
+        if (pluginName == "aie_profile") return info::aie_profile;
+        if (pluginName == "aie_trace") return info::aie_trace;
+        return 0; // Unknown plugin type
     }
 
-    std::vector<std::string> SettingsJsonParser::getSupportedModules(PluginType pluginType) {
+    std::vector<std::string> SettingsJsonParser::getSupportedModules(uint64_t pluginType) {
         auto it = PLUGIN_MODULES.find(pluginType);
         return (it != PLUGIN_MODULES.end()) ? it->second : std::vector<std::string>{};
     }
 
-    std::vector<std::string> SettingsJsonParser::getSupportedSections(PluginType pluginType) {
+    std::vector<std::string> SettingsJsonParser::getSupportedSections(uint64_t pluginType) {
         auto it = PLUGIN_SECTIONS.find(pluginType);
         return (it != PLUGIN_SECTIONS.end()) ? it->second : std::vector<std::string>{};
     }

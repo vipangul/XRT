@@ -125,7 +125,7 @@ namespace xdp {
   
     // // Process JSON settings for AIE_PROFILE plugin
     // if (useXdpJson) {
-    //     XdpJsonSetting XdpJsonSetting = SettingsJsonParser::getInstance().parseXdpJsonSetting(settingFile, PluginType::AIE_PROFILE);
+    //     XdpJsonSetting XdpJsonSetting = SettingsJsonParser::getInstance().parseXdpJsonSetting(settingFile,info::aie_trace);
     //     if (!XdpJsonSetting.isValid) {
     //           xrt_core::message::send(severity_level::warning, "XRT",
     //             "Unable to parse JSON settings from " + settingFile +
@@ -133,7 +133,7 @@ namespace xdp {
     //         useXdpJson = false;
     //     } else {
     //         // Process only AIE_PROFILE plugin configuration
-    //         auto it = XdpJsonSetting.plugins.find(PluginType::AIE_PROFILE);
+    //         auto it = XdpJsonSetting.plugins.find(info::aie_trace);
     //         if (it != XdpJsonSetting.plugins.end()) {
     //             processPluginJsonSetting(it->second, metricsCollectionManager);
     //         } else {
