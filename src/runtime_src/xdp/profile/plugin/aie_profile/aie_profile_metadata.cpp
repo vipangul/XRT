@@ -76,17 +76,17 @@ namespace xdp {
   
     // Process JSON settings for AIE_PROFILE plugin
     if (useXdpJson) {
-        XdpConfig xdpConfig = SettingsJsonParser::getInstance().parseXdpConfig(settingFile, PluginType::AIE_PROFILE);
-        if (!xdpConfig.isValid) {
+        XdpJsonSetting XdpJsonSetting = SettingsJsonParser::getInstance().parseXdpJsonSetting(settingFile, PluginType::AIE_PROFILE);
+        if (!XdpJsonSetting.isValid) {
               xrt_core::message::send(severity_level::warning, "XRT",
                 "Unable to parse JSON settings from " + settingFile +
-                ". Error: " + xdpConfig.errorMessage);
+                ". Error: " + XdpJsonSetting.errorMessage);
             useXdpJson = false;
         } else {
             // Process only AIE_PROFILE plugin configuration
-            auto it = xdpConfig.plugins.find(PluginType::AIE_PROFILE);
-            if (it != xdpConfig.plugins.end()) {
-                processJsonPluginConfig(it->second, metricsCollectionManager);
+            auto it = XdpJsonSetting.plugins.find(PluginType::AIE_PROFILE);
+            if (it != XdpJsonSetting.plugins.end()) {
+                processPluginJsonSetting(it->second, metricsCollectionManager);
             } else {
                 xrt_core::message::send(severity_level::info, "XRT",
                    "No valid aie_profile configuration found in JSON settings");
@@ -143,7 +143,7 @@ namespace xdp {
                             "XRT", "Finished Parsing AIE Profile Metadata."); 
   }
  
-  void AieProfileMetadata::processJsonPluginConfig(const JsonPluginConfig& config, 
+  void AieProfileMetadata::processPluginJsonSetting(const PluginJsonSetting& config, 
                                              MetricsCollectionManager& manager)
   {
       for (const auto& [sectionKey, modules] : config.sections) {

@@ -156,7 +156,7 @@ class AieProfileMetadata {
                             MetricsCollectionManager& metricsCollectionManager);
     void populateTilesConfigMetricsForTilesUsingJson(const int moduleIdx, 
       const module_type mod, MetricsCollectionManager& metricsCollectionManager);
-    void processJsonPluginConfig(const JsonPluginConfig& config, MetricsCollectionManager& manager);
+    void processPluginJsonSetting(const PluginJsonSetting& config, MetricsCollectionManager& manager);
 
     int getPairModuleIndex(const std::string& metricSet, module_type mod);
     uint8_t getMetricSetIndex(const std::string& metricSet, module_type mod);

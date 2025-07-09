@@ -91,10 +91,10 @@ namespace xdp {
         {PluginType::AIE_TRACE,   {"tiles", "graphs"}}
     };
 
-    XdpConfig SettingsJsonParser::parseXdpConfig(const std::string& jsonFilePath,
+    XdpJsonSetting SettingsJsonParser::parseXdpJsonSetting(const std::string& jsonFilePath,
                                          PluginType queryPluginType)
     {
-        XdpConfig config;
+        XdpJsonSetting config;
         
         try {
             pt::ptree jsonTree = parse(jsonFilePath);
@@ -116,12 +116,12 @@ namespace xdp {
                   continue;
                 }
                 
-                JsonPluginConfig JsonPluginConfig = parseJsonPluginConfig(pluginTree, pluginType);
-                if (JsonPluginConfig.isValid) {
-                    config.plugins[pluginType] = std::move(JsonPluginConfig);
+                PluginJsonSetting PluginJsonSetting = parsePluginJsonSetting(pluginTree, pluginType);
+                if (PluginJsonSetting.isValid) {
+                    config.plugins[pluginType] = std::move(PluginJsonSetting);
                 } else {
                     xrt_core::message::send(severity_level::error, "XRT", 
-                        "Failed to parse " + pluginName + ": " + JsonPluginConfig.errorMessage);
+                        "Failed to parse " + pluginName + ": " + PluginJsonSetting.errorMessage);
                 }
             }
             
@@ -134,8 +134,8 @@ namespace xdp {
         return config;
     }
 
-    JsonPluginConfig SettingsJsonParser::parseJsonPluginConfig(const pt::ptree& tree, PluginType pluginType) {
-        JsonPluginConfig config;
+    PluginJsonSetting SettingsJsonParser::parsePluginJsonSetting(const pt::ptree& tree, PluginType pluginType) {
+        PluginJsonSetting config;
         config.type = pluginType;
         
         try {

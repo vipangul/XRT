@@ -54,7 +54,7 @@ namespace xdp {
       UNKNOWN
   };
 
-  struct JsonPluginConfig {
+  struct PluginJsonSetting {
       PluginType type;
       // "tiles"/"graphs" , <aie/aie_memory/memory_tile/interface_tile>, <JSON objects>>
       std::map<std::string, std::map<std::string, std::vector<pt::ptree>>> sections;
@@ -62,8 +62,8 @@ namespace xdp {
       std::string errorMessage;
   };
 
-  struct XdpConfig {
-      std::map<PluginType, JsonPluginConfig> plugins;
+  struct XdpJsonSetting {
+      std::map<PluginType, PluginJsonSetting> plugins;
       bool isValid = false;
       std::string errorMessage;
   };
@@ -115,8 +115,8 @@ namespace xdp {
       void write(const std::string& filename, const MetricCollection& collection);
 
       // Enhanced parsing methods
-      XdpConfig parseXdpConfig(const std::string& jsonFilePath, PluginType queryPluginType);
-      JsonPluginConfig parseJsonPluginConfig(const pt::ptree& tree, PluginType pluginType);
+      XdpJsonSetting parseXdpJsonSetting(const std::string& jsonFilePath, PluginType queryPluginType);
+      PluginJsonSetting parsePluginJsonSetting(const pt::ptree& tree, PluginType pluginType);
       
   };
 } // namespace xdp
