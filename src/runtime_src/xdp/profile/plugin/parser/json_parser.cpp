@@ -54,8 +54,8 @@ namespace xdp {
         try {
             boost::property_tree::read_json(jsonFile, result.tree);
             result.success = true;
-            xrt_core::message::send(severity_level::info, "XRT", 
-                "Successfully parsed JSON file: " + jsonFilePath);
+            // xrt_core::message::send(severity_level::info, "XRT", 
+            //     "Successfully parsed JSON file: " + jsonFilePath);
         } catch (const pt::json_parser_error& e) {
             result.errorMessage = "JSON parse error: " + std::string(e.what());
             xrt_core::message::send(severity_level::error, "XRT", 
@@ -148,15 +148,16 @@ namespace xdp {
                   continue;
                 }
                 
-                PluginJsonSetting PluginJsonSetting = parsePluginJsonSetting(pluginTree, pluginType);
-                if (PluginJsonSetting.isValid) {
-                    config.plugins[pluginType] = std::move(PluginJsonSetting);
+                PluginJsonSetting pluginSettings = parsePluginJsonSetting(pluginTree, pluginType);
+                if (pluginSettings.isValid) {
+                    config.plugins[pluginType] = std::move(pluginSettings);
                 } else {
                     xrt_core::message::send(severity_level::error, "XRT", 
-                        "Failed to parse " + pluginName + ": " + PluginJsonSetting.errorMessage);
+                        "Failed to parse " + pluginName + ": " + pluginSettings.errorMessage);
                 }
             }
             
+            // TODO: Make this specific to each plugin type
             config.isValid = !config.plugins.empty();
             
         } catch (const std::exception& e) {
@@ -196,48 +197,50 @@ namespace xdp {
                     }
 
                     // Validate each metric entry
+                    std::vector<pt::ptree> metrics;
                     for (const auto& item : moduleArray) {
                         ValidationResult result = validateMetricEntry(item.second, moduleKey);
                         for (const auto& error : result.errors) {
                             xrt_core::message::send(severity_level::error, "XRT", 
-                                "Schema error in " + moduleKey + ": " + error);
+                                "JSON schema error in module " + moduleKey + ": " + error);
                         }
                         for (const auto& warning : result.warnings) {
                             xrt_core::message::send(severity_level::warning, "XRT", 
-                                "Schema warning in " + moduleKey + ": " + warning);
+                                "JSON schema warning in module " + moduleKey + ": " + warning);
                         }
                         if (!result.isValid) {
                           continue;
                         }
-                    }
 
-                    // Check for conflict - same module in different section
-                    if (moduleToFirstSection.find(moduleKey) != moduleToFirstSection.end()) {
-                        std::string firstSection = moduleToFirstSection[moduleKey];
-                        if (firstSection != sectionKey) {
-                            std::stringstream warningMsg;
-                            warningMsg << "Warning: Module '" << moduleKey  << "' appears in both '"
-                                       << firstSection + "' and '" + sectionKey
-                                       << "' sections. Using configuration from '" << firstSection
-                                       << "' section and ignoring '" + sectionKey + "' configuration.";
-                            xrt_core::message::send(severity_level::warning, "XRT", warningMsg.str());
-                            continue; // Skip this duplicate module in later section
+                        // Check for conflict - same module in different section
+                        if (moduleToFirstSection.find(moduleKey) != moduleToFirstSection.end()) {
+                          std::string firstSection = moduleToFirstSection[moduleKey];
+                          if (firstSection != sectionKey) {
+                              std::stringstream warningMsg;
+                              warningMsg << "Warning: Module '" << moduleKey  << "' appears in both '"
+                                        << firstSection + "' and '" + sectionKey
+                                        << "' sections. Using configuration from '" << firstSection
+                                        << "' section and ignoring '" + sectionKey + "' configuration.";
+                              xrt_core::message::send(severity_level::warning, "XRT", warningMsg.str());
+                              continue; // Skip this duplicate module in later section
+                          }
+                        } else {
+                          // First time seeing this module - record which section it's in
+                          moduleToFirstSection[moduleKey] = sectionKey;
                         }
-                    } else {
-                        // First time seeing this module - record which section it's in
-                        moduleToFirstSection[moduleKey] = sectionKey;
-                    }
-
-                    std::vector<pt::ptree> metrics;
-                    for (const auto& item : moduleArray) {
+                        
                         metrics.push_back(item.second);
-                    }
-                    config.sections[sectionKey][moduleKey] = metrics;
-                }
-            }
-            
-            config.isValid = true;
-            
+                     } // end for each metric in moduleArray
+                     
+                     if (metrics.empty()) {
+                        xrt_core::message::send(severity_level::warning, "XRT", 
+                            "No valid metrics found for module: " + moduleKey);
+                        continue;
+                     }
+                     config.sections[sectionKey][moduleKey] = metrics;
+                     config.isValid = true;
+                } // end for each module in section
+            } // end for each section (tiles, graphs)
         } catch (const std::exception& e) {
             config.errorMessage = "Parse error: " + std::string(e.what());
         }
