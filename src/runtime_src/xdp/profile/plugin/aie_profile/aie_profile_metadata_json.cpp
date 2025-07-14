@@ -38,7 +38,7 @@ namespace xdp {
       const module_type mod, MetricsCollectionManager& metricsCollectionManager)
   {
     std::string metricSettingsName = moduleNames[moduleIdx];
-    uint8_t rowOffset     = (mod == module_type::mem_tile) ? 1 : metadataReader->getAIETileRowOffset();
+    // uint8_t rowOffset     = (mod == module_type::mem_tile) ? 1 : metadataReader->getAIETileRowOffset();
     std::string entryName = (mod == module_type::mem_tile) ? "buffer" : "kernel";
     std::string modName   = (mod == module_type::core) ? "aie" 
                           : ((mod == module_type::dma) ? "aie_memory" : "memory_tile");
@@ -751,6 +751,9 @@ namespace xdp {
   void AieProfileMetadata::populateTilesConfigMetricsForInterfaceTilesUsingJson(const int moduleIdx,
       const module_type mod, MetricsCollectionManager& metricsCollectionManager)
   {
+        if (mod != module_type::shim)
+          return;
+
         std::string metricSettingsName = moduleNames[moduleIdx];
         const MetricCollection& tilesMetricCollection = metricsCollectionManager.getMetricCollection(module_type::shim, metricSettingsName);
         const auto& metrics = tilesMetricCollection.metrics;
