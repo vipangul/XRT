@@ -60,8 +60,8 @@ namespace xdp {
     bool areChannelsSet() const;
     bool isChannel0Set() const;
     bool isChannel1Set() const;
-    int getChannel0() const;
-    int getChannel1() const;
+    uint8_t getChannel0() const;
+    uint8_t getChannel1() const;
     std::string getBytesToTransfer() const;
 
     // Metric(std::string metric, std::optional<std::vector<uint8_t>> ch = std::nullopt, 
