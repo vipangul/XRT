@@ -23,11 +23,11 @@ namespace xdp {
     return result;
   }
 
-  XDP_CORE_EXPORT MetricType getMetricTypeFromKey(const std::string& settingsKey, const std::string& key);
-  XDP_CORE_EXPORT module_type getModuleTypeFromKey(const std::string& key);
-  XDP_CORE_EXPORT bool jsonContainsRange(MetricType metricType, const boost::property_tree::ptree& jsonObj);
-  XDP_CORE_EXPORT bool jsonContainsAllRange(MetricType metricType, const boost::property_tree::ptree& jsonObj);
-  // XDP_CORE_EXPORT bool parseXdpJson(SettingsJsonParser& jsonParser, boost::property_tree::ptree& jsonTree);
+  MetricType getMetricTypeFromKey(const std::string& settingsKey, const std::string& key);
+  module_type getModuleTypeFromKey(const std::string& key);
+  bool jsonContainsRange(MetricType metricType, const boost::property_tree::ptree& jsonObj);
+  bool jsonContainsAllRange(MetricType metricType, const boost::property_tree::ptree& jsonObj);
+  // bool parseXdpJson(SettingsJsonParser& jsonParser, boost::property_tree::ptree& jsonTree);
 
 } // end namespace xdp
 #endif

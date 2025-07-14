@@ -2,9 +2,12 @@
 // Copyright (C) 2025 Advanced Micro Devices, Inc. All rights reserved
 
 #define XDP_CORE_SOURCE
+#include "core/common/message.h"
 #include "xdp/profile/plugin/parser/parser_utils.h"
 
 namespace xdp {
+
+  using severity_level = xrt_core::message::severity_level;
 
   MetricType getMetricTypeFromKey(const std::string& settingsKey, const std::string& key) {
     if (settingsKey == "tiles") {
@@ -54,14 +57,16 @@ namespace xdp {
         // NOTE: No need to check for "end" as it is optional and be same as start if not provided.
         return true;
       } catch (const boost::property_tree::ptree_error& e) {
+        xrt_core::message::send(severity_level::warning, "XRT", "Error parsing start tiles in JSON: " + std::string(e.what()));
         return false;
       }
     }
+    return false;
   }
   
   bool jsonContainsAllRange(MetricType metricType, const boost::property_tree::ptree& jsonObj)
   {
-    if ((metricType >= MetricType::TILE_BASED_AIE_TILE) ||
+    if ((metricType >= MetricType::TILE_BASED_AIE_TILE) &&
         (metricType < MetricType::GRAPH_BASED_AIE_TILE))
     {
       try {
@@ -69,21 +74,22 @@ namespace xdp {
         if (allTiles && *allTiles)
           return true;
       } catch (const boost::property_tree::ptree_error& e) {
+        xrt_core::message::send(severity_level::warning, "XRT", "Error parsing all_tiles schema in JSON: " + std::string(e.what()));
         return false;
       }
-      return false;
     }
     else if (metricType >= MetricType::GRAPH_BASED_AIE_TILE &&
              metricType <= MetricType::GRAPH_BASED_MEM_TILE)
     {
       try {
-        auto allGraphs = jsonObj.get_optional<bool>("all_graphs");
-        if (allGraphs && *allGraphs)
+        auto allGraphs = jsonObj.get_optional<std::string>("graph");
+        if (allGraphs && *allGraphs == "all")
           return true;
       } catch (const boost::property_tree::ptree_error& e) {
+        xrt_core::message::send(severity_level::warning, "XRT", "Error parsing all graph schema in JSON: " + std::string(e.what()));
         return false;
       }
-      return false;
     }
+    return false;
   }
 }

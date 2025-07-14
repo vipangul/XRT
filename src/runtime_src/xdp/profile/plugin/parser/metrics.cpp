@@ -32,20 +32,20 @@ namespace xdp {
         return channels.has_value() && channels->size() > 1;
     }
 
-    int
+    uint8_t
     Metric::getChannel0() const {
         if (channels.has_value() && !channels->empty()) {
             return (*channels)[0]; // Return the first channel (channel0)
         }
-        return -1; // Return -1 if channels are not set or empty
+        return 0; // Return 0 if channels are not set or empty
     }
 
-    int 
+    uint8_t
     Metric::getChannel1() const {
         if (channels.has_value() && channels->size() > 1) {
             return (*channels)[1]; // Return the second channel (channel1)
         }
-        return -1; // Return -1 if channels are not set or there is no second channel
+        return 1; // Return 1 if channels are not set or there is no second channel
     }
 
     std::string
