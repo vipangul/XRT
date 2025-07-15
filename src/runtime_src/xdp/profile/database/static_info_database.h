@@ -324,6 +324,13 @@ namespace xdp {
     XDP_CORE_EXPORT
     uint64_t getDeviceContextUniqueId(void*);
 
+    // API to get the unique device id of stored PL Device Intf
+    // NOTE: In register xclbin flow, this API returns 0 as device Id to refer
+    // to PL Device Intf for aie only partitions.
+    // Otherwise, it returns same plDeviceId to find PL Device Intf
+    XDP_CORE_EXPORT
+    PLDeviceIntf* getPlDeviceIntf(const ConfigInfo* curConfig);
+
     // *********************************************************
     // ***** Functions related to trace_processor tool *****
     // ***** which creates events from raw PL trace    *****

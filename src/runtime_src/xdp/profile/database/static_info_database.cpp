@@ -1629,6 +1629,26 @@ namespace xdp {
     return getHwCtxImplUid(handle);
   }
 
+  PLDeviceIntf* VPStaticDatabase::getPlDeviceIntf(const ConfigInfo* curConfig)
+  {
+    // In LOAD_XCLBIN_STYLE, the deviceId is the same as the plDeviceId
+    if ((AppStyle::REGISTER_XCLBIN_STYLE != getAppStyle()) ||
+        (ConfigInfoType::CONFIG_AIE_ONLY != curConfig->getConfigType()))
+      return curConfig->plDeviceIntf;
+
+    // In REGISTER_XCLBIN_STYLE, the PL Device Interface is always deviceId 0
+    //  for AIE_ONLY partitions.  This is used to query the PL Device Interface
+    //  by AIE_ONLY partitions's hw contexts.
+    uint64_t plDeviceId = 0;
+    if (deviceInfo.find(plDeviceId) == deviceInfo.end())
+      return nullptr;
+    ConfigInfo* config = deviceInfo[plDeviceId]->currentConfig() ;
+    if (!config)
+      return nullptr;
+
+    return config->plDeviceIntf;
+  }
+
   // Return true if we should reset the device information.
   // Return false if we should not reset device information
   bool VPStaticDatabase::resetDeviceInfo(uint64_t deviceId, xdp::Device* xdpDevice, xrt_core::uuid new_xclbin_uuid)

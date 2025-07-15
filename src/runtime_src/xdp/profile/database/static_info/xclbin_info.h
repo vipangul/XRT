@@ -205,6 +205,7 @@ namespace xdp {
     xrt_core::uuid getConfigUuid() ;
     void addXclbin(XclbinInfo* newXclbin) ;
     inline void updateType(ConfigInfoType cfgType) { type=cfgType; }
+    inline ConfigInfoType getConfigType() const { return type; }
 
     bool containsXclbin(xrt_core::uuid& uuid) ;
     bool containsXclbinType(XclbinInfoType& xclbinQueryType);
