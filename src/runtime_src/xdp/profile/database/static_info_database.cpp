@@ -433,7 +433,7 @@ namespace xdp {
     if (!config)
       return nullptr ;
 
-    return config->plDeviceIntf ;
+    return getPlDeviceIntf(config) ;
   }
 
   // Should only be called from Alveo hardware emulation
