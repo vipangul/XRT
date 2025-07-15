@@ -91,13 +91,23 @@ namespace xdp {
     return requiredXclbinInfo;
   }
 
-  void DeviceInfo::createConfig(XclbinInfo* xclbin)
+  void DeviceInfo::createConfig(XclbinInfo* xclbin, appStyle currStyle)
   {
     // Create a new config
     std::unique_ptr<ConfigInfo> config = std::make_unique<ConfigInfo>();
     config->addXclbin(xclbin);
 
     auto currentXclbinType = xclbin->type;
+
+    if (currStyle == appStyle::REGISTER_XCLBIN_STYLE)
+    {
+      // NOTE: In REGISTER_XCLBIN_STYLE -
+      //      1. The PL Device Interface is always deviceId 0.
+      //      2. Each xclbin is loaded as a separate config.
+      //         Hence, we do not need to form CONFIG_AIE_PL_FORMED type.
+      loadedConfigInfos.push_back(std::move(config));
+      return;
+    }
 
     // Check if this itself is a complete xclbin (AIE+PL).
     if (currentXclbinType == XCLBIN_AIE_PL)

@@ -1636,9 +1636,8 @@ namespace xdp {
         (ConfigInfoType::CONFIG_AIE_ONLY != curConfig->getConfigType()))
       return curConfig->plDeviceIntf;
 
-    // In REGISTER_XCLBIN_STYLE, the PL Device Interface is always deviceId 0
-    //  for AIE_ONLY partitions.  This is used to query the PL Device Interface
-    //  by AIE_ONLY partitions's hw contexts.
+    // In REGISTER_XCLBIN_STYLE, the PL Device Interface is always deviceId 0.
+    // This API is used to query the PL Device Interface by AIE_ONLY partitions's hw contexts.
     uint64_t plDeviceId = 0;
     if (deviceInfo.find(plDeviceId) == deviceInfo.end())
       return nullptr;
@@ -2499,7 +2498,7 @@ namespace xdp {
       }
     }
 
-    devInfo->createConfig(currentXclbin);
+    devInfo->createConfig(currentXclbin, getAppStyle());
 
     // Following functions require configInfo to be created first.
     if (readAIEdata)
