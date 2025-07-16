@@ -26,6 +26,7 @@
 #include "core/common/system.h"
 
 #include "xdp/config.h"
+#include "xdp/profile/database/static_info/app_style.h"
 #include "xdp/profile/database/static_info/xclbin_types.h"
 
 namespace xdp {
@@ -88,7 +89,8 @@ namespace xdp {
 
     // ****** Functions for Device ConfigInfo ******
     XDP_CORE_EXPORT XclbinInfo* createXclbinFromLastConfig(XclbinInfoType xclbinQueryType) ;
-    XDP_CORE_EXPORT void createConfig(XclbinInfo* xclbin) ;
+    XDP_CORE_EXPORT void createConfigForRegisterXclbinStyle(XclbinInfo* xclbin, DeviceInfo* plDevice) ;
+    XDP_CORE_EXPORT void createConfig(XclbinInfo* xclbin, AppStyle currStyle) ;
     
     // ****** Functions for information on the device ******
     XDP_CORE_EXPORT std::string getUniqueDeviceName() const ;

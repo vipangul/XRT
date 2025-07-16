@@ -503,6 +503,41 @@ namespace xdp {
     }
   }
 
+  void VPStaticDatabase::createPLDeviceIntfForRegisterXclbinStyle(std::unique_ptr<xdp::Device> dev, XclbinInfoType newXclbinType)
+  {
+    std::lock_guard<std::mutex> lock(deviceLock);
+
+    if (dev == nullptr)
+      return;
+    
+    uint64_t deviceId = 0;
+    if (deviceInfo.find(deviceId) == deviceInfo.end())
+      return;
+    ConfigInfo* config = deviceInfo[deviceId]->currentConfig();
+    if (!config)
+      return;
+
+    // Check if new xclbin has new PL metadata
+    if ((newXclbinType == XCLBIN_AIE_PL) || 
+        (newXclbinType == XCLBIN_PL_ONLY))
+    {
+      if (config->plDeviceIntf != nullptr)
+          delete config->plDeviceIntf; // Possible to have a previous PLDeviceIntf
+
+      config->plDeviceIntf = new PLDeviceIntf();
+      config->plDeviceIntf->setDevice(std::move(dev));
+      try {
+        config->plDeviceIntf->readDebugIPlayout();
+      }
+      catch (std::exception& /* e */) {
+        // If reading the debug ip layout fails, we shouldn't have
+        // any device interface at all
+        delete config->plDeviceIntf;
+        config->plDeviceIntf = nullptr;
+      }
+    }
+  }
+
   uint64_t VPStaticDatabase::getKDMACount(uint64_t deviceId)
   {
     std::lock_guard<std::mutex> lock(deviceLock) ;
@@ -2498,7 +2533,10 @@ namespace xdp {
       }
     }
 
-    devInfo->createConfig(currentXclbin, getAppStyle());
+    if (getAppStyle() == AppStyle::REGISTER_XCLBIN_STYLE)
+      devInfo->createConfigForRegisterXclbinStyle(currentXclbin, getDeviceInfo(0));
+    else
+      devInfo->createConfig(currentXclbin, getAppStyle());
 
     // Following functions require configInfo to be created first.
     if (readAIEdata)

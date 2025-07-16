@@ -91,7 +91,7 @@ namespace xdp {
     return requiredXclbinInfo;
   }
 
-  void DeviceInfo::createConfig(XclbinInfo* xclbin, appStyle currStyle)
+  void DeviceInfo::createConfig(XclbinInfo* xclbin, AppStyle currStyle)
   {
     // Create a new config
     std::unique_ptr<ConfigInfo> config = std::make_unique<ConfigInfo>();
@@ -99,15 +99,15 @@ namespace xdp {
 
     auto currentXclbinType = xclbin->type;
 
-    if (currStyle == appStyle::REGISTER_XCLBIN_STYLE)
-    {
-      // NOTE: In REGISTER_XCLBIN_STYLE -
-      //      1. The PL Device Interface is always deviceId 0.
-      //      2. Each xclbin is loaded as a separate config.
-      //         Hence, we do not need to form CONFIG_AIE_PL_FORMED type.
-      loadedConfigInfos.push_back(std::move(config));
-      return;
-    }
+    // if (currStyle == AppStyle::REGISTER_XCLBIN_STYLE)
+    // {
+    //   // NOTE: In REGISTER_XCLBIN_STYLE -
+    //   //      1. The PL Device Interface is always deviceId 0.
+    //   //      2. Each xclbin is loaded as a separate config.
+    //   //         Hence, we do not need to form CONFIG_AIE_PL_FORMED type.
+    //   loadedConfigInfos.push_back(std::move(config));
+    //   return;
+    // }
 
     // Check if this itself is a complete xclbin (AIE+PL).
     if (currentXclbinType == XCLBIN_AIE_PL)
@@ -145,6 +145,52 @@ namespace xdp {
       config->type = (currentXclbinType == XCLBIN_AIE_ONLY) ? CONFIG_AIE_ONLY : CONFIG_PL_ONLY ;
     }
 
+    loadedConfigInfos.push_back(std::move(config));
+  }
+
+  void DeviceInfo::createConfigForRegisterXclbinStyle(XclbinInfo* xclbin, DeviceInfo* plDeviceInfo)
+  {
+    // Create a new config
+    std::unique_ptr<ConfigInfo> config = std::make_unique<ConfigInfo>();
+    config->addXclbin(xclbin);
+    // config->type = xclbin->type == XCLBIN_AIE_ONLY ? CONFIG_AIE_ONLY : CONFIG_PL_ONLY ;
+    auto currentXclbinType = xclbin->type;
+    if (currentXclbinType == XCLBIN_AIE_PL)
+      return createConfig(xclbin, AppStyle::REGISTER_XCLBIN_STYLE);
+    if (currentXclbinType != XCLBIN_AIE_ONLY)
+      return;
+
+    if (!plDeviceInfo || plDeviceInfo->loadedConfigInfos.empty())
+    {
+      xrt_core::message::send(xrt_core::message::severity_level::error, "XRT", "Register Xclbin Style- PL Device Info is not available for AIE_ONLY config creation.");
+      return;
+    }
+
+    XclbinInfo *missingXclbin = nullptr;
+    ConfigInfo* lastCfg = plDeviceInfo.loadedConfigInfos.back().get();
+    for (auto &xclbin : lastCfg->currentXclbins)
+    {
+      if (xclbin->type == XCLBIN_PL_ONLY || xclbin->type == XCLBIN_AIE_PL)
+      {
+        // Create a copy of required missing xclbinInfo.
+        missingXclbin = new XclbinInfo(XCLBIN_PL_ONLY);
+        // Perform deep copy of missing PL xclbin
+        missingXclbin->pl = xclbin->pl;
+        missingXclbin->aie.valid = false ;
+        missingXclbin->uuid = xclbin->uuid ;
+        missingXclbin->name = xclbin->name ;
+        break;  // Need only one such missing xclbinInfo
+      }
+    }
+    // If missing part of XclbinInfo is available. 
+    if (missingXclbin)
+    {
+      auto& lastPlCfg = plDeviceInfo.loadedConfigInfos.back()->currentXclbins.back()->aie.numTracePLIO;
+      config->currentXclbins.back()->aie.numTracePLIO = plDeviceInfo.loadedConfigInfos.size() == 0 ? 0 : lastPlCfg;
+      config->addXclbin(missingXclbin);
+      config->type = CONFIG_AIE_PL_FORMED;
+    }
+ 
     loadedConfigInfos.push_back(std::move(config));
   }
 
