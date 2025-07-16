@@ -509,7 +509,7 @@ namespace xdp {
 
     if (dev == nullptr)
       return;
-    
+
     uint64_t deviceId = 0;
     if (deviceInfo.find(deviceId) == deviceInfo.end())
       return;
@@ -1667,8 +1667,13 @@ namespace xdp {
   PLDeviceIntf* VPStaticDatabase::getPlDeviceIntf(const ConfigInfo* curConfig)
   {
     // In LOAD_XCLBIN_STYLE, the deviceId is the same as the plDeviceId
-    if ((AppStyle::REGISTER_XCLBIN_STYLE != getAppStyle()) ||
-        (ConfigInfoType::CONFIG_AIE_ONLY != curConfig->getConfigType()))
+    AppStyle appStyle = getAppStyle();
+    ConfigInfoType configType = curConfig->getConfigType();
+
+    // if ((AppStyle::REGISTER_XCLBIN_STYLE != getAppStyle()) ||
+    //     (ConfigInfoType::CONFIG_AIE_ONLY != curConfig->getConfigType()))
+    //   return curConfig->plDeviceIntf;
+    if (appStyle != AppStyle::REGISTER_XCLBIN_STYLE)
       return curConfig->plDeviceIntf;
 
     // In REGISTER_XCLBIN_STYLE, the PL Device Interface is always deviceId 0.
@@ -2545,8 +2550,12 @@ namespace xdp {
 
     devInfo->isReady = true;
 
-    if (xdpDevice != nullptr)
-      createPLDeviceIntf(deviceId, std::move(xdpDevice), xclbinType);
+    if (xdpDevice != nullptr) {
+      if (getAppStyle() == AppStyle::REGISTER_XCLBIN_STYLE)
+        createPLDeviceIntfForRegisterXclbinStyle(std::move(xdpDevice), xclbinType);
+      else
+        createPLDeviceIntf(deviceId, std::move(xdpDevice), xclbinType);
+    }
     
     return devInfo;
   }
@@ -2614,7 +2623,7 @@ namespace xdp {
 
     if (!metadataReader)
       xrt_core::message::send(xrt_core::message::severity_level::debug, "XRT",
-                              "AIE metadata read failed!");
+                              "AIE metadata is not available in the xclbin!");
     else
       xrt_core::message::send(xrt_core::message::severity_level::debug, "XRT",
                               "AIE metadata read successfully!");

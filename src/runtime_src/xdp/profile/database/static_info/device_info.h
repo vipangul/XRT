@@ -90,7 +90,7 @@ namespace xdp {
     // ****** Functions for Device ConfigInfo ******
     XDP_CORE_EXPORT XclbinInfo* createXclbinFromLastConfig(XclbinInfoType xclbinQueryType) ;
     XDP_CORE_EXPORT void createConfigForRegisterXclbinStyle(XclbinInfo* xclbin, DeviceInfo* plDevice) ;
-    XDP_CORE_EXPORT void createConfig(XclbinInfo* xclbin, AppStyle currStyle) ;
+    XDP_CORE_EXPORT void createConfig(XclbinInfo* xclbin) ;
     
     // ****** Functions for information on the device ******
     XDP_CORE_EXPORT std::string getUniqueDeviceName() const ;
