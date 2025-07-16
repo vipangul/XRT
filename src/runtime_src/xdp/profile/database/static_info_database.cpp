@@ -1254,8 +1254,8 @@ namespace xdp {
                                         void* devHandle)
   {
     std::lock_guard<std::mutex> lock(aieLock) ;
-    if (aieDevInst)
-      return aieDevInst ;
+    // if (aieDevInst)
+    //   return aieDevInst ;
 
     aieDevInst = fetch(devHandle) ;
     return aieDevInst ;
@@ -1266,8 +1266,8 @@ namespace xdp {
                                        void* devHandle)
   {
     std::lock_guard<std::mutex> lock(aieLock) ;
-    if (aieDevice)
-      return aieDevice;
+    // if (aieDevice)
+    //   return aieDevice;
     if (!aieDevInst)
       return nullptr ;
 

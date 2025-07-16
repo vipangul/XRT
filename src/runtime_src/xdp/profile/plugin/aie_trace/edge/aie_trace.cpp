@@ -328,19 +328,21 @@ namespace xdp {
     if (metadata->getUseUserControl())
       coreTraceStartEvent = XAIE_EVENT_INSTR_EVENT_0_CORE;
     coreTraceEndEvent = XAIE_EVENT_INSTR_EVENT_1_CORE;
-
+    
     // Iterate over all used/specified tiles
     // NOTE: rows are stored as absolute as required by resource manager
     for (auto& tileMetric : metadata->getConfigMetrics()) {
       auto& metricSet = tileMetric.second;
       auto tile       = tileMetric.first;
-      auto col        = tile.col + startColShift;
+      auto col        = tile.col ;
+      auto colReltoPartition = (xdp::VPDatabase::Instance()->getStaticInfo().getAppStyle() == 
+                                xdp::AppStyle::LOAD_XCLBIN_STYLE) ? col + startColShift : col;
       auto row        = tile.row;
       auto subtype    = tile.subtype;
       auto type       = aie::getModuleType(row, metadata->getRowOffset());
       auto typeInt    = static_cast<int>(type);
-      auto& xaieTile  = aieDevice->tile(col, row);
-      auto loc        = XAie_TileLoc(col, row);
+      auto& xaieTile  = aieDevice->tile(colReltoPartition, row);
+      auto loc        = XAie_TileLoc(colReltoPartition, row);
 
       if ((type == module_type::core) && !aie::trace::isDmaSet(metricSet)) {
         // If we're not looking at DMA events, then don't display the DMA
@@ -353,7 +355,7 @@ namespace xdp {
 
       std::string tileName = (type == module_type::mem_tile) ? "memory" 
                            : ((type == module_type::shim) ? "interface" : "AIE");
-      tileName.append(" tile (" + std::to_string(col) + "," + std::to_string(row) + ")");
+      tileName.append(" tile (" + std::to_string(col+startColShift) + "," + std::to_string(row) + ")");
 
       if (aie::isInfoVerbosity()) {
         std::stringstream infoMsg;
@@ -383,7 +385,7 @@ namespace xdp {
       }
 
       // AIE config object for this tile
-      auto cfgTile = std::make_unique<aie_cfg_tile>(col, row, type);
+      auto cfgTile = std::make_unique<aie_cfg_tile>(col+startColShift, row, type);
       cfgTile->type = type;
       cfgTile->trace_metric_set = metricSet;
       cfgTile->active_core = tile.active_core;
@@ -965,7 +967,7 @@ namespace xdp {
       return;
 
     auto handle = metadata->getHandle();
-    aieDevInst = static_cast<XAie_DevInst*>(db->getStaticInfo().getAieDevInst(fetchAieDevInst, handle));
+    // aieDevInst = static_cast<XAie_DevInst*>(db->getStaticInfo().getAieDevInst(fetchAieDevInst, handle));
 
     if (aie::isDebugVerbosity()) {
       std::stringstream msg;
@@ -997,8 +999,8 @@ namespace xdp {
     // Wait until xclbin has been loaded and device has been updated in database
     if (!(db->getStaticInfo().isDeviceReady(index)))
       return;
-    XAie_DevInst* aieDevInst =
-      static_cast<XAie_DevInst*>(db->getStaticInfo().getAieDevInst(fetchAieDevInst, handle)) ;
+    // XAie_DevInst* aieDevInst =
+      // static_cast<XAie_DevInst*>(db->getStaticInfo().getAieDevInst(fetchAieDevInst, handle)) ;
     if (!aieDevInst)
       return;
 

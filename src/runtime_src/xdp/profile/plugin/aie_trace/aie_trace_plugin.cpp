@@ -89,16 +89,17 @@ uint64_t AieTracePluginUnified::getDeviceIDFromHandle(void *handle, bool hw_cont
   if (itr != handleToAIEData.end())
     return itr->second.deviceID;
 
-#ifdef XDP_CLIENT_BUILD
-  (void)(hw_context_flow);
-  return db->addDevice("win_sysfspath");
-#else
-  if(hw_context_flow)
-    return db->addDevice("ve2_device");  //TODO: Both VE2 and Edge hw_context flow will reach here,
-                                         //      so we need to differentiate them later.
-  else
-    return db->addDevice(util::getDebugIpLayoutPath(handle)); // Get the unique device Id. Edge load device flow.
-#endif
+  return (db->getStaticInfo()).getDeviceContextUniqueId(handle);
+// #ifdef XDP_CLIENT_BUILD
+//   (void)(hw_context_flow);
+//   return db->addDevice("win_sysfspath");
+// #else
+//   if(hw_context_flow)
+//     return db->addDevice("ve2_device");  //TODO: Both VE2 and Edge hw_context flow will reach here,
+//                                          //      so we need to differentiate them later.
+//   else
+//     return db->addDevice(util::getDebugIpLayoutPath(handle)); // Get the unique device Id. Edge load device flow.
+// #endif
 }
 
 void AieTracePluginUnified::updateAIEDevice(void *handle, bool hw_context_flow) {
@@ -192,7 +193,8 @@ void AieTracePluginUnified::updateAIEDevice(void *handle, bool hw_context_flow) 
         // NOTE: If partition is not used, this value is zero.
         // This is later required for GMIO trace offload.
         uint8_t startColShift = AIEData.metadata->getPartitionOverlayStartCols().front();
-        (db->getStaticInfo()).addTraceGMIO(deviceID, gmio.id, gmio.shimColumn+startColShift,
+        uint8_t colReltoPartition = (hw_context_flow) ? gmio.shimColumn : gmio.shimColumn + startColShift;
+        (db->getStaticInfo()).addTraceGMIO(deviceID, gmio.id, colReltoPartition,
                                            gmio.channelNum, gmio.streamId, gmio.burstLength);
       }
     }
@@ -212,7 +214,7 @@ void AieTracePluginUnified::updateAIEDevice(void *handle, bool hw_context_flow) 
   }
 
   if (AIEData.metadata->getRuntimeMetrics()) {
-    std::string configFile = "aie_event_runtime_config.json";
+    std::string configFile = "aie_event_runtime_config_" + std::to_string(deviceID) + ".json";
     VPWriter *writer = new AieTraceConfigWriter(configFile.c_str(), deviceID);
     writers.push_back(writer);
     (db->getStaticInfo())
