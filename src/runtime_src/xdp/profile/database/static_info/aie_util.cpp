@@ -32,7 +32,7 @@
 #include <algorithm>
 #include <boost/property_tree/json_parser.hpp>
 #include <boost/property_tree/ptree.hpp>
-#include <cctype> 
+#include <cctype>
 #include <cstdint>
 #include <filesystem>
 #include <memory>
@@ -43,15 +43,15 @@
 // Anonymous namespace for helper functions local to this file
 // ***************************************************************
 namespace xdp::aie {
-    
+
   namespace pt = boost::property_tree;
   using severity_level = xrt_core::message::severity_level;
 
   /****************************************************************************
    * Compare two tiles (used for sorting)
    ***************************************************************************/
-  bool 
-  tileCompare(xdp::tile_type tile1, xdp::tile_type tile2) 
+  bool
+  tileCompare(xdp::tile_type tile1, xdp::tile_type tile2)
   {
     return ((tile1.col == tile2.col) && (tile1.row == tile2.row));
   }
@@ -289,27 +289,27 @@ namespace xdp::aie {
   /****************************************************************************
    * Check if verbosity is at least info level
    ***************************************************************************/
-  bool 
+  bool
   isInfoVerbosity()
   {
-    return (xrt_core::config::get_verbosity() >= 
+    return (xrt_core::config::get_verbosity() >=
             static_cast<uint32_t>(severity_level::info));
   }
 
   /****************************************************************************
    * Check if verbosity is at least debug level
    ***************************************************************************/
-  bool 
+  bool
   isDebugVerbosity()
   {
-    return (xrt_core::config::get_verbosity() >= 
+    return (xrt_core::config::get_verbosity() >=
             static_cast<uint32_t>(severity_level::debug));
   }
 
   /****************************************************************************
    * Check if input-based metric set
    ***************************************************************************/
-  bool 
+  bool
   isInputSet(const module_type type, const std::string metricSet)
   {
     // Catch memory tile sets
@@ -332,7 +332,7 @@ namespace xdp::aie {
   /****************************************************************************
    * Get relative row of given tile
    ***************************************************************************/
-  uint8_t 
+  uint8_t
   getRelativeRow(uint8_t absRow, uint8_t rowOffset)
   {
     if (absRow == 0)
@@ -356,7 +356,7 @@ namespace xdp::aie {
   /****************************************************************************
    * Get module type
    ***************************************************************************/
-  module_type 
+  module_type
   getModuleType(uint8_t absRow, uint8_t rowOffset)
   {
     if (absRow == 0)
@@ -369,16 +369,16 @@ namespace xdp::aie {
   /****************************************************************************
    * Convert broadcast ID to event ID
    ***************************************************************************/
-  uint32_t 
+  uint32_t
   bcIdToEvent(int bcId)
   {
     return bcId + CORE_BROADCAST_EVENT_BASE;
   }
-  
+
   /****************************************************************************
    * Get module name
    ***************************************************************************/
-  std::string 
+  std::string
   getModuleName(module_type mod)
   {
     static std::map<module_type, std::string> modNames {
@@ -425,7 +425,7 @@ namespace xdp::aie {
       } else {
         device = xrt_core::get_userpf_device(handle);
       }
-  
+
       auto info = xrt_core::device_query_default<xrt_core::query::aie_partition_info>(device.get(), {});
       for(const auto& e : info) {
         boost::property_tree::ptree pt;
@@ -454,7 +454,7 @@ namespace xdp::aie {
   }
 
   /****************************************************************************
-   * Get the stream width in bits for specified hw_gen
+   * Get the stream width in bytes for specified hw_gen
    ***************************************************************************/
   uint32_t getStreamWidth(uint8_t hw_gen)
   {
@@ -463,11 +463,11 @@ namespace xdp::aie {
       {static_cast<uint8_t>(XDP_DEV_GEN_AIE),     static_cast<uint8_t>(4)},
       {static_cast<uint8_t>(XDP_DEV_GEN_AIEML),   static_cast<uint8_t>(4)}
     };
-    uint32_t default_width = 32;
-    
+    uint32_t default_width = 4;
+
     if (streamWidthMap.find(hw_gen) == streamWidthMap.end())
       return default_width;
-    
+
     return streamWidthMap.at(hw_gen);
   }
 
