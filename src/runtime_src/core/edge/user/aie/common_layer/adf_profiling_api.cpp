@@ -155,9 +155,12 @@ err_code profiling::profile_stream_start_to_transfer_complete_cycles(XAie_DevIns
         << ", port interface SOUTH, stream switch port id " << (int)streamPortId).str());
 
     // Counter1 - Measures the total beats for the specified total bytes.
-    driverStatus |= XAie_PerfCounterEventValueSet(dev, tileLoc, XAIE_PL_MOD, (u8)counterId1, (u32)(numBytes / 4));
+    uint8_t bytesPerStream=4;
+    if (dev->DevProp.DevGen == XAIE_DEV_GEN_AIE2PS)
+        bytesPerStream = 8;
+    driverStatus |= XAie_PerfCounterEventValueSet(dev, tileLoc, XAIE_PL_MOD, (u8)counterId1, (u32)(numBytes / bytesPerStream));
     debugMsg(static_cast<std::stringstream &&>(std::stringstream() << "XAie_PerfCounterEventValueSet: col " << (int)tileLoc.Col
-        << " row " << (int)tileLoc.Row << ", module XAIE_PL_MOD, counter id " << (int)counterId1 << ", perf counter event value " << (unsigned int)(numBytes / 4)).str());
+        << " row " << (int)tileLoc.Row << ", module XAIE_PL_MOD, counter id " << (int)counterId1 << ", perf counter event value " << (unsigned int)(numBytes / bytesPerStream)).str());
 
     // Counter0 - Measures the clock cycles from the start of the stream until the transfer is complete.
     driverStatus |= XAie_PerfCounterControlSet(dev, tileLoc, XAIE_PL_MOD, (u8)counterId0, XAIE_EVENT_COMBO_EVENT_3_PL, XAIE_EVENT_PERF_CNT_1_PL);
