@@ -6,6 +6,7 @@
 
 #include <cstdint>
 #include <string>
+#include <set>
 #include "xdp/profile/database/static_info/aie_constructs.h"
 #include "xdp/profile/plugin/aie_base/generations/aie_generations.h"
 
@@ -319,7 +320,6 @@ namespace xdp::aie {
      case XAIE_EVENT_DMA_MM2S_0_STALLED_LOCK_PL:
      case XAIE_EVENT_DMA_MM2S_0_STREAM_BACKPRESSURE_PL:
      case XAIE_EVENT_DMA_MM2S_0_MEMORY_STARVATION_PL:
- #ifdef XDP_VE2_BUILD
      case XAIE_EVENT_NOC0_DMA_S2MM_0_START_TASK_PL:
      case XAIE_EVENT_NOC0_DMA_S2MM_0_FINISHED_BD_PL:
      case XAIE_EVENT_NOC0_DMA_S2MM_0_FINISHED_TASK_PL:
@@ -332,7 +332,6 @@ namespace xdp::aie {
      case XAIE_EVENT_NOC0_DMA_MM2S_0_STALLED_LOCK_PL:
      case XAIE_EVENT_NOC0_DMA_MM2S_0_STREAM_BACKPRESSURE_PL:
      case XAIE_EVENT_NOC0_DMA_MM2S_0_MEMORY_STARVATION_PL:
- #endif
        return 0;
      case XAIE_EVENT_DMA_S2MM_1_START_TASK_MEM:
      case XAIE_EVENT_DMA_S2MM_1_FINISHED_BD_MEM:
@@ -360,7 +359,6 @@ namespace xdp::aie {
      case XAIE_EVENT_DMA_MM2S_1_STALLED_LOCK_PL:
      case XAIE_EVENT_DMA_MM2S_1_STREAM_BACKPRESSURE_PL:
      case XAIE_EVENT_DMA_MM2S_1_MEMORY_STARVATION_PL:
-#ifdef XDP_VE2_BUILD
      case XAIE_EVENT_NOC0_DMA_S2MM_1_START_TASK_PL:
      case XAIE_EVENT_NOC0_DMA_S2MM_1_FINISHED_BD_PL:
      case XAIE_EVENT_NOC0_DMA_S2MM_1_FINISHED_TASK_PL:
@@ -373,7 +371,6 @@ namespace xdp::aie {
      case XAIE_EVENT_NOC0_DMA_MM2S_1_STALLED_LOCK_PL:
      case XAIE_EVENT_NOC0_DMA_MM2S_1_STREAM_BACKPRESSURE_PL:
      case XAIE_EVENT_NOC0_DMA_MM2S_1_MEMORY_STARVATION_PL:
-#endif
        return 1;
      default:
        return -1;

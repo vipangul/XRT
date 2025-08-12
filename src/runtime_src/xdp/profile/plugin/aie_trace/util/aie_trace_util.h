@@ -119,7 +119,7 @@ namespace xdp::aie::trace {
    * @param events    Vector of events in metric set (modified if needed)
    */
   void modifyEvents(module_type type, io_type subtype, const std::string metricSet,
-                    uint8_t channel, std::vector<XAie_Events>& events);
+                    uint8_t channel, std::vector<XAie_Events>& events, const int hwGen);
 
   /**
    * @brief Build 2-channel broadcast network for specified tile range

@@ -5,6 +5,7 @@
 
 #include "xdp/profile/plugin/aie_profile/util/aie_profile_util.h"
 #include "xdp/profile/database/static_info/aie_util.h"
+#include "xdp/profile/plugin/aie_base/aie_base_util.h"
 
 #include <cmath>
 #include <cstring>
@@ -114,7 +115,6 @@ namespace xdp::aie::profile {
       eventSets["output_stalls"]  = {XAIE_EVENT_PORT_STALLED_0_PL, 
                                      XAIE_EVENT_PORT_IDLE_0_PL};
     }
-#ifdef XDP_VE2_BUILD
     else if (hwGen == 5) {
       eventSets["input_stalls"]   = {XAIE_EVENT_NOC0_DMA_MM2S_0_STREAM_BACKPRESSURE_PL, 
                                      XAIE_EVENT_NOC0_DMA_MM2S_0_MEMORY_STARVATION_PL};
@@ -123,7 +123,6 @@ namespace xdp::aie::profile {
       eventSets["input_throughputs"] = {XAIE_EVENT_NOC0_GROUP_DMA_ACTIVITY_PL, XAIE_EVENT_PORT_RUNNING_0_PL};
       eventSets["output_throughputs"] = {XAIE_EVENT_NOC0_GROUP_DMA_ACTIVITY_PL, XAIE_EVENT_PORT_RUNNING_0_PL};
     }
-#endif
     else {
       eventSets["input_stalls"]   = {XAIE_EVENT_DMA_MM2S_0_STREAM_BACKPRESSURE_PL, 
                                      XAIE_EVENT_DMA_MM2S_0_MEMORY_STARVATION_PL};
@@ -301,10 +300,16 @@ namespace xdp::aie::profile {
                         const std::string metricSet, const XAie_Events event,
                         const uint8_t channel) 
   {
+    std::cout << "!!! Configuring group event " << event << "or (int)"<< (int) event 
+              << " for metric set " << metricSet 
+              << " on tile (" << (int)loc.Col << "," << (int)loc.Row << ")"
+              << " type " << (int)type << " channel " << (int)channel << std::endl;
     // Set masks for group events
     // NOTE: Group error enable register is blocked, so ignoring
-    if (event == XAIE_EVENT_GROUP_DMA_ACTIVITY_MEM)
+    if (event == XAIE_EVENT_GROUP_DMA_ACTIVITY_MEM) {
+      std::cout << "!!! [1] Configuring XAIE_EVENT_GROUP_DMA_ACTIVITY_MEM DMA activity group event for metric set " << metricSet << std::endl;
       XAie_EventGroupControl(aieDevInst, loc, mod, event, GROUP_DMA_MASK);
+    }
     else if (event == XAIE_EVENT_GROUP_LOCK_MEM)
       XAie_EventGroupControl(aieDevInst, loc, mod, event, GROUP_LOCK_MASK);
     else if (event == XAIE_EVENT_GROUP_MEMORY_CONFLICT_MEM)
@@ -317,8 +322,11 @@ namespace xdp::aie::profile {
       uint32_t bitMask = aie::isInputSet(type, metricSet) 
           ? ((channel == 0) ? GROUP_SHIM_S2MM0_STALL_MASK : GROUP_SHIM_S2MM1_STALL_MASK)
           : ((channel == 0) ? GROUP_SHIM_MM2S0_STALL_MASK : GROUP_SHIM_MM2S1_STALL_MASK);
+      std::cout << "!!! [2] Configuring XAIE_EVENT_GROUP_DMA_ACTIVITY_PL DMA activity group event for metric set " << metricSet << std::endl;
       XAie_EventGroupControl(aieDevInst, loc, mod, event, bitMask);
-    }                                    
+    } else {
+      std::cout << "!!! [X] No group event configuration for event " << event << " for metric set " << metricSet << std::endl;
+    }                                
   }
 
   /****************************************************************************
@@ -384,25 +392,26 @@ namespace xdp::aie::profile {
     // Modify events based on channel number
     if (channel > 0) {
       // Interface tiles
-#ifdef XDP_VE2_BUILD
-      std::replace(events.begin(), events.end(), 
-          XAIE_EVENT_NOC0_DMA_S2MM_0_MEMORY_BACKPRESSURE_PL,  XAIE_EVENT_NOC0_DMA_S2MM_1_MEMORY_BACKPRESSURE_PL);
-      std::replace(events.begin(), events.end(), 
-          XAIE_EVENT_NOC0_DMA_S2MM_0_STALLED_LOCK_PL,         XAIE_EVENT_NOC0_DMA_S2MM_1_STALLED_LOCK_PL);
-      std::replace(events.begin(), events.end(), 
-          XAIE_EVENT_NOC0_DMA_MM2S_0_STREAM_BACKPRESSURE_PL,  XAIE_EVENT_NOC0_DMA_MM2S_1_STREAM_BACKPRESSURE_PL);
-      std::replace(events.begin(), events.end(), 
-          XAIE_EVENT_NOC0_DMA_MM2S_0_MEMORY_STARVATION_PL,    XAIE_EVENT_NOC0_DMA_MM2S_1_MEMORY_STARVATION_PL);
-#else
-      std::replace(events.begin(), events.end(), 
-          XAIE_EVENT_DMA_S2MM_0_MEMORY_BACKPRESSURE_PL,       XAIE_EVENT_DMA_S2MM_1_MEMORY_BACKPRESSURE_PL);
-      std::replace(events.begin(), events.end(), 
-          XAIE_EVENT_DMA_S2MM_0_STALLED_LOCK_PL,              XAIE_EVENT_DMA_S2MM_1_STALLED_LOCK_PL);
-      std::replace(events.begin(), events.end(), 
-          XAIE_EVENT_DMA_MM2S_0_STREAM_BACKPRESSURE_PL,       XAIE_EVENT_DMA_MM2S_1_STREAM_BACKPRESSURE_PL);
-      std::replace(events.begin(), events.end(), 
-          XAIE_EVENT_DMA_MM2S_0_MEMORY_STARVATION_PL,         XAIE_EVENT_DMA_MM2S_1_MEMORY_STARVATION_PL);
-#endif
+      if (aie::isAIE2ps(hwGen)) {
+        std::replace(events.begin(), events.end(), 
+            XAIE_EVENT_NOC0_DMA_S2MM_0_MEMORY_BACKPRESSURE_PL,  XAIE_EVENT_NOC0_DMA_S2MM_1_MEMORY_BACKPRESSURE_PL);
+        std::replace(events.begin(), events.end(), 
+            XAIE_EVENT_NOC0_DMA_S2MM_0_STALLED_LOCK_PL,         XAIE_EVENT_NOC0_DMA_S2MM_1_STALLED_LOCK_PL);
+        std::replace(events.begin(), events.end(), 
+            XAIE_EVENT_NOC0_DMA_MM2S_0_STREAM_BACKPRESSURE_PL,  XAIE_EVENT_NOC0_DMA_MM2S_1_STREAM_BACKPRESSURE_PL);
+        std::replace(events.begin(), events.end(), 
+            XAIE_EVENT_NOC0_DMA_MM2S_0_MEMORY_STARVATION_PL,    XAIE_EVENT_NOC0_DMA_MM2S_1_MEMORY_STARVATION_PL);
+      }
+      else {
+        std::replace(events.begin(), events.end(), 
+            XAIE_EVENT_DMA_S2MM_0_MEMORY_BACKPRESSURE_PL,       XAIE_EVENT_DMA_S2MM_1_MEMORY_BACKPRESSURE_PL);
+        std::replace(events.begin(), events.end(), 
+            XAIE_EVENT_DMA_S2MM_0_STALLED_LOCK_PL,              XAIE_EVENT_DMA_S2MM_1_STALLED_LOCK_PL);
+        std::replace(events.begin(), events.end(), 
+            XAIE_EVENT_DMA_MM2S_0_STREAM_BACKPRESSURE_PL,       XAIE_EVENT_DMA_MM2S_1_STREAM_BACKPRESSURE_PL);
+        std::replace(events.begin(), events.end(), 
+            XAIE_EVENT_DMA_MM2S_0_MEMORY_STARVATION_PL,         XAIE_EVENT_DMA_MM2S_1_MEMORY_STARVATION_PL);
+      }
     }
   }
 
