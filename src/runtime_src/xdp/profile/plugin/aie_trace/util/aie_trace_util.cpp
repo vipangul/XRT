@@ -226,7 +226,7 @@ namespace xdp::aie::trace {
           XAIE_EVENT_DMA_S2MM_1_START_BD_PL,               XAIE_EVENT_DMA_S2MM_1_FINISHED_BD_PL,
           XAIE_EVENT_DMA_S2MM_1_STALLED_LOCK_ACQUIRE_PL};
     }
-#ifdef XDP_VE2_BUILD
+#ifndef XDP_CLIENT_BUILD
     else if (hwGen == 5) {
       eventSets["input_ports_details"] = {
           XAIE_EVENT_NOC0_DMA_MM2S_0_START_TASK_PL,             XAIE_EVENT_NOC0_DMA_MM2S_0_FINISHED_BD_PL,
@@ -238,6 +238,7 @@ namespace xdp::aie::trace {
           XAIE_EVENT_NOC0_DMA_S2MM_0_STREAM_STARVATION_PL,      XAIE_EVENT_NOC0_DMA_S2MM_0_MEMORY_BACKPRESSURE_PL};
     }
 #endif
+    // Applicable to AIE1, AIE2 and Client devices.
     else {
       eventSets["input_ports_details"] = {
           XAIE_EVENT_DMA_MM2S_0_START_TASK_PL,             XAIE_EVENT_DMA_MM2S_0_FINISHED_BD_PL,
@@ -435,7 +436,8 @@ namespace xdp::aie::trace {
     // Check type to minimize replacements
     if (isInputSet(type, metricSet)) {
       // Input or MM2S
-#ifdef XDP_VE2_BUILD
+#ifndef XDP_CLIENT_BUILD
+    if (xdp::aie::isAIE2ps(hwGen)) {
       std::replace(events.begin(), events.end(), 
           XAIE_EVENT_NOC0_DMA_MM2S_0_START_TASK_PL,          XAIE_EVENT_NOC0_DMA_MM2S_1_START_TASK_PL);
       std::replace(events.begin(), events.end(), 
@@ -448,7 +450,10 @@ namespace xdp::aie::trace {
           XAIE_EVENT_NOC0_DMA_MM2S_0_STREAM_BACKPRESSURE_PL, XAIE_EVENT_NOC0_DMA_MM2S_1_STREAM_BACKPRESSURE_PL);
       std::replace(events.begin(), events.end(), 
           XAIE_EVENT_NOC0_DMA_MM2S_0_MEMORY_STARVATION_PL,   XAIE_EVENT_NOC0_DMA_MM2S_1_MEMORY_STARVATION_PL);
+    }
 #else
+    // Applicable to AIE1, AIE2 and Client devices
+    if (!xdp::aie::isAIE2ps(hwGen)) {
       std::replace(events.begin(), events.end(), 
           XAIE_EVENT_DMA_MM2S_0_START_TASK_PL,               XAIE_EVENT_DMA_MM2S_1_START_TASK_PL);
       std::replace(events.begin(), events.end(), 
@@ -461,11 +466,13 @@ namespace xdp::aie::trace {
           XAIE_EVENT_DMA_MM2S_0_STREAM_BACKPRESSURE_PL,      XAIE_EVENT_DMA_MM2S_1_STREAM_BACKPRESSURE_PL);
       std::replace(events.begin(), events.end(), 
           XAIE_EVENT_DMA_MM2S_0_MEMORY_STARVATION_PL,        XAIE_EVENT_DMA_MM2S_1_MEMORY_STARVATION_PL);
+    }
 #endif
     }
     else {
       // Output or S2MM
-#ifdef XDP_VE2_BUILD
+#ifndef XDP_CLIENT_BUILD
+    if (xdp::aie::isAIE2ps(hwGen)) {
       std::replace(events.begin(), events.end(), 
           XAIE_EVENT_NOC0_DMA_S2MM_0_START_TASK_PL,          XAIE_EVENT_NOC0_DMA_S2MM_1_START_TASK_PL);
       std::replace(events.begin(), events.end(), 
@@ -478,7 +485,10 @@ namespace xdp::aie::trace {
           XAIE_EVENT_NOC0_DMA_S2MM_0_STREAM_STARVATION_PL,   XAIE_EVENT_NOC0_DMA_S2MM_1_STREAM_STARVATION_PL);
       std::replace(events.begin(), events.end(), 
           XAIE_EVENT_NOC0_DMA_S2MM_0_MEMORY_BACKPRESSURE_PL, XAIE_EVENT_NOC0_DMA_S2MM_1_MEMORY_BACKPRESSURE_PL);
+    }
 #else
+    // Applicable to AIE1, AIE2 and Client devices
+    if (!xdp::aie::isAIE2ps(hwGen)) {
       std::replace(events.begin(), events.end(), 
           XAIE_EVENT_DMA_S2MM_0_START_TASK_PL,               XAIE_EVENT_DMA_S2MM_1_START_TASK_PL);
       std::replace(events.begin(), events.end(), 
@@ -491,6 +501,7 @@ namespace xdp::aie::trace {
           XAIE_EVENT_DMA_S2MM_0_STREAM_STARVATION_PL,        XAIE_EVENT_DMA_S2MM_1_STREAM_STARVATION_PL);
       std::replace(events.begin(), events.end(), 
           XAIE_EVENT_DMA_S2MM_0_MEMORY_BACKPRESSURE_PL,      XAIE_EVENT_DMA_S2MM_1_MEMORY_BACKPRESSURE_PL);
+    }
 #endif
     }
   }
