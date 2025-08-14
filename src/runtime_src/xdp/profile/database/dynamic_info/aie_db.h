@@ -33,7 +33,8 @@ namespace xdp {
   class AIEDB
   {
   private:
-    aie::TraceDataVector traceData;
+    // aie::TraceDataVector traceData;
+    std::map<io_type, aie::TraceDataVector> traceDataMap;
 
     SampleContainer samples;
     DoubleSampleContainer timerSamples;

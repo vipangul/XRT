@@ -243,11 +243,13 @@ namespace xdp {
                                           uint64_t strmIndex,
                                           void* buffer,
                                           uint64_t bufferSz,
-                                          bool copy)
+                                          bool copy,
+                                          io_type offloadType)
   {
     auto device_db = getDeviceDB(deviceId);
     device_db->addAIETraceData(strmIndex, buffer, bufferSz, copy,
-                               db->getStaticInfo().getNumAIETraceStream(deviceId));
+                               db->getStaticInfo().getNumAIETraceStream(deviceId, offloadType),
+                               offloadType);
   }
 
   aie::TraceDataType* VPDynamicDatabase::getAIETraceData(uint64_t deviceId, uint64_t strmIndex)

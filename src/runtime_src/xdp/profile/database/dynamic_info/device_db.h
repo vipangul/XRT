@@ -97,8 +97,8 @@ namespace xdp {
 
     inline void addAIETraceData(uint64_t strmIndex, void* buffer,
                                 uint64_t bufferSz, bool copy,
-                                uint64_t numStreams)
-    { aie_db.addAIETraceData(strmIndex, buffer, bufferSz, copy, numStreams); }
+                                uint64_t numStreams, io_type offloadType)
+    { aie_db.addAIETraceData(strmIndex, buffer, bufferSz, copy, numStreams, offloadType); }
 
     inline aie::TraceDataType* getAIETraceData(uint64_t strmIndex)
     { return aie_db.getAIETraceData(strmIndex); }

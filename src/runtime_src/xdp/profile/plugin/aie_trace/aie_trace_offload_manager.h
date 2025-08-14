@@ -28,7 +28,7 @@ public:
   AIETraceOffloadData gmio;
 
   void initPLIO(uint64_t deviceID, void* handle, PLDeviceIntf* deviceIntf, uint64_t bufSize, uint64_t numStreams, XAie_DevInst* devInst) {
-    plio.logger = std::make_unique<AIETraceDataLogger>(deviceID);
+    plio.logger = std::make_unique<AIETraceDataLogger>(deviceID, io_type::PLIO);
     plio.offloader = std::make_unique<AIETraceOffload>(handle, deviceID, deviceIntf, plio.logger.get(), true, bufSize, numStreams, devInst);
     plio.valid = true;
   }
@@ -38,7 +38,7 @@ void AIETraceOffloadManager::initGMIO(
     uint64_t deviceID, void* handle, PLDeviceIntf* deviceIntf,
     uint64_t bufSize, uint64_t numStreams, xrt::hw_context context, std::shared_ptr<AieTraceMetadata> metadata)
   {
-    gmio.logger = std::make_unique<AIETraceDataLogger>(deviceID);
+    gmio.logger = std::make_unique<AIETraceDataLogger>(deviceID, io_type::GMIO);
     // Use the client-specific AIETraceOffload constructor
     gmio.offloader = std::make_unique<AIETraceOffload>(
         handle, deviceID, deviceIntf, gmio.logger.get(), false, // isPLIO = false
@@ -47,7 +47,7 @@ void AIETraceOffloadManager::initGMIO(
   }
 #else
   void initGMIO(uint64_t deviceID, void* handle, PLDeviceIntf* deviceIntf, uint64_t bufSize, uint64_t numStreams, XAie_DevInst* devInst) {
-    gmio.logger = std::make_unique<AIETraceDataLogger>(deviceID);
+    gmio.logger = std::make_unique<AIETraceDataLogger>(deviceID, io_type::GMIO);
     gmio.offloader = std::make_unique<AIETraceOffload>(handle, deviceID, deviceIntf, gmio.logger.get(), false, bufSize, numStreams, devInst);
     gmio.valid = true;
   }
