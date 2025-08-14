@@ -481,22 +481,22 @@ void AieTracePluginUnified::pollAIETimers(uint64_t index, void *handle) {
   }
 }
 
-void AieTracePluginUnified::flushOffloader(
-    const std::unique_ptr<AIETraceOffload> &offloader, bool warn) {
-  if (offloader->continuousTrace()) {
-    offloader->stopOffload();
+// void AieTracePluginUnified::flushOffloader(
+//     const std::unique_ptr<AIETraceOffload> &offloader, bool warn) {
+//   if (offloader->continuousTrace()) {
+//     offloader->stopOffload();
 
-    while (offloader->getOffloadStatus() != AIEOffloadThreadStatus::STOPPED)
-      ;
-  } else {
-    offloader->readTrace(true);
-    offloader->endReadTrace();
-  }
+//     while (offloader->getOffloadStatus() != AIEOffloadThreadStatus::STOPPED)
+//       ;
+//   } else {
+//     offloader->readTrace(true);
+//     offloader->endReadTrace();
+//   }
 
-  if (warn && offloader->isTraceBufferFull())
-    xrt_core::message::send(severity_level::warning, "XRT",
-                            AIE_TS2MM_WARN_MSG_BUF_FULL);
-}
+//   if (warn && offloader->isTraceBufferFull())
+//     xrt_core::message::send(severity_level::warning, "XRT",
+//                             AIE_TS2MM_WARN_MSG_BUF_FULL);
+// }
 
 void AieTracePluginUnified::flushAIEDevice(void *handle) {
   if (!handle)
@@ -514,7 +514,9 @@ void AieTracePluginUnified::flushAIEDevice(void *handle) {
 
   // Flush AIE then datamovers
   AIEData.implementation->flushTraceModules();
-  flushOffloader(AIEData.offloader, false);
+  // flushOffloader(AIEData.offloader, false);
+  if (AIEData.offloadManager)
+    AIEData.offloadManager->flushAll(false);
 }
 
 void AieTracePluginUnified::finishFlushAIEDevice(void *handle) {
@@ -543,7 +545,11 @@ void AieTracePluginUnified::finishFlushAIEDevice(void *handle) {
 
   // Flush AIE then datamovers
   AIEData.implementation->flushTraceModules();
-  flushOffloader(AIEData.offloader, true);
+  // flushOffloader(AIEData.offloader, true);
+  if (AIEData.offloadManager)
+    AIEData.offloadManager->flushAll(true);
+
+
   XDPPlugin::endWrite();
 
   handleToAIEData.erase(itr);
@@ -562,7 +568,9 @@ void AieTracePluginUnified::writeAll(bool openNewFiles) {
 
     if (AIEData.valid) {
       AIEData.implementation->flushTraceModules();
-      flushOffloader(AIEData.offloader, true);
+      // flushOffloader(AIEData.offloader, true);
+      if (AIEData.offloadManager)
+        AIEData.offloadManager->flushAll(true);
     }
   }
 

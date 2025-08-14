@@ -49,8 +49,8 @@ public:
 private:
   uint64_t getDeviceIDFromHandle(void *handle);
   void pollAIETimers(uint64_t index, void *handle);
-  void flushOffloader(const std::unique_ptr<AIETraceOffload> &offloader,
-                      bool warn);
+  // void flushOffloader(const std::unique_ptr<AIETraceOffload> &offloader,
+  //                     bool warn);
   void endPoll();
 
 private:
