@@ -199,8 +199,10 @@ void AieTracePluginUnified::updateAIEDevice(void *handle, bool hw_context_flow) 
   }
 
   // Check if trace streams are available TODO
-  AIEData.metadata->setNumStreams(
-      (db->getStaticInfo()).getNumAIETraceStream(deviceID));
+  AIEData.metadata->setNumStreamsPLIO(
+      (db->getStaticInfo()).getNumAIETraceStreamPLIO(deviceID));
+  AIEData.metadata->setNumStreamsGMIO(
+      (db->getStaticInfo()).getNumAIETraceStreamGMIO(deviceID));
 
   if (AIEData.metadata->getNumStreams() == 0) {
     AIEData.valid = false;
@@ -218,9 +220,31 @@ void AieTracePluginUnified::updateAIEDevice(void *handle, bool hw_context_flow) 
                        "AIE_EVENT_RUNTIME_CONFIG");
   }
 
-  // Add writer for every stream
-  for (uint64_t n = 0; n < AIEData.metadata->getNumStreams(); ++n) {
-    std::string fileName = "aie_trace_" + std::to_string(deviceID) + "_" +
+  // Add writer for every PLIO stream
+  for (uint64_t n = 0; n < AIEData.metadata->getNumStreamsPLIO(); ++n) {
+    std::string fileName = "aie_trace_plio_" + std::to_string(deviceID) + "_" +
+                           std::to_string(n) + ".txt";
+    VPWriter *writer = new AIETraceWriter(
+      fileName.c_str(),
+      deviceID,
+      n,  // stream id
+      "", // version
+      "", // creation time
+      "", // xrt version
+      ""  // tool version
+    );
+    writers.push_back(writer);
+    db->getStaticInfo().addOpenedFile(writer->getcurrentFileName(),
+                                      "AIE_EVENT_TRACE");
+
+    std::stringstream msg;
+    msg << "Creating AIE trace file " << fileName << " for device " << deviceID;
+    xrt_core::message::send(severity_level::info, "XRT", msg.str());
+  }
+
+    // Add writer for every GMIO stream
+  for (uint64_t n = 0; n < AIEData.metadata->getNumStreamsGMIO(); ++n) {
+    std::string fileName = "aie_trace_gmio_" + std::to_string(deviceID) + "_" +
                            std::to_string(n) + ".txt";
     VPWriter *writer = new AIETraceWriter(
       fileName.c_str(),
