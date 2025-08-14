@@ -231,7 +231,8 @@ void AieTracePluginUnified::updateAIEDevice(void *handle, bool hw_context_flow) 
       "", // version
       "", // creation time
       "", // xrt version
-      ""  // tool version
+      "",  // tool version
+      io_type::PLIO // offload type
     );
     writers.push_back(writer);
     db->getStaticInfo().addOpenedFile(writer->getcurrentFileName(),
@@ -253,7 +254,8 @@ void AieTracePluginUnified::updateAIEDevice(void *handle, bool hw_context_flow) 
       "", // version
       "", // creation time
       "", // xrt version
-      ""  // tool version
+      "",  // tool version
+      io_type::GMIO // offload type
     );
     writers.push_back(writer);
     db->getStaticInfo().addOpenedFile(writer->getcurrentFileName(),
