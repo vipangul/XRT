@@ -252,10 +252,10 @@ namespace xdp {
                                offloadType);
   }
 
-  aie::TraceDataType* VPDynamicDatabase::getAIETraceData(uint64_t deviceId, uint64_t strmIndex)
+  aie::TraceDataType* VPDynamicDatabase::getAIETraceData(uint64_t deviceId, uint64_t strmIndex, io_type offloadType)
   {
     auto device_db = getDeviceDB(deviceId);
-    return device_db->getAIETraceData(strmIndex);
+    return device_db->getAIETraceData(strmIndex, offloadType);
   }
 
   void VPDynamicDatabase::addPowerSample(uint64_t deviceId, double timestamp,

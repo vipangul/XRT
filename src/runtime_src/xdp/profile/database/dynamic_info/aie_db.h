@@ -51,7 +51,7 @@ namespace xdp {
 
     void addAIETraceData(uint64_t strmIndex, void* buffer, uint64_t bufferSz,
                          bool copy, uint64_t numTraceStreams);
-    aie::TraceDataType* getAIETraceData(uint64_t strmIndex);
+    aie::TraceDataType* getAIETraceData(uint64_t strmIndex, io_type offloadType);
 
     void addAIESample(double timestamp, const std::vector<uint64_t>& values);
 

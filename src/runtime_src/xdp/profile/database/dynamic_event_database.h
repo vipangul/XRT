@@ -165,7 +165,7 @@ namespace xdp {
 
     // Add and get AIE Trace Data Buffer
     XDP_CORE_EXPORT void addAIETraceData(uint64_t deviceId, uint64_t strmIndex, void* buffer, uint64_t bufferSz, bool copy);
-    XDP_CORE_EXPORT aie::TraceDataType* getAIETraceData(uint64_t deviceId, uint64_t strmIndex);
+    XDP_CORE_EXPORT aie::TraceDataType* getAIETraceData(uint64_t deviceId, uint64_t strmIndex, io_type offloadType);
 
     // Functions that are used by counter-based plugins
     XDP_CORE_EXPORT void addPowerSample(uint64_t deviceId, double timestamp,
