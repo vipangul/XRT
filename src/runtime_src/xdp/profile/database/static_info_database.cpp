@@ -1288,6 +1288,14 @@ namespace xdp {
     // }
   }
 
+  uint64_t VPStaticDatabase::getNumAIETraceStream(uint64_t deviceId, io_type ioType)
+  {
+    if (ioType == IO_TYPE_PLIO)
+      return getNumTracePLIO(deviceId);
+    else if (ioType == IO_TYPE_GMIO)
+      return getNumTraceGMIO(deviceId);
+  }
+
   void* VPStaticDatabase::getAieDevInst(std::function<void* (void*)> fetch,
                                         void* devHandle, uint64_t deviceID)
   {
