@@ -84,7 +84,9 @@ class AieTraceMetadata {
     std::string getCounterScheme(){return counterScheme;}
 
     uint32_t getIterationCount(){return iterationCount;}
-    uint64_t getNumStreams() {return numAIETraceOutput;}
+    // uint64_t getNumStreams() {return numAIETraceOutput;}
+    uint64_t getNumStreamsPLIO() {return numAIETraceOutputPLIO;}
+    uint64_t getNumStreamsGMIO() {return numAIETraceOutputGMIO;}
     uint64_t getContinuousTrace() {return continuousTrace;}
     void resetContinuousTrace() {continuousTrace = false;}
     uint64_t getOffloadIntervalUs() {return offloadIntervalUs;}

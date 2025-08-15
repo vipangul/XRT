@@ -25,6 +25,7 @@
 #include "xdp/config.h"
 #include "xdp/profile/database/dynamic_info/samples.h"
 #include "xdp/profile/database/dynamic_info/types.h"
+#include "xdp/profile/database/static_info/aie_constructs.h"
 
 namespace xdp {
 
@@ -50,7 +51,7 @@ namespace xdp {
     XDP_CORE_EXPORT ~AIEDB();
 
     void addAIETraceData(uint64_t strmIndex, void* buffer, uint64_t bufferSz,
-                         bool copy, uint64_t numTraceStreams);
+                         bool copy, uint64_t numTraceStreams, io_type offloadType);
     aie::TraceDataType* getAIETraceData(uint64_t strmIndex, io_type offloadType);
 
     void addAIESample(double timestamp, const std::vector<uint64_t>& values);

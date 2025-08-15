@@ -1290,9 +1290,9 @@ namespace xdp {
 
   uint64_t VPStaticDatabase::getNumAIETraceStream(uint64_t deviceId, io_type ioType)
   {
-    if (ioType == IO_TYPE_PLIO)
+    if (ioType == io_type::PLIO)
       return getNumTracePLIO(deviceId);
-    else if (ioType == IO_TYPE_GMIO)
+    else if (ioType == io_type::GMIO)
       return getNumTraceGMIO(deviceId);
   }
 

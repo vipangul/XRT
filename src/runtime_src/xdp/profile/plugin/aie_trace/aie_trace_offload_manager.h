@@ -53,7 +53,16 @@ void AIETraceOffloadManager::initGMIO(
   }
 #endif
 
-  void startPLIOOffload(uint64_t offloadIntervalUs, bool continuousTrace) {
+  void startOffload(bool continuousTrace, uint64_t offloadIntervalUs){
+    startPLIOOffload(continuousTrace, offloadIntervalUs);
+    startGMIOOffload(continuousTrace, offloadIntervalUs);
+    // if (plio.offloader)
+    //   plio.offloader->startPLIOOffload();
+    // if (gmio.offloader)
+    //   gmio.offloader->startGMIOOffload();
+  }
+
+  void startPLIOOffload(bool continuousTrace, uint64_t offloadIntervalUs) {
     if (plio.offloader && continuousTrace) {
       plio.offloader->setContinuousTrace();
       plio.offloader->setOffloadIntervalUs(offloadIntervalUs);
@@ -62,7 +71,7 @@ void AIETraceOffloadManager::initGMIO(
       plio.offloader->startOffload();
   }
 
-  void startGMIOOffload(uint64_t offloadIntervalUs, bool continuousTrace) {
+  void startGMIOOffload(bool continuousTrace, uint64_t offloadIntervalUs) {
     if (gmio.offloader && continuousTrace) {
       // gmio.offloader->setContinuousTrace(); // GMIO trace offload does not support continuous trace
       // gmio.offloader->setOffloadIntervalUs(offloadIntervalUs);
@@ -95,6 +104,7 @@ void AIETraceOffloadManager::initGMIO(
       xrt_core::message::send(xrt_core::message::severity_level::warning, "XRT", AIE_TS2MM_WARN_MSG_BUF_FULL);
     }
   }
+}; // class AIETraceOffloadManager
 
 } //namespace xdp
 

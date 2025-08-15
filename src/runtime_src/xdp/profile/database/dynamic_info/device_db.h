@@ -28,6 +28,7 @@
 #include "xdp/profile/database/dynamic_info/aie_db.h"
 #include "xdp/profile/database/dynamic_info/pl_db.h"
 #include "xdp/profile/database/dynamic_info/types.h"
+#include "xdp/profile/database/static_info/aie_constructs.h"
 
 namespace xdp {
 

@@ -200,11 +200,12 @@ void AieTracePluginUnified::updateAIEDevice(void *handle, bool hw_context_flow) 
 
   // Check if trace streams are available TODO
   AIEData.metadata->setNumStreamsPLIO(
-      (db->getStaticInfo()).getNumAIETraceStreamPLIO(deviceID));
+      (db->getStaticInfo()).getNumAIETraceStream(deviceID, io_type::PLIO));
   AIEData.metadata->setNumStreamsGMIO(
-      (db->getStaticInfo()).getNumAIETraceStreamGMIO(deviceID));
+      (db->getStaticInfo()).getNumAIETraceStream(deviceID, io_type::GMIO));
 
-  if (AIEData.metadata->getNumStreams() == 0) {
+  if ((AIEData.metadata->getNumStreamsPLIO() == 0) && 
+      (AIEData.metadata->getNumStreamsGMIO() == 0)) {
     AIEData.valid = false;
     xrt_core::message::send(severity_level::warning, "XRT",
                             AIE_TRACE_UNAVAILABLE);
@@ -300,7 +301,14 @@ void AieTracePluginUnified::updateAIEDevice(void *handle, bool hw_context_flow) 
     // Ensures Contiguous Memory Allocation specific for linux/edge.
     aieTraceBufSizePLIO = AIEData.implementation->checkTraceBufSize(aieTraceBufSizePLIO);
 
-    AIEData.offloadManager->initPLIO(deviceID, handle, deviceIntf, aieTraceBufSizePLIO, AIEData.metadata->getNumStreams(), devInst);
+    XAie_DevInst* devInst = static_cast<XAie_DevInst*>(AIEData.implementation->setAieDeviceInst(handle, deviceID));
+    if(!devInst) {
+      xrt_core::message::send(severity_level::warning, "XRT",
+        "Unable to get AIE device instance. AIE event trace will not be available.");
+      return;
+    }
+
+    AIEData.offloadManager->initPLIO(deviceID, handle, deviceIntf, aieTraceBufSizePLIO, AIEData.metadata->getNumStreamsPLIO(), devInst);
     AIEData.offloadManager->startPLIOOffload(AIEData.metadata->getOffloadIntervalUs(), AIEData.metadata->getContinuousTrace());
   }
 
@@ -325,7 +333,7 @@ void AieTracePluginUnified::updateAIEDevice(void *handle, bool hw_context_flow) 
     aieTraceBufSizeGMIO = AIEData.implementation->checkTraceBufSize(aieTraceBufSizeGMIO);
 
 #ifdef XDP_CLIENT_BUILD
-    AIEData.offloadManager->initGMIO(deviceID, handle, deviceIntf, aieTraceBufSizeGMIO, AIEData.metadata->getNumStreams(), AIEData.metadata->getHwContext(), AIEData.metadata);
+    AIEData.offloadManager->initGMIO(deviceID, handle, deviceIntf, aieTraceBufSizeGMIO, AIEData.metadata->getNumStreamsGMIO(), AIEData.metadata->getHwContext(), AIEData.metadata);
 #else
   XAie_DevInst* devInst = static_cast<XAie_DevInst*>(AIEData.implementation->setAieDeviceInst(handle, deviceID));
   if(!devInst) {
@@ -333,16 +341,10 @@ void AieTracePluginUnified::updateAIEDevice(void *handle, bool hw_context_flow) 
       "Unable to get AIE device instance. AIE event trace will not be available.");
     return;
   }
-  AIEData.offloadManager->initGMIO(deviceID, handle, deviceIntf, aieTraceBufSizeGMIO, AIEData.metadata->getNumStreams(), devInst);
+  AIEData.offloadManager->initGMIO(deviceID, handle, deviceIntf, aieTraceBufSizeGMIO, AIEData.metadata->getNumStreamsGMIO(), devInst);
 #endif
 
     AIEData.offloadManager->startGMIOOffload(AIEData.metadata->getOffloadIntervalUs(), AIEData.metadata->getContinuousTrace());
-  }
-
-  if (!AIEData.offloadManager->initReadTraces()) {
-    xrt_core::message::send(severity_level::warning, "XRT", "AIE trace buffer allocation failed for PLIO/GMIO");
-    AIEData.valid = false;
-    return;
   }
 
   // if (AIEData.metadata->getContinuousTrace())
@@ -439,7 +441,7 @@ void AieTracePluginUnified::updateAIEDevice(void *handle, bool hw_context_flow) 
   // }
 
   try {
-    if (!offloaderManager->initReadTrace()) {
+    if (!offloaderManager->initReadTraces()) {
       xrt_core::message::send(severity_level::warning, "XRT",
                               AIE_TRACE_BUF_ALLOC_FAIL);
       AIEData.valid = false;
@@ -487,7 +489,8 @@ void AieTracePluginUnified::updateAIEDevice(void *handle, bool hw_context_flow) 
 
   // Continuous Trace Offload is supported only for PLIO flow
   if (AIEData.metadata->getContinuousTrace())
-    offloaderManager->startOffload();
+    offloaderManager->startOffload(AIEData.metadata->getContinuousTrace(),
+                                  AIEData.metadata->getOffloadIntervalUs());
   xrt_core::message::send(severity_level::info, "XRT",
                           "Finished AIE Trace updateAIEDevice.");
 }
