@@ -23,16 +23,25 @@ namespace xdp {
   };
 
 class AIETraceOffloadManager {
+  void printFlagValues(const char* caller = __func__) {
+    std::cout << "!!! " << caller << " - offloadEnabledPLIO: " << offloadEnabledPLIO
+              << ", offloadEnabledGMIO: " << offloadEnabledGMIO << std::endl;
+  }
 public:
   AIETraceOffloadData plio;
   AIETraceOffloadData gmio;
   bool offloadEnabledPLIO = false;
   bool offloadEnabledGMIO = false;
 
+  AIETraceOffloadManager()
+    : offloadEnabledPLIO(xrt_core::config::get_aie_trace_offload_plio_enabled()),
+      offloadEnabledGMIO(xrt_core::config::get_aie_trace_offload_gmio_enabled())
+  {}
+
   void initPLIO(uint64_t deviceID, void* handle, PLDeviceIntf* deviceIntf, uint64_t bufSize, uint64_t numStreams, XAie_DevInst* devInst) {
     offloadEnabledPLIO = xrt_core::config::get_aie_trace_offload_plio_enabled();
     if (!offloadEnabledPLIO) {
-      std::cout << "!!! AIETraceOffloadManager::initPLIO: PLIO offload disabled by config." << std::endl;
+      std::cout << "!!! AIETraceOffloadManager::initPLIO: PLIO offload disabled by config, skipping.." << std::endl;
       return;
     }
 
@@ -49,7 +58,7 @@ void AIETraceOffloadManager::initGMIO(
   {
     offloadEnabledGMIO = xrt_core::config::get_aie_trace_offload_gmio_enabled();
     if (!offloadEnabledGMIO) {
-      std::cout << "!!! AIETraceOffloadManager::initPLIO: GMIO offload disabled by config." << std::endl;
+      std::cout << "!!! AIETraceOffloadManager::initGMIO: GMIO offload disabled by config, skipping..." << std::endl;
       return;
     }
 
@@ -64,7 +73,7 @@ void AIETraceOffloadManager::initGMIO(
   void initGMIO(uint64_t deviceID, void* handle, PLDeviceIntf* deviceIntf, uint64_t bufSize, uint64_t numStreams, XAie_DevInst* devInst) {
     offloadEnabledGMIO = xrt_core::config::get_aie_trace_offload_gmio_enabled();
     if (!offloadEnabledGMIO) {
-      std::cout << "!!! AIETraceOffloadManager::initPLIO: GMIO offload disabled by config." << std::endl;
+      std::cout << "!!! AIETraceOffloadManager::initGMIO: GMIO offload disabled by config, skipping" << std::endl;
       return;
     }
 
@@ -76,6 +85,7 @@ void AIETraceOffloadManager::initGMIO(
 #endif
 
   void startOffload(bool continuousTrace, uint64_t offloadIntervalUs){
+    printFlagValues(__func__);
     if (!offloadEnabledPLIO && !offloadEnabledGMIO) {
       std::cout << "!!! AIETraceOffloadManager::startOffload: Both PLIO and GMIO offload disabled by config." << std::endl;
       return;
@@ -108,6 +118,7 @@ void AIETraceOffloadManager::initGMIO(
 
   bool initReadTraces() {
     bool ok = true;
+    printFlagValues(__func__);
 
     if (offloadEnabledPLIO && plio.offloader) {
       std::cout << "!!! AIETraceOffloadManager::initReadTraces: Initializing PLIO trace read." << std::endl;
@@ -121,6 +132,8 @@ void AIETraceOffloadManager::initGMIO(
   }
 
   void flushAll(bool warn) {
+    printFlagValues(__func__);
+
     if (offloadEnabledPLIO && plio.offloader) {
       std::cout << "!!! AIETraceOffloadManager::flushAll: Flushing PLIO traces." << std::endl;
       flushOffloader(plio.offloader, warn);
