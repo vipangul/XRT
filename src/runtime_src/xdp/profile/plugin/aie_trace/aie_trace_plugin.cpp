@@ -95,7 +95,7 @@ uint64_t AieTracePluginUnified::getDeviceIDFromHandle(void *handle) {
 
 void AieTracePluginUnified::updateAIEDevice(void *handle, bool hw_context_flow) {
   xrt_core::message::send(severity_level::info, "XRT",
-                          "Calling AIE Trace updateAIEDevice.");
+                          "!!! Calling AIE Trace updateAIEDevice.");
 
   if (!handle)
     return;
