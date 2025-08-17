@@ -309,7 +309,7 @@ void AieTracePluginUnified::updateAIEDevice(void *handle, bool hw_context_flow) 
     }
 
     AIEData.offloadManager->initPLIO(deviceID, handle, deviceIntf, aieTraceBufSizePLIO, AIEData.metadata->getNumStreamsPLIO(), devInst);
-    AIEData.offloadManager->startPLIOOffload(AIEData.metadata->getOffloadIntervalUs(), AIEData.metadata->getContinuousTrace());
+    // AIEData.offloadManager->startPLIOOffload(AIEData.metadata->getOffloadIntervalUs(), AIEData.metadata->getContinuousTrace());
   }
 
   if (isGMIO) {
@@ -344,7 +344,7 @@ void AieTracePluginUnified::updateAIEDevice(void *handle, bool hw_context_flow) 
   AIEData.offloadManager->initGMIO(deviceID, handle, deviceIntf, aieTraceBufSizeGMIO, AIEData.metadata->getNumStreamsGMIO(), devInst);
 #endif
 
-    AIEData.offloadManager->startGMIOOffload(AIEData.metadata->getOffloadIntervalUs(), AIEData.metadata->getContinuousTrace());
+    // AIEData.offloadManager->startGMIOOffload(AIEData.metadata->getOffloadIntervalUs(), AIEData.metadata->getContinuousTrace());
   }
 
   // if (AIEData.metadata->getContinuousTrace())
