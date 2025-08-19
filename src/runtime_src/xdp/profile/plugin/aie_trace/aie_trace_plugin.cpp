@@ -28,7 +28,7 @@
 #include "xdp/profile/plugin/vp_base/info.h"
 #include "xdp/profile/writer/aie_trace/aie_trace_config_writer.h"
 #include "xdp/profile/writer/aie_trace/aie_trace_timestamps_writer.h"
-#include "xdp/profile/writer/aie_trace/aie_trace_writer.h"
+// #include "xdp/profile/writer/aie_trace/aie_trace_writer.h"
 #include "aie_trace_offload_manager.h"
 
 #ifdef XDP_CLIENT_BUILD
@@ -221,85 +221,69 @@ void AieTracePluginUnified::updateAIEDevice(void *handle, bool hw_context_flow) 
                        "AIE_EVENT_RUNTIME_CONFIG");
   }
 
-  // Add writer for every PLIO stream
-  for (uint64_t n = 0; n < AIEData.metadata->getNumStreamsPLIO(); ++n) {
-    std::string fileName = "aie_trace_plio_" + std::to_string(deviceID) + "_" +
-                           std::to_string(n) + ".txt";
-    VPWriter *writer = new AIETraceWriter(
-      fileName.c_str(),
-      deviceID,
-      n,  // stream id
-      "", // version
-      "", // creation time
-      "", // xrt version
-      "",  // tool version
-      io_type::PLIO // offload type
-    );
-    writers.push_back(writer);
-    db->getStaticInfo().addOpenedFile(writer->getcurrentFileName(),
-                                      "AIE_EVENT_TRACE");
+  if (!AIEData.offloadManager)
+    AIEData.offloadManager = std::make_unique<AIETraceOffloadManager>(deviceID, db, AIEData.implementation.get());
 
-    std::stringstream msg;
-    msg << "Creating AIE trace file " << fileName << " for device " << deviceID;
-    xrt_core::message::send(severity_level::info, "XRT", msg.str());
-  }
+  uint64_t numStreamsPLIO = AIEData.metadata->getNumStreamsPLIO();
+  uint64_t numStreamsGMIO = AIEData.metadata->getNumStreamsGMIO();
+  bool isPLIO = (numStreamsPLIO > 0) ? true : false;
+  bool isGMIO = (numStreamsGMIO > 0) ? true : false;
+  bool isPLIOGMIO = isPLIO && isGMIO;
+  AIEData.offloadManager->createTraceWriters(deviceID, numStreamsPLIO,
+                                             numStreamsGMIO, writers);
 
-    // Add writer for every GMIO stream
-  for (uint64_t n = 0; n < AIEData.metadata->getNumStreamsGMIO(); ++n) {
-    std::string fileName = "aie_trace_gmio_" + std::to_string(deviceID) + "_" +
-                           std::to_string(n) + ".txt";
-    VPWriter *writer = new AIETraceWriter(
-      fileName.c_str(),
-      deviceID,
-      n,  // stream id
-      "", // version
-      "", // creation time
-      "", // xrt version
-      "",  // tool version
-      io_type::GMIO // offload type
-    );
-    writers.push_back(writer);
-    db->getStaticInfo().addOpenedFile(writer->getcurrentFileName(),
-                                      "AIE_EVENT_TRACE");
 
-    std::stringstream msg;
-    msg << "Creating AIE trace file " << fileName << " for device " << deviceID;
-    xrt_core::message::send(severity_level::info, "XRT", msg.str());
-  }
+  // // Add writer for every PLIO stream
+  // for (uint64_t n = 0; n < AIEData.metadata->getNumStreamsPLIO(); ++n) {
+  //   std::string fileName = "aie_trace_plio_" + std::to_string(deviceID) + "_" +
+  //                          std::to_string(n) + ".txt";
+  //   VPWriter *writer = new AIETraceWriter(
+  //     fileName.c_str(),
+  //     deviceID,
+  //     n,  // stream id
+  //     "", // version
+  //     "", // creation time
+  //     "", // xrt version
+  //     "",  // tool version
+  //     io_type::PLIO // offload type
+  //   );
+  //   writers.push_back(writer);
+  //   db->getStaticInfo().addOpenedFile(writer->getcurrentFileName(),
+  //                                     "AIE_EVENT_TRACE");
+
+  //   std::stringstream msg;
+  //   msg << "Creating AIE trace file " << fileName << " for device " << deviceID;
+  //   xrt_core::message::send(severity_level::info, "XRT", msg.str());
+  // }
+
+  //   // Add writer for every GMIO stream
+  // for (uint64_t n = 0; n < AIEData.metadata->getNumStreamsGMIO(); ++n) {
+  //   std::string fileName = "aie_trace_gmio_" + std::to_string(deviceID) + "_" +
+  //                          std::to_string(n) + ".txt";
+  //   VPWriter *writer = new AIETraceWriter(
+  //     fileName.c_str(),
+  //     deviceID,
+  //     n,  // stream id
+  //     "", // version
+  //     "", // creation time
+  //     "", // xrt version
+  //     "",  // tool version
+  //     io_type::GMIO // offload type
+  //   );
+  //   writers.push_back(writer);
+  //   db->getStaticInfo().addOpenedFile(writer->getcurrentFileName(),
+  //                                     "AIE_EVENT_TRACE");
+
+  //   std::stringstream msg;
+  //   msg << "Creating AIE trace file " << fileName << " for device " << deviceID;
+  //   xrt_core::message::send(severity_level::info, "XRT", msg.str());
+  // }
 
   // Ensure trace buffer size is appropriate
   uint64_t aieTraceBufSize = GetTS2MMBufSize(true /*isAIETrace*/);
   uint64_t aieTraceBufSizePLIO = aieTraceBufSize;
   uint64_t aieTraceBufSizeGMIO = aieTraceBufSize;
-  bool isPLIO = (db->getStaticInfo()).getNumTracePLIO(deviceID) ? true : false;
-  bool isGMIO = (db->getStaticInfo()).getNumTraceGMIO(deviceID) ? true : false;
-  bool isPLIOGMIO = isPLIO && isGMIO;
-
-  if (!AIEData.offloadManager)
-    AIEData.offloadManager = std::make_unique<AIETraceOffloadManager>();
-
   if (isPLIO) {
-    // First, check against memory bank size
-    // NOTE: Check first buffer for PLIO; assume bank 0 for GMIO
-    uint8_t memIndex = 0;
-    if (isPLIO && (deviceIntf != nullptr))
-      memIndex = deviceIntf->getAIETs2mmMemIndex(0);
-    
-    Memory *memory = (db->getStaticInfo()).getMemory(deviceID, memIndex);
-    if (memory != nullptr) {
-      uint64_t fullBankSize = memory->size * 1024;
-
-      if ((fullBankSize > 0) && (aieTraceBufSizePLIO > fullBankSize)) {
-        aieTraceBufSizePLIO = fullBankSize;
-        std::string msg = "Requested AIE trace buffer is too big for memory "
-                          "resource. Limiting to " +
-                          std::to_string(fullBankSize) + ".";
-        xrt_core::message::send(severity_level::warning, "XRT", msg);
-      }
-    }
-
-    // Ensures Contiguous Memory Allocation specific for linux/edge.
-    aieTraceBufSizePLIO = AIEData.implementation->checkTraceBufSize(aieTraceBufSizePLIO);
 
     XAie_DevInst* devInst = static_cast<XAie_DevInst*>(AIEData.implementation->setAieDeviceInst(handle, deviceID));
     if(!devInst) {
@@ -307,45 +291,94 @@ void AieTracePluginUnified::updateAIEDevice(void *handle, bool hw_context_flow) 
         "Unable to get AIE device instance. AIE event trace will not be available.");
       return;
     }
-
-    AIEData.offloadManager->initPLIO(deviceID, handle, deviceIntf, aieTraceBufSizePLIO, AIEData.metadata->getNumStreamsPLIO(), devInst);
-    // AIEData.offloadManager->startPLIOOffload(AIEData.metadata->getOffloadIntervalUs(), AIEData.metadata->getContinuousTrace());
+    AIEData.offloadManager->configureAndInitPLIO(deviceID, handle, deviceIntf, 
+        aieTraceBufSize, AIEData.metadata->getNumStreamsPLIO(), devInst);
   }
-
   if (isGMIO) {
-    // First, check against memory bank size
-    // NOTE: Assume bank 0 for GMIO
-    uint8_t memIndex = 0;
-    Memory *memory = (db->getStaticInfo()).getMemory(deviceID, memIndex);
-    if (memory != nullptr) {
-      uint64_t fullBankSize = memory->size * 1024;
-
-      if ((fullBankSize > 0) && (aieTraceBufSizeGMIO > fullBankSize)) {
-        aieTraceBufSizeGMIO = fullBankSize;
-        std::string msg = "Requested AIE trace buffer is too big for memory "
-                          "resource. Limiting to " +
-                          std::to_string(fullBankSize) + ".";
-        xrt_core::message::send(severity_level::warning, "XRT", msg);
-      }
-    }
-
-    // Ensures Contiguous Memory Allocation specific for linux/edge.
-    aieTraceBufSizeGMIO = AIEData.implementation->checkTraceBufSize(aieTraceBufSizeGMIO);
-
 #ifdef XDP_CLIENT_BUILD
-    AIEData.offloadManager->initGMIO(deviceID, handle, deviceIntf, aieTraceBufSizeGMIO, AIEData.metadata->getNumStreamsGMIO(), AIEData.metadata->getHwContext(), AIEData.metadata);
-#else
-  XAie_DevInst* devInst = static_cast<XAie_DevInst*>(AIEData.implementation->setAieDeviceInst(handle, deviceID));
-  if(!devInst) {
-    xrt_core::message::send(severity_level::warning, "XRT",
-      "Unable to get AIE device instance. AIE event trace will not be available.");
+  if (!AIEData.offloadManager->configureAndInitGMIO(
+        deviceID, handle, deviceIntf, desired,
+        AIEData.metadata->getNumStreamsGMIO(),
+        AIEData.metadata->getHwContext(), AIEData.metadata))
     return;
-  }
-  AIEData.offloadManager->initGMIO(deviceID, handle, deviceIntf, aieTraceBufSizeGMIO, AIEData.metadata->getNumStreamsGMIO(), devInst);
+#else
+  XAie_DevInst* devInst =
+    static_cast<XAie_DevInst*>(AIEData.implementation->setAieDeviceInst(handle, deviceID));
+  if (!AIEData.offloadManager->configureAndInitGMIO(
+        deviceID, handle, deviceIntf, aieTraceBufSize,
+        AIEData.metadata->getNumStreamsGMIO(), devInst))
+    return;
 #endif
-
-    // AIEData.offloadManager->startGMIOOffload(AIEData.metadata->getOffloadIntervalUs(), AIEData.metadata->getContinuousTrace());
   }
+
+  // if (isPLIO) {
+  //   // First, check against memory bank size
+  //   // NOTE: Check first buffer for PLIO; assume bank 0 for GMIO
+  //   uint8_t memIndex = 0;
+  //   if (isPLIO && (deviceIntf != nullptr))
+  //     memIndex = deviceIntf->getAIETs2mmMemIndex(0);
+    
+  //   Memory *memory = (db->getStaticInfo()).getMemory(deviceID, memIndex);
+  //   if (memory != nullptr) {
+  //     uint64_t fullBankSize = memory->size * 1024;
+
+  //     if ((fullBankSize > 0) && (aieTraceBufSizePLIO > fullBankSize)) {
+  //       aieTraceBufSizePLIO = fullBankSize;
+  //       std::string msg = "Requested AIE trace buffer is too big for memory "
+  //                         "resource. Limiting to " +
+  //                         std::to_string(fullBankSize) + ".";
+  //       xrt_core::message::send(severity_level::warning, "XRT", msg);
+  //     }
+  //   }
+
+  //   // Ensures Contiguous Memory Allocation specific for linux/edge.
+  //   aieTraceBufSizePLIO = AIEData.implementation->checkTraceBufSize(aieTraceBufSizePLIO);
+
+  //   XAie_DevInst* devInst = static_cast<XAie_DevInst*>(AIEData.implementation->setAieDeviceInst(handle, deviceID));
+  //   if(!devInst) {
+  //     xrt_core::message::send(severity_level::warning, "XRT",
+  //       "Unable to get AIE device instance. AIE event trace will not be available.");
+  //     return;
+  //   }
+
+  //   AIEData.offloadManager->initPLIO(deviceID, handle, deviceIntf, aieTraceBufSizePLIO, AIEData.metadata->getNumStreamsPLIO(), devInst);
+  //   // AIEData.offloadManager->startPLIOOffload(AIEData.metadata->getOffloadIntervalUs(), AIEData.metadata->getContinuousTrace());
+  // }
+
+//   if (isGMIO) {
+//     // First, check against memory bank size
+//     // NOTE: Assume bank 0 for GMIO
+//     uint8_t memIndex = 0;
+//     Memory *memory = (db->getStaticInfo()).getMemory(deviceID, memIndex);
+//     if (memory != nullptr) {
+//       uint64_t fullBankSize = memory->size * 1024;
+
+//       if ((fullBankSize > 0) && (aieTraceBufSizeGMIO > fullBankSize)) {
+//         aieTraceBufSizeGMIO = fullBankSize;
+//         std::string msg = "Requested AIE trace buffer is too big for memory "
+//                           "resource. Limiting to " +
+//                           std::to_string(fullBankSize) + ".";
+//         xrt_core::message::send(severity_level::warning, "XRT", msg);
+//       }
+//     }
+
+//     // Ensures Contiguous Memory Allocation specific for linux/edge.
+//     aieTraceBufSizeGMIO = AIEData.implementation->checkTraceBufSize(aieTraceBufSizeGMIO);
+
+// #ifdef XDP_CLIENT_BUILD
+//     AIEData.offloadManager->initGMIO(deviceID, handle, deviceIntf, aieTraceBufSizeGMIO, AIEData.metadata->getNumStreamsGMIO(), AIEData.metadata->getHwContext(), AIEData.metadata);
+// #else
+//   XAie_DevInst* devInst = static_cast<XAie_DevInst*>(AIEData.implementation->setAieDeviceInst(handle, deviceID));
+//   if(!devInst) {
+//     xrt_core::message::send(severity_level::warning, "XRT",
+//       "Unable to get AIE device instance. AIE event trace will not be available.");
+//     return;
+//   }
+//   AIEData.offloadManager->initGMIO(deviceID, handle, deviceIntf, aieTraceBufSizeGMIO, AIEData.metadata->getNumStreamsGMIO(), devInst);
+// #endif
+
+//     // AIEData.offloadManager->startGMIOOffload(AIEData.metadata->getOffloadIntervalUs(), AIEData.metadata->getContinuousTrace());
+//   }
 
   // if (AIEData.metadata->getContinuousTrace())
   //   XDPPlugin::startWriteThread(AIEData.metadata->getFileDumpIntS(),
