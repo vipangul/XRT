@@ -1292,7 +1292,8 @@ namespace xdp {
   {
     if (ioType == io_type::PLIO)
       return getNumTracePLIO(deviceId);
-    else if (ioType == io_type::GMIO)
+    // else if (ioType == io_type::GMIO)
+    else
       return getNumTraceGMIO(deviceId);
   }
 

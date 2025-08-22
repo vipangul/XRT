@@ -228,7 +228,7 @@ void AieTracePluginUnified::updateAIEDevice(void *handle, bool hw_context_flow) 
   uint64_t numStreamsGMIO = AIEData.metadata->getNumStreamsGMIO();
   bool isPLIO = (numStreamsPLIO > 0) ? true : false;
   bool isGMIO = (numStreamsGMIO > 0) ? true : false;
-  bool isPLIOGMIO = isPLIO && isGMIO;
+  // bool isPLIOGMIO = isPLIO && isGMIO;
   AIEData.offloadManager->createTraceWriters(deviceID, numStreamsPLIO,
                                              numStreamsGMIO, writers);
 
@@ -281,8 +281,8 @@ void AieTracePluginUnified::updateAIEDevice(void *handle, bool hw_context_flow) 
 
   // Ensure trace buffer size is appropriate
   uint64_t aieTraceBufSize = GetTS2MMBufSize(true /*isAIETrace*/);
-  uint64_t aieTraceBufSizePLIO = aieTraceBufSize;
-  uint64_t aieTraceBufSizeGMIO = aieTraceBufSize;
+  // uint64_t aieTraceBufSizePLIO = aieTraceBufSize;
+  // uint64_t aieTraceBufSizeGMIO = aieTraceBufSize;
   if (isPLIO) {
 
     XAie_DevInst* devInst = static_cast<XAie_DevInst*>(AIEData.implementation->setAieDeviceInst(handle, deviceID));
@@ -297,7 +297,7 @@ void AieTracePluginUnified::updateAIEDevice(void *handle, bool hw_context_flow) 
   if (isGMIO) {
 #ifdef XDP_CLIENT_BUILD
   if (!AIEData.offloadManager->configureAndInitGMIO(
-        deviceID, handle, deviceIntf, desired,
+        deviceID, handle, deviceIntf, aieTraceBufSize,
         AIEData.metadata->getNumStreamsGMIO(),
         AIEData.metadata->getHwContext(), AIEData.metadata))
     return;
