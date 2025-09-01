@@ -111,8 +111,12 @@ AIETraceConfigV3Filetype::getTiles(const std::string& graph_name,
         return getMemoryTiles(graph_name, kernel_name);
     
     // For DMA type, we want tiles that have DMA channels (both core tiles and DMA-only)
-    if (type == module_type::dma)
-        return getEventTiles(graph_name, type);
+    if (type == module_type::dma) {
+        if (kernel_name == "all")
+            return getEventTiles(graph_name, type);
+        // For specific kernel, use the same logic as core tiles but filter for DMA usage
+        // Fall through to the main logic below
+    }
     
     // For core type or default, get tiles that use cores
     if (kernel_name == "all")
