@@ -215,6 +215,8 @@ namespace xdp::aie {
 
   /****************************************************************************
    * Get all valid graph names from metadata
+   * NOTE: This is applicable only for aie_trace_config.json format till major v2.
+   *       Use latest version of AIETraceConfigFiletype for v3 and later.
    ***************************************************************************/
   std::vector<std::string>
   getValidGraphs(const boost::property_tree::ptree& aie_meta,

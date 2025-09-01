@@ -22,6 +22,45 @@ AIETraceConfigV3Filetype::AIETraceConfigV3Filetype(boost::property_tree::ptree& 
 : AIETraceConfigFiletype(aie_project) {}
 
 std::vector<std::string>
+AIETraceConfigV3Filetype::getValidGraphs() const
+{
+    std::vector<std::string> graphs;
+
+    // Grab all kernel to tile mappings
+    auto kernelToTileMapping = aie_meta.get_child_optional("aie_metadata.TileMapping.AIEKernelToTileMapping");
+    if (!kernelToTileMapping) {
+        xrt_core::message::send(severity_level::info, "XRT", getMessage("TileMapping.AIEKernelToTileMapping"));
+        return {};
+    }
+
+    std::set<std::string> uniqueGraphs; // Use set to avoid duplicates
+
+    for (auto const &mapping : kernelToTileMapping.get()) {
+        std::string graphStr = mapping.second.get<std::string>("graph");
+        if (graphStr.empty())
+            continue; // Skip empty graph names
+
+        // Extract subgraph names from complete graph string
+        std::vector<std::string> names;
+        boost::split(names, graphStr, boost::is_any_of("."));
+        
+        // Add individual subgraph components
+        for (const auto& name : names) {
+            if (!name.empty()) {
+                uniqueGraphs.insert(name);
+            }
+        }
+
+        // Add the complete graph name
+        uniqueGraphs.insert(graphStr);
+    }
+    
+    // Convert set to vector
+    graphs.assign(uniqueGraphs.begin(), uniqueGraphs.end());
+    return graphs;
+}
+
+std::vector<std::string>
 AIETraceConfigV3Filetype::getValidKernels() const
 {
     std::vector<std::string> kernels;

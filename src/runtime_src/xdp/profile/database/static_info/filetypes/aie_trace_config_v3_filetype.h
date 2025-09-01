@@ -21,6 +21,9 @@ class AIETraceConfigV3Filetype : public AIETraceConfigFiletype {
         std::vector<std::string>
         getValidKernels() const override;
 
+        std::vector<std::string>
+        getValidGraphs() const override;
+
         std::vector<tile_type>
         getTiles(const std::string& graph_name,
                  module_type type, 
