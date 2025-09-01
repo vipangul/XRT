@@ -53,9 +53,9 @@ class AIETraceConfigV3Filetype : public AIETraceConfigFiletype {
         filterTilesByGraphFunction(const std::string& graph_pattern,
                                    const std::string& function_pattern) const;
 
-        // Enhanced APIs to handle DMA channels on different physical tiles
+        // Enhanced APIs to handle DMA channels on different tiles
         std::vector<std::pair<uint8_t, uint8_t>>
-        getPhysicalTileCoordinates() const;
+        getAllTileCoordinates() const;
 
         std::vector<std::pair<uint8_t, uint8_t>>
         getDMAOnlyTileCoordinates() const;
@@ -67,7 +67,7 @@ class AIETraceConfigV3Filetype : public AIETraceConfigFiletype {
         hasDMAChannelsAt(uint8_t column, uint8_t row) const;
 
         std::vector<aie_tile_info>
-        getLogicalTilesForPhysicalTile(uint8_t column, uint8_t row) const;
+        getCoreTilesWithDMAAt(uint8_t column, uint8_t row) const;
 
     private:
         // Helper methods

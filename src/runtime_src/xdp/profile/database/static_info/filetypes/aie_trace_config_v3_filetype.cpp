@@ -68,18 +68,19 @@ AIETraceConfigV3Filetype::getTiles(const std::string& graph_name,
                                  module_type type,
                                  const std::string& kernel_name) const
 {
-    bool isAllGraph  = (graph_name.compare("all") == 0);
-    bool isAllKernel = (kernel_name.compare("all") == 0);
-
     if (type == module_type::mem_tile)
         return getMemoryTiles(graph_name, kernel_name);
-    if (isAllKernel)
+    
+    // For DMA type, we want tiles that have DMA channels (both core tiles and DMA-only)
+    if (type == module_type::dma)
+        return getEventTiles(graph_name, type);
+    
+    // For core type or default, get tiles that use cores
+    if (kernel_name == "all")
         return getAllAIETiles(graph_name);
-
-    // Now search by graph-kernel pairs
+    
+    // Now search by graph-kernel pairs for specific kernel
     auto kernelToTileMapping = aie_meta.get_child_optional("aie_metadata.TileMapping.AIEKernelToTileMapping");
-    if (!kernelToTileMapping && isAllKernel)
-        return getAIETiles(graph_name);
     if (!kernelToTileMapping) {
         xrt_core::message::send(severity_level::info, "XRT", getMessage("TileMapping.AIEKernelToTileMapping"));
         return {};
@@ -90,39 +91,52 @@ AIETraceConfigV3Filetype::getTiles(const std::string& graph_name,
 
     // Parse all kernel mappings
     for (auto const &mapping : kernelToTileMapping.get()) {
-        bool foundGraph  = isAllGraph;
-        bool foundKernel = isAllKernel;
+        std::string graphStr = mapping.second.get<std::string>("graph", "");
+        std::string functionStr = mapping.second.get<std::string>("function", "");
+        
+        if (graphStr.empty() || functionStr.empty())
+            continue;
 
-        if (!foundGraph || !foundKernel) {
-            auto graphStr = mapping.second.get<std::string>("graph");
-            std::vector<std::string> graphs;
-            boost::split(graphs, graphStr, boost::is_any_of(" "));
+        // Check if graph matches
+        bool foundGraph = (graph_name == "all") || (graphStr.find(graph_name) != std::string::npos);
+        if (!foundGraph)
+            continue;
 
-            auto functionStr = mapping.second.get<std::string>("function");
-            std::vector<std::string> functions;
-            boost::split(functions, functionStr, boost::is_any_of(" "));
-
-            // Verify this entry has desired graph/kernel combo
-            for (uint32_t i=0; i < std::min(graphs.size(), functions.size()); ++i) {
-                foundGraph  |= (graphs.at(i).find(graph_name) != std::string::npos);
-
-                std::vector<std::string> names;
-                boost::split(names, functions.at(i), boost::is_any_of("."));
-                if (std::find(names.begin(), names.end(), kernel_name) != names.end())
+        // Check if kernel/function matches
+        bool foundKernel = false;
+        if (kernel_name == "all") {
+            foundKernel = true;
+        } else {
+            // Check if kernel_name matches any part of the function
+            std::vector<std::string> functionParts;
+            boost::split(functionParts, functionStr, boost::is_any_of("."));
+            
+            for (const auto& part : functionParts) {
+                if (part.find(kernel_name) != std::string::npos) {
                     foundKernel = true;
-
-                if (foundGraph && foundKernel)
                     break;
+                }
+            }
+            
+            // Also check full function string
+            if (!foundKernel && functionStr.find(kernel_name) != std::string::npos) {
+                foundKernel = true;
             }
         }
 
-        // Add to list if verified
+        // Add tile if it matches the criteria
         if (foundGraph && foundKernel) {
             tile_type tile;
             tile.col = mapping.second.get<uint8_t>("column");
             tile.row = mapping.second.get<uint8_t>("row") + rowOffset;
-            tile.active_core = true;
-            tile.active_memory = true;
+            
+            // Compute tile properties from metadata
+            std::string tileType = mapping.second.get<std::string>("tile", "");
+            tile.active_core = (tileType == "aie");
+            
+            auto dmaChannelsTree = mapping.second.get_child_optional("dmaChannels");
+            tile.active_memory = (dmaChannelsTree && !dmaChannelsTree.get().empty());
+            
             tiles.emplace_back(std::move(tile));
         }
     }
@@ -141,29 +155,28 @@ AIETraceConfigV3Filetype::getAllAIETiles(const std::string& graph_name) const
 
     std::vector<tile_type> tiles;
     auto rowOffset = getAIETileRowOffset();
-    int count = 0;
 
     for (auto const &mapping : kernelToTileMapping.get()) {
-        std::vector<std::string> graphs;
-        std::string graphStr = mapping.second.get<std::string>("graph");
+        std::string graphStr = mapping.second.get<std::string>("graph", "");
         if (graphStr.empty())
             continue; // Skip empty graph names
         
-        if ((graphStr.find(graph_name) == std::string::npos) && (graph_name.compare("all")) != 0)
+        if ((graphStr.find(graph_name) == std::string::npos) && (graph_name.compare("all") != 0))
             continue; // Skip graphs/subgraphs that do not match the requested graph name
 
-        tiles.push_back(tile_type());
-        auto& t = tiles.at(count++);
-        t.col = xdp::aie::convertStringToUint8(mapping.second.get<std::string>("column"));
-        t.row = xdp::aie::convertStringToUint8(mapping.second.get<std::string>("row")) + rowOffset;
+        tile_type tile;
+        tile.col = mapping.second.get<uint8_t>("column");
+        tile.row = mapping.second.get<uint8_t>("row") + rowOffset;
         
         // Compute isCoreUsed: true if tile type is "aie"
         std::string tileType = mapping.second.get<std::string>("tile", "");
-        t.active_core = (tileType == "aie");
+        tile.active_core = (tileType == "aie");
         
         // Compute isDMAUsed: true if tile has non-empty dmaChannels
         auto dmaChannelsTree = mapping.second.get_child_optional("dmaChannels");
-        t.active_memory = (dmaChannelsTree && !dmaChannelsTree.get().empty());
+        tile.active_memory = (dmaChannelsTree && !dmaChannelsTree.get().empty());
+        
+        tiles.push_back(tile);
     }
  
     return tiles;
@@ -181,15 +194,13 @@ AIETraceConfigV3Filetype::getAIETiles(const std::string& graph_name) const
 
     std::vector<tile_type> tiles;
     auto rowOffset = getAIETileRowOffset();
-    int count = 0;
 
     for (auto const &mapping : kernelToTileMapping.get()) {
-        std::vector<std::string> graphs;
-        std::string graphStr = mapping.second.get<std::string>("graph");
+        std::string graphStr = mapping.second.get<std::string>("graph", "");
         if (graphStr.empty())
             continue; // Skip empty graph names
         
-        if ((graphStr.find(graph_name) == std::string::npos) && (graph_name.compare("all")) != 0)
+        if ((graphStr.find(graph_name) == std::string::npos) && (graph_name.compare("all") != 0))
             continue; // Skip graphs/subgraphs that do not match the requested graph name
 
         // Compute isCoreUsed: true if tile type is "aie"
@@ -200,15 +211,16 @@ AIETraceConfigV3Filetype::getAIETiles(const std::string& graph_name) const
         if (!isCoreUsed)
             continue;
 
-        tiles.push_back(tile_type());
-        auto& t = tiles.at(count++);
-        t.col = xdp::aie::convertStringToUint8(mapping.second.get<std::string>("column"));
-        t.row = xdp::aie::convertStringToUint8(mapping.second.get<std::string>("row")) + rowOffset;
-        t.active_core = isCoreUsed;
+        tile_type tile;
+        tile.col = mapping.second.get<uint8_t>("column");
+        tile.row = mapping.second.get<uint8_t>("row") + rowOffset;
+        tile.active_core = isCoreUsed;
         
         // Compute isDMAUsed: true if tile has non-empty dmaChannels
         auto dmaChannelsTree = mapping.second.get_child_optional("dmaChannels");
-        t.active_memory = (dmaChannelsTree && !dmaChannelsTree.get().empty());
+        tile.active_memory = (dmaChannelsTree && !dmaChannelsTree.get().empty());
+        
+        tiles.push_back(tile);
     }
  
     return tiles;
@@ -230,15 +242,13 @@ AIETraceConfigV3Filetype::getEventTiles(const std::string& graph_name,
 
     std::vector<tile_type> tiles;
     auto rowOffset = getAIETileRowOffset();
-    int count = 0;
 
     for (auto const &mapping : kernelToTileMapping.get()) {
-        std::vector<std::string> graphs;
-        std::string graphStr = mapping.second.get<std::string>("graph");
+        std::string graphStr = mapping.second.get<std::string>("graph", "");
         if (graphStr.empty())
             continue; // Skip empty graph names
         
-        if ((graphStr.find(graph_name) == std::string::npos) && (graph_name.compare("all")) != 0)
+        if ((graphStr.find(graph_name) == std::string::npos) && (graph_name.compare("all") != 0))
             continue; // Skip graphs/subgraphs that do not match the requested graph name
 
         // Compute isCoreUsed: true if tile type is "aie"
@@ -261,12 +271,13 @@ AIETraceConfigV3Filetype::getEventTiles(const std::string& graph_name,
         if (!includesTile)
             continue;
 
-        tiles.push_back(tile_type());
-        auto& t = tiles.at(count++);
-        t.col = xdp::aie::convertStringToUint8(mapping.second.get<std::string>("column"));
-        t.row = xdp::aie::convertStringToUint8(mapping.second.get<std::string>("row")) + rowOffset;
-        t.active_core = isCoreUsed;
-        t.active_memory = isDMAUsed;
+        tile_type tile;
+        tile.col = mapping.second.get<uint8_t>("column");
+        tile.row = mapping.second.get<uint8_t>("row") + rowOffset;
+        tile.active_core = isCoreUsed;
+        tile.active_memory = isDMAUsed;
+        
+        tiles.push_back(tile);
     }
  
     return tiles;
@@ -341,15 +352,18 @@ AIETraceConfigV3Filetype::getAIETileInfos(const std::string& graph_name,
 }
 
 // Get DMA channels by column and row coordinates
+// NOTE: This searches all DMA channels at the specified hardware coordinates,
+// not just those associated with mapped tiles at those coordinates
 std::vector<dma_channel_type>
 AIETraceConfigV3Filetype::getDMAChannels(uint8_t column, uint8_t row) const
 {
     std::vector<dma_channel_type> dmaChannels;
     auto allTileInfos = parseTileMappings();
     
+    // Search all DMA channels in all mapped tiles for ones at the specified hardware coordinates
     for (const auto& tileInfo : allTileInfos) {
-        if (tileInfo.column == column && tileInfo.row == row) {
-            for (const auto& dmaChannel : tileInfo.dmaChannels) {
+        for (const auto& dmaChannel : tileInfo.dmaChannels) {
+            if (dmaChannel.column == column && dmaChannel.row == row) {
                 dmaChannels.push_back(dmaChannel);
             }
         }
@@ -430,18 +444,147 @@ bool AIETraceConfigV3Filetype::matchesFunctionPattern(const std::string& functio
         return true;
     }
     
-    // Support exact matching of function components
+    // Handle specific use cases:
+    // 1. If pattern is just a core specification like "core[1]", match any function with that core
+    // 2. If pattern is an API name like "bf8x8_mid_api", match any function with that API
+    // 3. If pattern is a full specification like "bf8x8_mid_api.core[1]", match exactly
+    
+    // First check for exact match of full function
+    if (function == pattern) {
+        return true;
+    }
+    
+    // Check if pattern matches any part of the function
+    if (function.find(pattern) != std::string::npos) {
+        return true;
+    }
+    
+    // Split function into parts and check each part
     std::vector<std::string> functionParts;
     boost::split(functionParts, function, boost::is_any_of("."));
     
-    // Check if any part matches the pattern
-    for (const auto& part : functionParts) {
-        if (part == pattern || part.find(pattern) != std::string::npos) {
-            return true;
+    std::vector<std::string> patternParts;
+    boost::split(patternParts, pattern, boost::is_any_of("."));
+    
+    // Check if pattern parts match function parts
+    for (const auto& patternPart : patternParts) {
+        bool foundMatch = false;
+        for (const auto& functionPart : functionParts) {
+            if (functionPart == patternPart || functionPart.find(patternPart) != std::string::npos) {
+                foundMatch = true;
+                break;
+            }
+        }
+        if (!foundMatch) {
+            return false; // All pattern parts must match
+        }
+    }
+    
+    return true;
+}
+
+// Get all unique tile coordinates (both core tiles and DMA-only tiles)
+std::vector<std::pair<uint8_t, uint8_t>>
+AIETraceConfigV3Filetype::getAllTileCoordinates() const
+{
+    std::set<std::pair<uint8_t, uint8_t>> uniqueCoordinates;
+    auto allTileInfos = parseTileMappings();
+    
+    for (const auto& tileInfo : allTileInfos) {
+        // Add core tile coordinates
+        uniqueCoordinates.insert({tileInfo.column, tileInfo.row});
+        
+        // Add DMA channel coordinates (may be different from core tile)
+        for (const auto& dmaChannel : tileInfo.dmaChannels) {
+            uniqueCoordinates.insert({dmaChannel.column, dmaChannel.row});
+        }
+    }
+    
+    return std::vector<std::pair<uint8_t, uint8_t>>(uniqueCoordinates.begin(), uniqueCoordinates.end());
+}
+
+// Get coordinates of tiles that only have DMA channels (no cores)
+std::vector<std::pair<uint8_t, uint8_t>>
+AIETraceConfigV3Filetype::getDMAOnlyTileCoordinates() const
+{
+    std::set<std::pair<uint8_t, uint8_t>> mappedTileCoords;
+    std::set<std::pair<uint8_t, uint8_t>> dmaCoords;
+    auto allTileInfos = parseTileMappings();
+    
+    // Collect mapped tile coordinates and DMA coordinates
+    for (const auto& tileInfo : allTileInfos) {
+        mappedTileCoords.insert({tileInfo.column, tileInfo.row});
+        
+        for (const auto& dmaChannel : tileInfo.dmaChannels) {
+            dmaCoords.insert({dmaChannel.column, dmaChannel.row});
+        }
+    }
+    
+    // Find DMA coordinates that are not mapped tile coordinates
+    std::vector<std::pair<uint8_t, uint8_t>> dmaOnlyCoords;
+    std::set_difference(dmaCoords.begin(), dmaCoords.end(),
+                       mappedTileCoords.begin(), mappedTileCoords.end(),
+                       std::back_inserter(dmaOnlyCoords));
+    
+    return dmaOnlyCoords;
+}
+
+// Get all DMA channels across all tiles
+std::vector<dma_channel_type>
+AIETraceConfigV3Filetype::getAllDMAChannels() const
+{
+    std::vector<dma_channel_type> allDmaChannels;
+    auto allTileInfos = parseTileMappings();
+    
+    for (const auto& tileInfo : allTileInfos) {
+        for (const auto& dmaChannel : tileInfo.dmaChannels) {
+            allDmaChannels.push_back(dmaChannel);
+        }
+    }
+    
+    return allDmaChannels;
+}
+
+// Check if DMA channels exist at specific coordinates
+bool
+AIETraceConfigV3Filetype::hasDMAChannelsAt(uint8_t column, uint8_t row) const
+{
+    auto allTileInfos = parseTileMappings();
+    
+    for (const auto& tileInfo : allTileInfos) {
+        for (const auto& dmaChannel : tileInfo.dmaChannels) {
+            if (dmaChannel.column == column && dmaChannel.row == row) {
+                return true;
+            }
         }
     }
     
     return false;
+}
+
+// Get core tiles that have DMA channels at specific coordinates
+std::vector<aie_tile_info>
+AIETraceConfigV3Filetype::getCoreTilesWithDMAAt(uint8_t column, uint8_t row) const
+{
+    std::vector<aie_tile_info> coreTiles;
+    auto allTileInfos = parseTileMappings();
+    
+    for (const auto& tileInfo : allTileInfos) {
+        bool hasChannelAtCoords = false;
+        
+        for (const auto& dmaChannel : tileInfo.dmaChannels) {
+            if (dmaChannel.column == column && dmaChannel.row == row) {
+                hasChannelAtCoords = true;
+                break;
+            }
+        }
+        
+        if (hasChannelAtCoords) {
+            coreTiles.push_back(tileInfo);
+        }
+    }
+    
+    return coreTiles;
 }
 
 } // namespace xdp::aie
