@@ -34,6 +34,46 @@ class AIETraceConfigV3Filetype : public AIETraceConfigFiletype {
         
         std::vector<tile_type>
         getEventTiles(const std::string& graph_name, module_type type) const override;
+
+        // New APIs for DMA channel support and enhanced querying
+        std::vector<aie_tile_info>
+        getAIETileInfos(const std::string& graph_name = "all",
+                        const std::string& kernel_name = "all") const;
+
+        std::vector<dma_channel_type>
+        getDMAChannels(uint8_t column, uint8_t row) const;
+
+        std::vector<dma_channel_type>
+        getDMAChannelsByPortName(const std::string& portName) const;
+
+        std::vector<aie_tile_info>
+        getAIETilesByType(const std::string& tile_type = "aie") const;
+
+        std::vector<aie_tile_info>
+        filterTilesByGraphFunction(const std::string& graph_pattern,
+                                   const std::string& function_pattern) const;
+
+        // Enhanced APIs to handle DMA channels on different physical tiles
+        std::vector<std::pair<uint8_t, uint8_t>>
+        getPhysicalTileCoordinates() const;
+
+        std::vector<std::pair<uint8_t, uint8_t>>
+        getDMAOnlyTileCoordinates() const;
+
+        std::vector<dma_channel_type>
+        getAllDMAChannels() const;
+
+        bool
+        hasDMAChannelsAt(uint8_t column, uint8_t row) const;
+
+        std::vector<aie_tile_info>
+        getLogicalTilesForPhysicalTile(uint8_t column, uint8_t row) const;
+
+    private:
+        // Helper methods
+        bool matchesGraphPattern(const std::string& graph, const std::string& pattern) const;
+        bool matchesFunctionPattern(const std::string& function, const std::string& pattern) const;
+        std::vector<aie_tile_info> parseTileMappings() const;
 };
 
 } // namespace xdp::aie

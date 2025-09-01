@@ -515,6 +515,54 @@ namespace xdp {
     {}
   };
 
+  // DMA Channel information structure
+  struct dma_channel_type {
+    std::string portName;
+    uint8_t column;
+    uint8_t row;
+    uint8_t channel;
+    std::string direction; // "s2mm" or "mm2s"
+    
+    dma_channel_type() = default;
+    dma_channel_type(const std::string& port, uint8_t col, uint8_t r, 
+                     uint8_t ch, const std::string& dir)
+      : portName(port), column(col), row(r), channel(ch), direction(dir) {}
+    
+    bool operator==(const dma_channel_type &other) const {
+      return (column == other.column) && (row == other.row) && 
+             (channel == other.channel) && (direction == other.direction);
+    }
+    
+    bool operator<(const dma_channel_type &other) const {
+      if (column != other.column) return column < other.column;
+      if (row != other.row) return row < other.row;
+      if (channel != other.channel) return channel < other.channel;
+      return direction < other.direction;
+    }
+    
+    friend std::ostream& operator<<(std::ostream& os, const dma_channel_type& dma) {
+      os << "DMA Channel: " << dma.portName << " (" << +dma.column << "," << +dma.row 
+         << ") Ch:" << +dma.channel << " Dir:" << dma.direction;
+      return os;
+    }
+  };
+
+  // Extended tile information that includes DMA channels
+  struct aie_tile_info {
+    std::string graph;
+    std::string tile_type; // "aie", "mem", etc.
+    uint8_t column;
+    uint8_t row;
+    uint8_t schedule;
+    std::string function;
+    std::vector<dma_channel_type> dmaChannels;
+    
+    aie_tile_info() = default;
+    aie_tile_info(const std::string& g, const std::string& tile, uint8_t col, uint8_t r,
+                  uint8_t sched, const std::string& func)
+      : graph(g), tile_type(tile), column(col), row(r), schedule(sched), function(func) {}
+  };
+
 } // end namespace xdp
 
 #endif
