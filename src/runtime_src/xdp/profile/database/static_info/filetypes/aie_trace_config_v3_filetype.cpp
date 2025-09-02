@@ -145,27 +145,8 @@ AIETraceConfigV3Filetype::getTiles(const std::string& graph_name,
         if (!foundGraph)
             continue;
 
-        // Check if kernel/function matches
-        bool foundKernel = false;
-        if (kernel_name == "all") {
-            foundKernel = true;
-        } else {
-            // Check if kernel_name matches any part of the function
-            std::vector<std::string> functionParts;
-            boost::split(functionParts, functionStr, boost::is_any_of("."));
-            
-            for (const auto& part : functionParts) {
-                if (part.find(kernel_name) != std::string::npos) {
-                    foundKernel = true;
-                    break;
-                }
-            }
-            
-            // Also check full function string
-            if (!foundKernel && functionStr.find(kernel_name) != std::string::npos) {
-                foundKernel = true;
-            }
-        }
+        // Check if kernel/function matches using precise pattern matching
+        bool foundKernel = (kernel_name == "all") || matchesKernelPattern(functionStr, kernel_name);
 
         // Add tile if it matches the criteria
         if (foundGraph && foundKernel) {
@@ -586,6 +567,80 @@ AIETraceConfigV3Filetype::getAllDMAChannels() const
     }
     
     return allDmaChannels;
+}
+
+// Helper method to match kernel patterns with ordered substring matching
+bool AIETraceConfigV3Filetype::matchesKernelPattern(const std::string& function, const std::string& kernel_name) const
+{
+    if (kernel_name == "all" || kernel_name.empty()) {
+        return true;
+    }
+    
+    // Split function and kernel pattern by dots
+    std::vector<std::string> functionParts;
+    boost::split(functionParts, function, boost::is_any_of("."));
+    
+    std::vector<std::string> kernelParts;
+    boost::split(kernelParts, kernel_name, boost::is_any_of("."));
+    
+    // Remove empty parts
+    functionParts.erase(std::remove_if(functionParts.begin(), functionParts.end(), 
+                                      [](const std::string& s) { return s.empty(); }), 
+                       functionParts.end());
+    kernelParts.erase(std::remove_if(kernelParts.begin(), kernelParts.end(), 
+                                    [](const std::string& s) { return s.empty(); }), 
+                     kernelParts.end());
+    
+    // Debug logging for pattern matching
+    static bool enableDebugLogging = (std::getenv("XRT_TRACE_DEBUG_PATTERN_MATCHING") != nullptr);
+    if (enableDebugLogging) {
+        std::string functionPartsStr, kernelPartsStr;
+        for (size_t i = 0; i < functionParts.size(); ++i) {
+            if (i > 0) functionPartsStr += ".";
+            functionPartsStr += functionParts[i];
+        }
+        for (size_t i = 0; i < kernelParts.size(); ++i) {
+            if (i > 0) kernelPartsStr += ".";
+            kernelPartsStr += kernelParts[i];
+        }
+        xrt_core::message::send(severity_level::debug, "XRT", 
+            "Pattern matching: function='" + function + "' (" + functionPartsStr + 
+            ") vs kernel='" + kernel_name + "' (" + kernelPartsStr + ")");
+    }
+    
+    // If kernel has more parts than function, it can't match
+    if (kernelParts.size() > functionParts.size()) {
+        if (enableDebugLogging) {
+            xrt_core::message::send(severity_level::debug, "XRT", 
+                "Pattern match FAILED: kernel has more parts (" + std::to_string(kernelParts.size()) + 
+                ") than function (" + std::to_string(functionParts.size()) + ")");
+        }
+        return false;
+    }
+    
+    // Look for contiguous subsequence of kernel parts in function parts
+    for (size_t i = 0; i <= functionParts.size() - kernelParts.size(); ++i) {
+        bool matches = true;
+        for (size_t j = 0; j < kernelParts.size(); ++j) {
+            if (functionParts[i + j] != kernelParts[j]) {
+                matches = false;
+                break;
+            }
+        }
+        if (matches) {
+            if (enableDebugLogging) {
+                xrt_core::message::send(severity_level::debug, "XRT", 
+                    "Pattern match SUCCESS: found contiguous subsequence at position " + std::to_string(i));
+            }
+            return true;
+        }
+    }
+    
+    if (enableDebugLogging) {
+        xrt_core::message::send(severity_level::debug, "XRT", 
+            "Pattern match FAILED: no contiguous subsequence found");
+    }
+    return false;
 }
 
 // Check if DMA channels exist at specific coordinates

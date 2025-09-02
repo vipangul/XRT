@@ -76,6 +76,7 @@ class AIETraceConfigV3Filetype : public AIETraceConfigFiletype {
         // Helper methods
         bool matchesGraphPattern(const std::string& graph, const std::string& pattern) const;
         bool matchesFunctionPattern(const std::string& function, const std::string& pattern) const;
+        bool matchesKernelPattern(const std::string& function, const std::string& kernel_name) const;
         std::vector<aie_tile_info> parseTileMappings() const;
 };
 
