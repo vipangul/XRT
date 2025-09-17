@@ -43,9 +43,11 @@ namespace xdp {
       std::string name; // Json field name
       bool required;    // Is this field required?
       std::string type; // Expected type of the field (e.g. "string", "int", "array", etc.)
+      std::vector<std::string> allowedValues; // Optional: allowed string values
       
-      SchemaField(const std::string& n, bool req, const std::string& t)
-          : name(n), required(req), type(t) {}
+      SchemaField(const std::string& n, bool req, const std::string& t, 
+                  const std::vector<std::string>& allowed = {})
+          : name(n), required(req), type(t), allowedValues(allowed) {}
   };
 
   struct PluginJsonSetting {
@@ -57,6 +59,7 @@ namespace xdp {
   };
 
   struct XdpJsonSetting {
+      std::string version;
       std::map<uint64_t, PluginJsonSetting> plugins;
       bool isValid = false;
       std::string errorMessage;
@@ -90,13 +93,17 @@ namespace xdp {
       std::vector<std::string> getSupportedSections(uint64_t pluginType);
 
       // JSON validation methods
-      static const std::map<std::string, std::vector<SchemaField>> MODULE_SCHEMAS;
+      static const std::map<std::string, std::vector<SchemaField>> MODULE_SCHEMAS_GRAPH_BASED;
+      static const std::map<std::string, std::vector<SchemaField>> MODULE_SCHEMAS_TILE_BASED;
       
       bool validatePluginSchema(const pt::ptree& tree, uint64_t pluginType);
-      ValidationResult validateMetricEntry(const pt::ptree& entry, const std::string& moduleName);
+      ValidationResult validateMetricEntry(const pt::ptree& entry, const std::string& moduleName, 
+                                          const std::string& sectionType);
       ValidationResult validateField(const pt::ptree& entry, const SchemaField& field);
       bool isValidChannelArray(const pt::ptree& channelsArray) const;
-      std::vector<SchemaField> getSchemaForModule(const std::string& moduleName) const;
+      bool isValidTileRange(const pt::ptree& entry) const;
+      std::vector<SchemaField> getSchemaForModule(const std::string& moduleName, 
+                                                 const std::string& sectionType) const;
       
     public:
       static SettingsJsonParser& getInstance() {
