@@ -50,10 +50,21 @@ namespace xdp {
           : name(n), required(req), type(t), allowedValues(allowed) {}
   };
 
+  struct PluginSettings {
+      std::optional<uint32_t> intervalUs;
+      std::optional<std::string> startType;
+      std::optional<uint32_t> startIteration;
+      
+      bool hasIntervalUs() const { return intervalUs.has_value(); }
+      bool hasStartType() const { return startType.has_value(); }
+      bool hasStartIteration() const { return startIteration.has_value(); }
+  };
+
   struct PluginJsonSetting {
       uint64_t pluginType;
       // "tiles"/"graphs" , <aie/aie_memory/memory_tile/interface_tile>, <JSON objects>>
       std::map<std::string, std::map<std::string, std::vector<pt::ptree>>> sections;
+      PluginSettings settings;
       bool isValid = false;
       std::string errorMessage;
   };
@@ -95,6 +106,7 @@ namespace xdp {
       // JSON validation methods
       static const std::map<std::string, std::vector<SchemaField>> MODULE_SCHEMAS_GRAPH_BASED;
       static const std::map<std::string, std::vector<SchemaField>> MODULE_SCHEMAS_TILE_BASED;
+      static const std::vector<SchemaField> PLUGIN_SETTINGS_SCHEMA;
       
       bool validatePluginSchema(const pt::ptree& tree, uint64_t pluginType);
       ValidationResult validateMetricEntry(const pt::ptree& entry, const std::string& moduleName, 

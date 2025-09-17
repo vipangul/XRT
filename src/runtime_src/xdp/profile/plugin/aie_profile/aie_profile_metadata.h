@@ -211,6 +211,7 @@ class AieProfileMetadata {
     void getConfigMetricsForintfTilesLatencyConfig(xdp::module_type module,
                        const std::vector<std::string>& intfTilesLatencyConfigs);
     void setProfileStartControl(bool graphIteratorEvent);
+    void setProfileStartControl(bool graphIteratorEvent, bool useXdpJson, const PluginJsonSetting* pluginSettings);
     uint32_t processUserSpecifiedBytes(const std::string& strTotalBytes);
     uint32_t getUserSpecifiedThreshold(const tile_type& tile, const std::string& metricSet);
     void setUserSpecifiedBytes(const tile_type& tile, const uint32_t& threshold);

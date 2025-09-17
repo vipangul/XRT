@@ -171,6 +171,12 @@ namespace xdp {
     }}
   };
 
+  const std::vector<SchemaField> SettingsJsonParser::PLUGIN_SETTINGS_SCHEMA = {
+      SchemaField("interval_us", false, "int"),
+      SchemaField("start_type", false, "string", {"time", "iteration"}),
+      SchemaField("start_iteration", false, "int")
+  };
+
     XdpJsonSetting SettingsJsonParser::parseXdpJsonSetting(const std::string& jsonFilePath,
                                          uint64_t queryPluginType)
     {
@@ -236,6 +242,43 @@ namespace xdp {
             auto supportedSections = getSupportedSections(pluginType);
             auto supportedModules  = getSupportedModules(pluginType);
 
+            // Parse plugin-level settings first
+            for (const auto& field : PLUGIN_SETTINGS_SCHEMA) {
+                auto fieldOpt = tree.get_optional<std::string>(field.name);
+                if (fieldOpt) {
+                    if (field.name == "interval_us") {
+                        try {
+                            uint32_t intervalUs = tree.get<uint32_t>(field.name);
+                            config.settings.intervalUs = intervalUs;
+                            xrt_core::message::send(severity_level::debug, "XRT", 
+                                "Found plugin setting interval_us: " + std::to_string(intervalUs));
+                        } catch (const std::exception& e) {
+                            xrt_core::message::send(severity_level::warning, "XRT", 
+                                "Invalid interval_us value: " + *fieldOpt);
+                        }
+                    } else if (field.name == "start_type") {
+                        if (std::find(field.allowedValues.begin(), field.allowedValues.end(), *fieldOpt) != field.allowedValues.end()) {
+                            config.settings.startType = *fieldOpt;
+                            xrt_core::message::send(severity_level::debug, "XRT", 
+                                "Found plugin setting start_type: " + *fieldOpt);
+                        } else {
+                            xrt_core::message::send(severity_level::warning, "XRT", 
+                                "Invalid start_type value: " + *fieldOpt + ". Must be 'time' or 'iteration'");
+                        }
+                    } else if (field.name == "start_iteration") {
+                        try {
+                            uint32_t startIteration = tree.get<uint32_t>(field.name);
+                            config.settings.startIteration = startIteration;
+                            xrt_core::message::send(severity_level::debug, "XRT", 
+                                "Found plugin setting start_iteration: " + std::to_string(startIteration));
+                        } catch (const std::exception& e) {
+                            xrt_core::message::send(severity_level::warning, "XRT", 
+                                "Invalid start_iteration value: " + *fieldOpt);
+                        }
+                    }
+                }
+            }
+
             // Track modules to detect conflicts - map module to first section it appears in
             // PLUGIN_MODULES -> sectionName ("tiles", "graphs")
             std::unordered_map<std::string, std::string> moduleToFirstSection;
@@ -244,6 +287,18 @@ namespace xdp {
             for (const auto& [sectionKey, section] : tree) {
                 
                 if (std::find(supportedSections.begin(), supportedSections.end(), sectionKey) == supportedSections.end()) {
+                    // Skip plugin-level settings - they are not sections
+                    bool isPluginSetting = false;
+                    for (const auto& field : PLUGIN_SETTINGS_SCHEMA) {
+                        if (sectionKey == field.name) {
+                            isPluginSetting = true;
+                            break;
+                        }
+                    }
+                    if (isPluginSetting) {
+                        continue; // Skip plugin-level settings
+                    }
+                    
                     xrt_core::message::send(severity_level::warning, "XRT", 
                         "Unsupported section for this plugin: " + sectionKey);
                     continue;
