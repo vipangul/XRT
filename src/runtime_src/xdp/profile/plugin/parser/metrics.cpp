@@ -48,6 +48,22 @@ namespace xdp {
         return 1; // Return 1 if channels are not set or there is no second channel
     }
 
+    std::optional<uint8_t>
+    Metric::getChannel0Safe() const {
+        if (channels.has_value() && !channels->empty()) {
+            return (*channels)[0];
+        }
+        return std::nullopt; // Return nullopt if channels are not set or empty
+    }
+
+    std::optional<uint8_t>
+    Metric::getChannel1Safe() const {
+        if (channels.has_value() && channels->size() > 1) {
+            return (*channels)[1];
+        }
+        return std::nullopt; // Return nullopt if channels are not set or there is no second channel
+    }
+
     std::string
     Metric::getBytesToTransfer() const {
         if (bytes_to_transfer.has_value()) {
@@ -182,7 +198,6 @@ namespace xdp {
         }
 
         if (obj.get_child_optional("start") == boost::none) {
-            // std::cout << "!!! TileBasedMetricEntry::processSettings(): Using col, row constructor" << std::endl;
             return std::make_unique<TileBasedMetricEntry>(
                 obj.get<uint8_t>("col", 0),
                 obj.get<uint8_t>("row", 0),
@@ -191,7 +206,6 @@ namespace xdp {
                 obj.get_optional<std::string>("bytes") ? std::make_optional(obj.get<std::string>("bytes")) : std::nullopt
             );
         } else {
-            // std::cout << "!!! TileBasedMetricEntry::processSettings(): Using start, end constructor" << std::endl;
             return std::make_unique<TileBasedMetricEntry>(
                 obj.get_child_optional("start") ? parseArray(obj.get_child("start")) : std::vector<uint8_t>{},
                 obj.get_child_optional("end") ? parseArray(obj.get_child("end")) : std::vector<uint8_t>{},

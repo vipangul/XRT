@@ -105,8 +105,9 @@ namespace xdp {
     for (size_t i = 0; i < metrics.size(); ++i) {
 
       if (!metrics[i]->isGraphBased()) {
-        std::cout << "!!! [1] WARNING: Skipping metric " << metrics[i]->getMetric()
-                  << " as it is not graph-based." << std::endl;
+        xrt_core::message::send(severity_level::warning, "XRT",
+                                "JSON Settings: Skipping metric " + metrics[i]->getMetric() + 
+                                " as it is not graph-based for " + modName + " module.");
         continue;
       }
 
@@ -124,7 +125,7 @@ namespace xdp {
           (std::find(allValidEntries.begin(), allValidEntries.end(), graphEntity) == allValidEntries.end())) {
         std::stringstream msg;
         msg << "Could not find " << entryName << " " << graphEntity
-            << " as specified in graph_based_" << modName << "_metrics setting."
+            << " as specified in aie_profile.graphs." << modName << " setting."
             << " The following " << entryName << "s are valid : " << allValidEntries[0];
 
         for (size_t j = 1; j < allValidEntries.size(); j++)
@@ -149,7 +150,7 @@ namespace xdp {
         }
         catch (...) {
           std::stringstream msg;
-          msg << "Channel specifications in graph_based_" << modName << "_metrics are not valid and hence ignored.";
+          msg << "Channel specifications in aie_profile.graphs." << modName << " are not valid and hence ignored.";
           xrt_core::message::send(severity_level::warning, "XRT", msg.str());
         }
       }
@@ -162,8 +163,9 @@ namespace xdp {
       if (allGraphs)
         break;
       if (!metrics[i]->isGraphBased()) {
-        std::cout << "!!! [2] WARNING: Skipping metric " << metrics[i]->getMetric()
-                  << " as it is not graph-based." << std::endl;
+        xrt_core::message::send(severity_level::warning, "XRT",
+                                "JSON Settings: Skipping metric " + metrics[i]->getMetric() + 
+                                " as it is not graph-based for " + modName + " module.");
         continue;
       }
 
@@ -173,7 +175,7 @@ namespace xdp {
           (std::find(allValidEntries.begin(), allValidEntries.end(), graphEntity) == allValidEntries.end())) {
         std::stringstream msg;
         msg << "Could not find " << entryName << " " << graphEntity
-            << " as specified in graph_based_" << modName << "_metrics setting."
+            << " as specified in aie_profile.graphs." << modName << " setting."
             << " The following " << entryName << "s are valid : " << allValidEntries[0];
 
         for (size_t j = 1; j < allValidEntries.size(); j++)
@@ -199,7 +201,7 @@ namespace xdp {
         }
         catch (...) {
           std::stringstream msg;
-          msg << "Channel specifications in graph_based_" << modName << "_metrics are not valid and hence ignored.";
+          msg << "Channel specifications in aie_profile.graphs." << modName << " are not valid and hence ignored.";
           xrt_core::message::send(severity_level::warning, "XRT", msg.str());
         }
       }
@@ -237,8 +239,9 @@ namespace xdp {
     for (size_t i = 0; i < metrics.size(); ++i) {
 
       if (!metrics[i]->isTileBased()) {
-        std::cout << "!!! [1] WARNING: Skipping metric " << metrics[i]->getMetric()
-                  << " as it is not tile-based." << std::endl;
+        xrt_core::message::send(severity_level::warning, "XRT",
+                                "JSON Settings: Skipping metric " + metrics[i]->getMetric() + 
+                                " as it is not tile-based for aie module.");
         continue;
       }
 
@@ -269,8 +272,9 @@ namespace xdp {
         break;
 
       if (!metrics[i]->isTileBased()) {
-        std::cout << "!!! [2] WARNING: Skipping metric " << metrics[i]->getMetric()
-                  << " as it is not tile-based." << std::endl;
+        xrt_core::message::send(severity_level::warning, "XRT",
+                                "JSON Settings: Skipping metric " + metrics[i]->getMetric() + 
+                                " as it is not tile-based for " + modName + " module.");
         continue;
       }
 
@@ -291,8 +295,8 @@ namespace xdp {
         
         if (minTile.empty() || maxTile.empty()) {
           std::stringstream msg;
-          msg << "Tile range specification in tile_based_" << modName
-              << "_metrics is not a valid format and hence skipped. Should be {<mincolumn,<minrow>}:{<maxcolumn>,<maxrow>}";
+          msg << "Tile range specification in aie_profile.tiles." << modName
+              << " is not a valid format and hence skipped. Should use \"start\": [column, row], \"end\": [column, row].";
           xrt_core::message::send(severity_level::warning, "XRT", msg.str());
           continue;
         }
@@ -305,16 +309,16 @@ namespace xdp {
       }
       catch (...) {
         xrt_core::message::send(severity_level::warning, "XRT",
-                                "Tile range specification in tile_based_" + modName
-                                + "_metrics is not valid format and hence skipped.");
+                                "Tile range specification in aie_profile.tiles." + modName
+                                + " is not valid format and hence skipped.");
         continue;
       }
 
       // Ensure range is valid
       if ((minCol > maxCol) || (minRow > maxRow)) {
         std::stringstream msg;
-        msg << "Tile range specification in tile_based_" << modName
-            << "_metrics is not a valid range ({col1,row1}<={col2,row2}) and hence skipped.";
+        msg << "Tile range specification in aie_profile.tiles." << modName
+            << " is not a valid range (start <= end) and hence skipped.";
         xrt_core::message::send(severity_level::warning, "XRT", msg.str());
         continue;
       }
@@ -329,8 +333,8 @@ namespace xdp {
         }
         catch (...) {
           std::stringstream msg;
-          msg << "Channel specifications in tile_based_" << modName 
-              << "_metrics are not valid and hence ignored.";
+          msg << "Channel specifications in aie_profile.tiles." << modName 
+              << " are not valid and hence ignored.";
           xrt_core::message::send(severity_level::warning, "XRT", msg.str());
         }
       }
@@ -373,10 +377,11 @@ namespace xdp {
         break;
 
       if (!metrics[i]->isTileBased()) {
-        std::cout << "!!! [3] WARNING: Skipping metric " << metrics[i]->getMetric()
-                  << " as it is not tile-based." << std::endl;
+        xrt_core::message::send(severity_level::warning, "XRT",
+                                "JSON Settings: Skipping metric " + metrics[i]->getMetric() + 
+                                " as it is not tile-based for " + modName + " module.");
         continue;
-      }      
+      }
 
       try {
         uint8_t col, row;
@@ -410,8 +415,8 @@ namespace xdp {
       }
       catch (...) {
         xrt_core::message::send(severity_level::warning, "XRT",
-                                "Tile range specification in tile_based_" + modName
-                                + "_metrics is not valid format and hence skipped.");
+                                "Tile range specification in aie_profile.tiles." + modName
+                                + " is not valid format and hence skipped.");
         continue;
       }
     } // End of pass 1c
@@ -486,9 +491,9 @@ namespace xdp {
         if ((pairItr != configMetrics[pairModuleIdx].end())
             && (pairItr->second != metricSet)) {
           std::stringstream msg;
-          msg << "Replacing metric set " << pairItr->second << " with complementary set " 
-              << metricSet << " for tile (" << std::to_string(tile.col) << ","
-              << std::to_string(tile.row) << ") [1].";
+        msg << "Replacing metric set " << pairItr->second << " with complementary set " 
+            << metricSet << " for tile (" << std::to_string(tile.col) << ","
+            << std::to_string(tile.row) << ").";
           xrt_core::message::send(severity_level::warning, "XRT", msg.str());
         }
 
@@ -506,7 +511,7 @@ namespace xdp {
           std::stringstream msg;
           msg << "Replacing metric set " << metricSet << " with complementary set " 
               << pairItr2->second << " for tile (" << std::to_string(tile.col) << ","
-              << std::to_string(tile.row) << ") [2].";
+              << std::to_string(tile.row) << ").";
           xrt_core::message::send(severity_level::warning, "XRT", msg.str());
           configMetrics[moduleIdx][tile] = pairItr2->second;
         }
@@ -581,8 +586,6 @@ namespace xdp {
           for (auto & tileMetric : configMetrics[moduleIdx]) {
             auto tile = tileMetric.first;
             auto metricSet = tileMetric.second;
-            // std::cout << "!!! Module Index: " << moduleIdx << ", Tile: (" << std::to_string(tile.col) << ","
-                      // << std::to_string(tile.row) << "), Metric Set: " << metricSet << std::endl;
           }
         } catch (const std::exception& e) {
           xrt_core::message::send(severity_level::error, "XRT", e.what());
@@ -610,8 +613,9 @@ namespace xdp {
     // Step 1a: Process all graphs metric setting ( "all_graphs" ) 
     for (size_t i = 0; i < metrics.size(); ++i) {
       if (!metrics[i]->isGraphBased()) {
-        std::cout << "!!! [1] WARNING: Skipping metric " << metrics[i]->getMetric()
-                  << " as it is not graph-based for module "<<  metricSettingsName << std::endl;
+        xrt_core::message::send(severity_level::warning, "XRT",
+                                "JSON Settings: Skipping metric " + metrics[i]->getMetric() + 
+                                " as it is not graph-based for interface_tile module.");
         continue;
       }
 
@@ -630,7 +634,7 @@ namespace xdp {
           && (std::find(allValidPorts.begin(), allValidPorts.end(), graphEntity) == allValidPorts.end())) {
         std::stringstream msg;
         msg << "Could not find port " << graphEntity
-            << " as specified in graph_based_interface_tile_metrics setting."
+            << " as specified in aie_profile.graphs.interface_tile setting."
             << " The following ports are valid : " << allValidPorts[0];
 
         for (size_t j = 1; j < allValidPorts.size(); j++)
@@ -665,7 +669,7 @@ namespace xdp {
           }
           catch (...) {
             std::stringstream msg;
-            msg << "Channel specifications in graph_based_interface_metrics "
+            msg << "Channel specifications in aie_profile.graphs.interface_tile "
                 << "are not valid and hence ignored.";
             xrt_core::message::send(severity_level::warning, "XRT", msg.str());
           }
@@ -681,8 +685,9 @@ namespace xdp {
         break;
 
       if (!metrics[i]->isGraphBased()) {
-        std::cout << "!!! [2] WARNING: Skipping metric " << metrics[i]->getMetric()
-                  << " as it is not graph-based for module "<<  metricSettingsName << std::endl;
+        xrt_core::message::send(severity_level::warning, "XRT",
+                                "JSON Settings: Skipping metric " + metrics[i]->getMetric() + 
+                                " as it is not graph-based for interface_tile module.");
         continue;
       }
 
@@ -691,7 +696,7 @@ namespace xdp {
       if (std::find(allValidGraphs.begin(), allValidGraphs.end(), graphName) == allValidGraphs.end()) {
         std::stringstream msg;
         msg << "Could not find graph " << graphName
-            << ", as specified in graph_based_interface_tile_metrics setting."
+            << ", as specified in aie_profile.graphs.interface_tile setting."
             << " The following graphs are valid : " << allValidGraphs[0];
 
         for (size_t j = 1; j < allValidGraphs.size(); j++)
@@ -705,7 +710,7 @@ namespace xdp {
           && (std::find(allValidPorts.begin(), allValidPorts.end(), graphEntity) == allValidPorts.end())) {
         std::stringstream msg;
         msg << "Could not find port " << graphEntity
-            << ", as specified in graph_based_interface_tile_metrics setting."
+            << ", as specified in aie_profile.graphs.interface_tile setting."
             << " The following ports are valid : " << allValidPorts[0];
 
         for (size_t j = 1; j < allValidPorts.size(); j++)
@@ -740,7 +745,7 @@ namespace xdp {
           }
           catch (...) {
             std::stringstream msg;
-            msg << "Channel specifications in graph_based_interface_tile_metrics "
+            msg << "Channel specifications in aie_profile.graphs.interface_tile "
                 << "are not valid and hence ignored.";
             xrt_core::message::send(severity_level::warning, "XRT", msg.str());
           }
@@ -817,8 +822,8 @@ namespace xdp {
           
             if (minTile.empty() || maxTile.empty()) {
               std::stringstream msg;
-              msg << "Tile range specification in tile_based_" << moduleNames[moduleIdx]
-                  << "_metrics is not a valid format and hence skipped."
+              msg << "Tile range specification in aie_profile.tiles." << moduleNames[moduleIdx]
+                  << " is not a valid format and hence skipped."
                   << "It should be \"start\": [mincolumn,minrow], \"end\" :[maxcolumn, maxrow]";
               xrt_core::message::send(severity_level::warning, "XRT", msg.str());
               continue;
@@ -831,16 +836,16 @@ namespace xdp {
           }
           catch (...) {
             xrt_core::message::send(severity_level::warning, "XRT",
-                                    "Tile range specification in tile_based_" + moduleNames[moduleIdx]
-                                    + "_metrics is not valid format and hence skipped.");
+                                    "Tile range specification in aie_profile.tiles." + moduleNames[moduleIdx]
+                                    + " is not valid format and hence skipped.");
             continue;
           }
 
           // Ensure range is valid
           if ((minCol > maxCol) || (minRow > maxRow)) {
             std::stringstream msg;
-            msg << "Tile range specification in tile_based_" <<  moduleNames[moduleIdx]
-                << "_metrics is not a valid range ({col1}<={col2,row2}) and hence skipped.";
+            msg << "Tile range specification in aie_profile.tiles." << moduleNames[moduleIdx]
+                << " is not a valid range (start <= end) and hence skipped.";
             xrt_core::message::send(severity_level::warning, "XRT", msg.str());
             continue;
           }
@@ -991,7 +996,7 @@ namespace xdp {
         catch (std::invalid_argument const&) {
             // Expected column specification is not a number. Give warning and skip
             xrt_core::message::send(severity_level::warning, "XRT",
-                                    "Column specification in tile_based_microcontroller_metrics "
+                                    "Column specification in aie_profile.tiles.microcontroller "
                                     "is not an integer and hence skipped.");
             continue;
         }
