@@ -104,6 +104,12 @@ namespace xdp {
         SchemaField("metric", true, "string"),
         SchemaField("channels", false, "array")
     }},
+    {"aie_tile", {
+        SchemaField("graph", true, "string"),
+        SchemaField("kernel", true, "string"),
+        SchemaField("metric", true, "string"),
+        SchemaField("channels", false, "array")
+    }},
     {"memory_tile", {
         SchemaField("graph", true, "string"),
         SchemaField("buffer", true, "string"),
@@ -134,6 +140,15 @@ namespace xdp {
         SchemaField("channels", false, "array")
     }},
     {"aie_memory", {
+        SchemaField("metric", true, "string"),
+        SchemaField("col", false, "int"),
+        SchemaField("row", false, "int"),
+        SchemaField("all_tiles", false, "bool"),
+        SchemaField("start", false, "array"),
+        SchemaField("end", false, "array"),
+        SchemaField("channels", false, "array")
+    }},
+    {"aie_tile", {
         SchemaField("metric", true, "string"),
         SchemaField("col", false, "int"),
         SchemaField("row", false, "int"),
