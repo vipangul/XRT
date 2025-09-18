@@ -19,6 +19,7 @@
 #include "aie_trace_metadata.h"
 
 #include <cstdint>
+#include <filesystem>
 #include <boost/algorithm/string.hpp>
 #include <boost/property_tree/json_parser.hpp>
 #include <boost/property_tree/ptree.hpp>
@@ -110,50 +111,59 @@ namespace xdp {
     }
 
     bool useXdpJson = false;
-    // std::string settingFile = xrt_core::config::get_xdp_json();
-    // boost::property_tree::ptree jsonTree;
-    // if (std::filesystem::exists(settingFile)) {
-    //   try {
-    //     jsonTree = SettingsJsonParser::getInstance().parse(settingFile);
-    //     useXdpJson = true;
-    //   } catch (const boost::property_tree::ptree_error& e) {
-    //     xrt_core::message::send(severity_level::warning, "XRT",
-    //       std::string("Error parsing JSON file '") + settingFile + "': " + e.what());
-    //   }
-    // }
-    // else {
-    //   xrt_core::message::send(severity_level::info, "XRT",
-    //     "Using default AIE profile settings (no JSON settings found at '" + settingFile + "')");
-    // }
-
-    // MetricsCollectionManager metricsCollectionManager;
-  
-    // // Process JSON settings for AIE_PROFILE plugin
-    // if (useXdpJson) {
-    //     XdpJsonSetting XdpJsonSetting = SettingsJsonParser::getInstance().parseXdpJsonSetting(settingFile,info::aie_trace);
-    //     if (!XdpJsonSetting.isValid) {
-    //           xrt_core::message::send(severity_level::warning, "XRT",
-    //             "Unable to parse JSON settings from " + settingFile +
-    //             ". Error: " + XdpJsonSetting.errorMessage);
-    //         useXdpJson = false;
-    //     } else {
-    //         // Process only AIE_PROFILE plugin configuration
-    //         auto it = XdpJsonSetting.plugins.find(info::aie_trace);
-    //         if (it != XdpJsonSetting.plugins.end()) {
-    //             processPluginJsonSetting(it->second, metricsCollectionManager);
-    //         } else {
-    //             xrt_core::message::send(severity_level::info, "XRT",
-    //                "No valid aie_profile configuration found in JSON settings");
-    //         }
-    //     }
-    // }
- 
-
-    // MetricsCollectionManager metricsCollectionManager;
-    // bool useXdpJson = false;
-
     std::string settingFile = xrt_core::config::get_xdp_json();
-    // Process AIE_trace_settings metrics
+    PluginJsonSetting pluginSettings;
+    
+    if (SettingsJsonParser::getInstance().isValidJson(settingFile)) {
+      xrt_core::message::send(severity_level::info, "XRT",
+        "Using JSON settings from '" + settingFile + "'");
+      
+      XdpJsonSetting xdpJsonSetting = SettingsJsonParser::getInstance().parseXdpJsonSetting(settingFile, info::aie_trace);
+      if (!xdpJsonSetting.isValid) {
+        xrt_core::message::send(severity_level::warning, "XRT",
+          "Unable to parse JSON settings from " + settingFile +
+          ". Error: " + xdpJsonSetting.errorMessage + ". Falling back to xrt.ini settings.");
+        useXdpJson = false;
+      } else {
+        // Process only AIE_TRACE plugin configuration
+        auto it = xdpJsonSetting.plugins.find(info::aie_trace);
+        if (it != xdpJsonSetting.plugins.end()) {
+          pluginSettings = it->second;
+          useXdpJson = true;
+        } else {
+          xrt_core::message::send(severity_level::info, "XRT",
+             "No valid aie_trace configuration found in JSON settings. Falling back to xrt.ini settings.");
+          useXdpJson = false;
+        }
+      }
+    }
+
+    // Process settings based on configuration source
+    if (useXdpJson) {
+        // Set trace start control using JSON settings
+        setTraceStartControl(compilerOptions.graph_iterator_event);
+        
+        // Process JSON plugin configuration for metrics
+        MetricsCollectionManager metricsCollectionManager;
+        
+        // Process JSON plugin configuration for metrics using helper method
+        processPluginJsonSetting(pluginSettings, metricsCollectionManager);
+        
+        // Process using JSON methods
+        getConfigMetricsForTilesUsingJson(0, module_type::dma, metricsCollectionManager);
+        getConfigMetricsForTilesUsingJson(1, module_type::mem_tile, metricsCollectionManager);
+        getConfigMetricsForInterfaceTilesUsingJson(0, metricsCollectionManager);
+        
+        xrt_core::message::send(severity_level::info,
+                                "XRT", "Finished Parsing AIE Trace Metadata using JSON settings.");
+        return; // Early return - skip all xrt.ini parsing
+    }
+
+    // ============================================================================
+    // From this point on, only xrt.ini settings are processed
+    // ============================================================================
+
+    // Process AIE_trace_settings metrics from xrt.ini
     auto aieTileMetricsSettings = 
         getSettingsVector(xrt_core::config::get_aie_trace_settings_tile_based_aie_tile_metrics());
     auto aieGraphMetricsSettings = 
@@ -166,26 +176,21 @@ namespace xdp {
         getSettingsVector(xrt_core::config::get_aie_trace_settings_tile_based_interface_tile_metrics());
     auto shimGraphMetricsSettings = 
         getSettingsVector(xrt_core::config::get_aie_trace_settings_graph_based_interface_tile_metrics());
-     
-    if (useXdpJson) {
-      // getConfigMetricsForTilesUsingJson(module_type::dma, metricsCollectionManager);
-      // getConfigMetricsForTilesUsingJson(module_type::mem_tile, metricsCollectionManager);
-      // getConfigMetricsForInterfaceTilesUsingJson(metricsCollectionManager);
-      // setTraceStartControl(compilerOptions.graph_iterator_event);
+
+    if (aieTileMetricsSettings.empty() && aieGraphMetricsSettings.empty()
+        && memTileMetricsSettings.empty() && memGraphMetricsSettings.empty()
+        && shimTileMetricsSettings.empty() && shimGraphMetricsSettings.empty()) {
+      isValidMetrics = false;
+    } else {
+      // Use DMA type here to include both core-active tiles and DMA-only tiles
+      getConfigMetricsForTiles(aieTileMetricsSettings, aieGraphMetricsSettings, module_type::dma);
+      getConfigMetricsForTiles(memTileMetricsSettings, memGraphMetricsSettings, module_type::mem_tile);
+      getConfigMetricsForInterfaceTiles(shimTileMetricsSettings, shimGraphMetricsSettings);
+      setTraceStartControl(compilerOptions.graph_iterator_event);
     }
-    else {
-      if (aieTileMetricsSettings.empty() && aieGraphMetricsSettings.empty()
-          && memTileMetricsSettings.empty() && memGraphMetricsSettings.empty()
-          && shimTileMetricsSettings.empty() && shimGraphMetricsSettings.empty()) {
-        isValidMetrics = false;
-      } else {
-        // Use DMA type here to include both core-active tiles and DMA-only tiles
-        getConfigMetricsForTiles(aieTileMetricsSettings, aieGraphMetricsSettings, module_type::dma);
-        getConfigMetricsForTiles(memTileMetricsSettings, memGraphMetricsSettings, module_type::mem_tile);
-        getConfigMetricsForInterfaceTiles(shimTileMetricsSettings, shimGraphMetricsSettings);
-        setTraceStartControl(compilerOptions.graph_iterator_event);
-      }
-    }
+
+    xrt_core::message::send(severity_level::info,
+                            "XRT", "Finished Parsing AIE Trace Metadata using xrt.ini settings.");
   }
 
   // **************************************************************************
@@ -1036,6 +1041,49 @@ namespace xdp {
     for (auto& t : offTiles) {
       configMetrics.erase(t);
     }
+  }
+
+  void AieTraceMetadata::processPluginJsonSetting(const PluginJsonSetting& config, 
+                                                   MetricsCollectionManager& manager)
+  {
+      for (const auto& [sectionKey, modules] : config.sections) {
+          for (const auto& [moduleKey, metrics] : modules) {
+
+              bool isGraphsType = (sectionKey == "graphs");
+              
+              // Handle plugin-specific module key mappings for aie_trace
+              std::string mappedModuleKey = moduleKey;
+              if (moduleKey == "aie_tile") {
+                  // aie_tile is specific to aie_trace and combines core and memory functionality
+                  // No mapping needed - use as is
+              }
+              
+              MetricType type        = getMetricTypeFromKey(sectionKey, mappedModuleKey);
+              module_type moduleType = getModuleTypeFromKey(mappedModuleKey);
+              
+              MetricCollection collection;
+              for (const auto& metricData : metrics) {
+                  auto metric = MetricsFactory::createMetric(type, metricData);
+                  if (!metric) {
+                        xrt_core::message::send(severity_level::warning, "XRT",
+                        "Failed to create metric for type: " + std::to_string(static_cast<int>(type)));
+                      continue;
+                  }
+                  
+                  if (jsonContainsAllRange(type, metricData)) {
+                      metric->setAllTiles(true);
+                  } else if (jsonContainsRange(type, metricData)) {
+                      metric->setTilesRange(true);
+                  }
+                  
+                  collection.addMetric(std::move(metric));
+              }
+              if (isGraphsType)
+                collection.setGraphBased(true);
+              
+              manager.addMetricCollection(moduleType, moduleKey, std::move(collection));
+          }
+      }
   }
 
   aie::driver_config 
