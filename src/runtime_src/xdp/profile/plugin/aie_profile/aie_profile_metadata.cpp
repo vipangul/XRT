@@ -1443,6 +1443,44 @@ namespace xdp {
     }
   }
 
+  // Parse Profile start_type configuration with JSON support
+  void AieProfileMetadata::setProfileStartControl(bool graphIteratorEvent, bool useXdpJson, const PluginJsonSetting* pluginSettings)
+  {
+    useGraphIterator = false;
+    
+    std::string startType;
+    
+    if (useXdpJson && pluginSettings && pluginSettings->settings.hasStartType()) {
+      // Use JSON setting for start type
+      startType = pluginSettings->settings.startType.value();
+      xrt_core::message::send(severity_level::debug, "XRT",
+          "Using JSON start type: " + startType);
+    } else {
+      // Use xrt.ini setting for start type
+      startType = xrt_core::config::get_aie_profile_settings_start_type();
+    }
+    
+    if (startType == "iteration") {
+      // Verify AIE was compiled with the proper setting
+      if (!graphIteratorEvent) {
+        std::string msg = "Unable to use graph iteration as profile start type. ";
+        msg.append("Please re-compile AI Engine with --graph-iterator-event=true.");
+        xrt_core::message::send(severity_level::warning, "XRT", msg);
+      }
+      else {
+        // Start profile when graph iterator reaches a threshold
+        if (useXdpJson && pluginSettings && pluginSettings->settings.hasStartIteration()) {
+          iterationCount = pluginSettings->settings.startIteration.value();
+          xrt_core::message::send(severity_level::debug, "XRT",
+              "Using JSON start iteration: " + std::to_string(iterationCount));
+        } else {
+          iterationCount = xrt_core::config::get_aie_profile_settings_start_iteration();
+        }
+        useGraphIterator = (iterationCount != 0);
+      }
+    }
+  }
+
   // Valodate the user provided the bytes configuration i.e. <N> in below example
   // and converts it to the total no of bytes
   // graph:port:start_to_bytes_transferred:<N>

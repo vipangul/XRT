@@ -35,9 +35,17 @@ namespace xdp {
   void AieTraceMetadata::populateGraphConfigMetricsForTilesUsingJson(const int moduleIdx, 
       const module_type mod, MetricsCollectionManager& metricsCollectionManager)
   {
-    std::string metricSettingsName = "aie_tile"; // Always use aie_tile for aie_trace
+    // Determine the correct metric settings name based on module type
+    std::string metricSettingsName;
+    std::string modName;
+    if (mod == module_type::mem_tile) {
+      metricSettingsName = "memory_tile";
+      modName = "memory_tile";
+    } else {
+      metricSettingsName = "aie_tile"; // For core and dma types
+      modName = "aie_tile";
+    }
     std::string entryName = "kernel";
-    std::string modName = "aie_tile";
 
     auto allValidGraphs  = metadataReader->getValidGraphs();
     auto allValidKernels = metadataReader->getValidKernels();
@@ -179,9 +187,17 @@ namespace xdp {
   void AieTraceMetadata::populateTilesConfigMetricsForTilesUsingJson(const int moduleIdx, 
         const module_type mod, MetricsCollectionManager& metricsCollectionManager)
   {
-    std::string metricSettingsName = "aie_tile"; // Always use aie_tile for aie_trace
+    // Determine the correct metric settings name based on module type
+    std::string metricSettingsName;
+    std::string modName;
+    if (mod == module_type::mem_tile) {
+      metricSettingsName = "memory_tile";
+      modName = "memory_tile";
+    } else {
+      metricSettingsName = "aie_tile"; // For core and dma types
+      modName = "aie_tile";
+    }
     uint8_t rowOffset = (mod == module_type::mem_tile) ? 1 : metadataReader->getAIETileRowOffset();
-    std::string modName = "aie_tile";
 
     std::set<tile_type> allValidTiles;
     auto validTilesVec = metadataReader->getTiles("all", mod, "all");
@@ -384,7 +400,13 @@ namespace xdp {
   void AieTraceMetadata::getConfigMetricsForTilesUsingJson(const int moduleIdx, 
       const module_type mod, MetricsCollectionManager& metricsCollectionManager)
   {
-    std::string metricSettingsName = "aie_tile"; // Always use aie_tile for aie_trace
+    // Determine the correct metric settings name based on module type
+    std::string metricSettingsName;
+    if (mod == module_type::mem_tile) {
+      metricSettingsName = "memory_tile";
+    } else {
+      metricSettingsName = "aie_tile"; // For core and dma types
+    }
 
     try {
       const MetricCollection& tilesMetricCollection = metricsCollectionManager.getMetricCollection(mod, metricSettingsName);
