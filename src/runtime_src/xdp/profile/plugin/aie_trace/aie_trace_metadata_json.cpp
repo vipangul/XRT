@@ -408,6 +408,12 @@ namespace xdp {
       else if (tilesMetricCollection.isTileBased())
         populateTilesConfigMetricsForTilesUsingJson(moduleIdx, mod, metricsCollectionManager);
 
+      // Get all valid tiles for validation
+      std::set<tile_type> allValidTiles;
+      auto validTilesVec = metadataReader->getTiles("all", mod, "all");
+      std::unique_copy(validTilesVec.begin(), validTilesVec.end(), std::inserter(allValidTiles, allValidTiles.end()),
+                       xdp::aie::tileCompare);
+
       // Set default, check validity, and remove "off" tiles
       bool showWarning = true;
       std::vector<tile_type> offTiles;
@@ -722,7 +728,7 @@ namespace xdp {
           catch (...) {
             xrt_core::message::send(severity_level::warning, "XRT",
                                     "Tile range specification in aie_trace.tiles.interface_tile"
-                                    + " is not valid format and hence skipped.");
+                                    " is not valid format and hence skipped.");
             continue;
           }
 
