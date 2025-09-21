@@ -31,6 +31,7 @@ namespace xdp {
     static const std::map<std::string, module_type> keyToModuleType = {
         {"aie",             module_type::core},
         {"aie_memory",      module_type::dma},
+        {"aie_tile",        module_type::dma},        // aie_trace specific: combines core and memory functionality
         {"interface_tile",  module_type::shim},
         {"memory_tile",     module_type::mem_tile},
         {"microcontroller", module_type::uc}
