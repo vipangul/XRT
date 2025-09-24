@@ -121,7 +121,7 @@ namespace xdp {
       XdpJsonSetting xdpJsonSetting = SettingsJsonParser::getInstance().parseXdpJsonSetting(settingFile, info::aie_trace);
       if (!xdpJsonSetting.isValid) {
         xrt_core::message::send(severity_level::warning, "XRT",
-          "Unable to parse JSON settings from " + settingFile +
+          "Unable to parse aie_tile JSON settings from " + settingFile +
           ". Error: " + xdpJsonSetting.errorMessage + ". Falling back to xrt.ini settings.");
         useXdpJson = false;
       } else {
@@ -1058,9 +1058,12 @@ namespace xdp {
                   // No mapping needed - use as is
               }
               
+              // TODO: Also pass Plugin Name
               MetricType type        = getMetricTypeFromKey(sectionKey, mappedModuleKey);
               module_type moduleType = getModuleTypeFromKey(mappedModuleKey);
               
+              // TODO: Validate type and moduleType are valid.
+
               MetricCollection collection;
               for (const auto& metricData : metrics) {
                   auto metric = MetricsFactory::createMetric(type, metricData);

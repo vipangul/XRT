@@ -283,9 +283,10 @@ namespace xdp {
         maxRow = maxTile[1] + rowOffset;
       }
       catch (...) {
-        xrt_core::message::send(severity_level::warning, "XRT",
-                                "Tile range specification in aie_trace.tiles." + modName
-                                + " is not valid format and hence skipped.");
+        std::stringstream msg;
+        msg << "Valid Tile range specification in aie_trace.tiles." << modName
+            << " is not met, it will be re-processed for single-tile specification.";
+        xrt_core::message::send(severity_level::info, "XRT", msg.str());
         continue;
       }
 
@@ -500,12 +501,34 @@ namespace xdp {
         // Set default, check validity, and remove "off" tiles
         auto defaultSet = defaultSets[module_type::shim];
         bool showWarning = true;
+        bool showWarningGMIOMetric = true;
         std::vector<tile_type> offTiles;
         auto metricVec = metricSets[module_type::shim];
 
         for (auto& tileMetric : configMetrics) {
+          // Only validate interface tiles (row 0)
+          if (tileMetric.first.row != 0)
+            continue;
+            
           // Save list of "off" tiles
           if (tileMetric.second.empty() || (tileMetric.second.compare("off") == 0)) {
+            offTiles.push_back(tileMetric.first);
+            continue;
+          }
+
+          // Check for PLIO tiles and it's compatible metric settings
+          if ((tileMetric.first.subtype == io_type::PLIO) && isGMIOMetric(tileMetric.second)) {
+            if (showWarningGMIOMetric) {
+              std::string msg = "Configured interface_tile metric set " + tileMetric.second 
+                              + " is only applicable for GMIO type tiles.";
+              xrt_core::message::send(severity_level::warning, "XRT", msg);
+              showWarningGMIOMetric = false;
+            }
+
+            std::stringstream msg;
+            msg << "Configured interface_tile metric set metric set " << tileMetric.second;
+            msg << " skipped for tile (" << +tileMetric.first.col << ", " << +tileMetric.first.row << ").";
+            xrt_core::message::send(severity_level::debug, "XRT", msg.str());
             offTiles.push_back(tileMetric.first);
             continue;
           }
@@ -570,7 +593,7 @@ namespace xdp {
           && (std::find(allValidPorts.begin(), allValidPorts.end(), graphEntity) == allValidPorts.end())) {
         std::stringstream msg;
         msg << "Could not find port " << graphEntity
-            << " as specified in aie_trace.graphs.interface_tile setting."
+            << ", as specified in aie_trace.graphs.interface_tile setting."
             << " The following ports are valid : " << allValidPorts[0];
 
         for (size_t j = 1; j < allValidPorts.size(); j++)
@@ -622,6 +645,8 @@ namespace xdp {
 
       const std::string& graphName = metrics[i]->getGraph();
       const std::string& graphEntity = metrics[i]->getGraphEntity();
+      
+      // Validate graph name
       if (std::find(allValidGraphs.begin(), allValidGraphs.end(), graphName) == allValidGraphs.end()) {
         std::stringstream msg;
         msg << "Could not find graph " << graphName

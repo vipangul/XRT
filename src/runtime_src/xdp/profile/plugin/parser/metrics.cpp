@@ -2,6 +2,7 @@
 // Copyright (C) 2025 Advanced Micro Devices, Inc. All rights reserved
 
 #include "metrics.h"
+#include "parser_utils.h"
 
 namespace xdp {
 
@@ -127,7 +128,7 @@ namespace xdp {
         std::string metric = obj.get<std::string>("metric", "");
         auto bytes = obj.get_optional<std::string>("bytes") ? std::make_optional(obj.get<std::string>("bytes")) : std::nullopt;
     
-        if ((type == MetricType::GRAPH_BASED_CORE_MOD) || (type == MetricType::GRAPH_BASED_MEM_MOD)) {
+        if ((type == MetricType::GRAPH_BASED_AIE_TILE) || (type == MetricType::GRAPH_BASED_CORE_MOD) || (type == MetricType::GRAPH_BASED_MEM_MOD)) {
             std::string kernel = obj.get<std::string>("kernel", "all");
             return std::make_unique<AIEGraphBasedMetricEntry>(graph, kernel, metric, channels, bytes);
         }
@@ -187,7 +188,7 @@ namespace xdp {
     }
 
     std::unique_ptr<Metric>
-    TileBasedMetricEntry::processSettings(const boost::property_tree::ptree& obj) {
+    TileBasedMetricEntry::processSettings(const MetricType& type, const boost::property_tree::ptree& obj) {
         std::optional<std::vector<uint8_t>> channels = std::nullopt;
         if (obj.get_child_optional("channels")) {
             std::vector<uint8_t> parsedChannels;

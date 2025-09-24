@@ -80,117 +80,133 @@ namespace xdp {
         }
     }
 
-    // Static mappings for different plugins
-    const std::map<uint64_t, std::vector<std::string>> SettingsJsonParser::PLUGIN_MODULES = {
-        {info::aie_profile, {"aie", "aie_memory", "interface_tile", "memory_tile", "microcontroller"}},
-        {info::aie_trace,   {"aie_tile", "interface_tile", "memory_tile"}}
+    // Lazy initialization functions to avoid static destruction order issues
+    const std::map<uint64_t, std::vector<std::string>>& SettingsJsonParser::getPluginModules() {
+        static const std::map<uint64_t, std::vector<std::string>> pluginModules = {
+            {info::aie_profile, {"aie", "aie_memory", "interface_tile", "memory_tile", "microcontroller"}},
+            {info::aie_trace,   {"aie_tile", "interface_tile", "memory_tile"}}
+        };
+        return pluginModules;
+    }
+
+    const std::map<uint64_t, std::vector<std::string>>& SettingsJsonParser::getPluginSections() {
+        static const std::map<uint64_t, std::vector<std::string>> pluginSections = {
+            {info::aie_profile, {"tiles", "graphs"}},
+            {info::aie_trace,   {"tiles", "graphs"}}
+        };
+        return pluginSections;
+    }
+
+    // Lazy initialization functions to avoid static destruction order issues
+  const std::map<std::string, std::vector<SchemaField>>& SettingsJsonParser::getModuleSchemasGraphBased() {
+    static const std::map<std::string, std::vector<SchemaField>> schemas = {
+        {"aie", {
+            SchemaField("graph", true, "string"),
+            SchemaField("kernel", true, "string"),
+            SchemaField("metric", true, "string"),
+            SchemaField("channels", false, "array")
+        }},
+        {"aie_memory", {
+            SchemaField("graph", true, "string"),
+            SchemaField("kernel", true, "string"),
+            SchemaField("metric", true, "string"),
+            SchemaField("channels", false, "array")
+        }},
+        {"aie_tile", {
+            SchemaField("graph", true, "string"),
+            SchemaField("kernel", true, "string"),
+            SchemaField("metric", true, "string"),
+            SchemaField("channels", false, "array")
+        }},
+        {"memory_tile", {
+            SchemaField("graph", true, "string"),
+            SchemaField("buffer", true, "string"),
+            SchemaField("metric", true, "string"),
+            SchemaField("channels", false, "array")
+        }},
+        {"interface_tile", {
+            SchemaField("graph", true, "string"),
+            SchemaField("port", true, "string"),
+            SchemaField("metric", true, "string"),
+            SchemaField("channels", false, "array"),
+            SchemaField("bytes", false, "string")
+        }},
+        {"microcontroller", {
+            SchemaField("graph", true, "string"),
+            SchemaField("metric", true, "string")
+        }}
     };
+    return schemas;
+  }
 
-    const std::map<uint64_t, std::vector<std::string>> SettingsJsonParser::PLUGIN_SECTIONS = {
-        {info::aie_profile, {"tiles", "graphs"}},
-        {info::aie_trace,   {"tiles", "graphs"}}
+  const std::map<std::string, std::vector<SchemaField>>& SettingsJsonParser::getModuleSchemasTileBased() {
+    static const std::map<std::string, std::vector<SchemaField>> schemas = {
+        {"aie", {
+            SchemaField("metric", true, "string"),
+            SchemaField("col", false, "int"),
+            SchemaField("row", false, "int"),
+            SchemaField("all_tiles", false, "bool"),
+            SchemaField("start", false, "array"),
+            SchemaField("end", false, "array"),
+            SchemaField("channels", false, "array")
+        }},
+        {"aie_memory", {
+            SchemaField("metric", true, "string"),
+            SchemaField("col", false, "int"),
+            SchemaField("row", false, "int"),
+            SchemaField("all_tiles", false, "bool"),
+            SchemaField("start", false, "array"),
+            SchemaField("end", false, "array"),
+            SchemaField("channels", false, "array")
+        }},
+        {"aie_tile", {
+            SchemaField("metric", true, "string"),
+            SchemaField("col", false, "int"),
+            SchemaField("row", false, "int"),
+            SchemaField("all_tiles", false, "bool"),
+            SchemaField("start", false, "array"),
+            SchemaField("end", false, "array"),
+            SchemaField("channels", false, "array")
+        }},
+        {"memory_tile", {
+            SchemaField("metric", true, "string"),
+            SchemaField("col", false, "int"),
+            SchemaField("row", false, "int"),
+            SchemaField("all_tiles", false, "bool"),
+            SchemaField("start", false, "array"),
+            SchemaField("end", false, "array"),
+            SchemaField("channels", false, "array")
+        }},
+        {"interface_tile", {
+            SchemaField("metric", true, "string"),
+            SchemaField("col", false, "int"),
+            SchemaField("row", false, "int"),
+            SchemaField("all_tiles", false, "bool"),
+            SchemaField("start", false, "array"),
+            SchemaField("end", false, "array"),
+            SchemaField("channels", false, "array"),
+            SchemaField("bytes", false, "string")
+        }},
+        {"microcontroller", {
+            SchemaField("metric", true, "string"),
+            SchemaField("col", false, "int"),
+            SchemaField("row", false, "int"),
+            SchemaField("all_tiles", false, "bool"),
+            SchemaField("start", false, "array"),
+            SchemaField("end", false, "array")
+        }}
     };
+    return schemas;
+  }
 
-    const std::map<std::string, std::vector<SchemaField>> SettingsJsonParser::MODULE_SCHEMAS_GRAPH_BASED = {
-    {"aie", {
-        SchemaField("graph", true, "string"),
-        SchemaField("kernel", true, "string"),
-        SchemaField("metric", true, "string"),
-        SchemaField("channels", false, "array")
-    }},
-    {"aie_memory", {
-        SchemaField("graph", true, "string"),
-        SchemaField("kernel", true, "string"),
-        SchemaField("metric", true, "string"),
-        SchemaField("channels", false, "array")
-    }},
-    {"aie_tile", {
-        SchemaField("graph", true, "string"),
-        SchemaField("kernel", true, "string"),
-        SchemaField("metric", true, "string"),
-        SchemaField("channels", false, "array")
-    }},
-    {"memory_tile", {
-        SchemaField("graph", true, "string"),
-        SchemaField("buffer", true, "string"),
-        SchemaField("metric", true, "string"),
-        SchemaField("channels", false, "array")
-    }},
-    {"interface_tile", {
-        SchemaField("graph", true, "string"),
-        SchemaField("port", true, "string"),
-        SchemaField("metric", true, "string"),
-        SchemaField("channels", false, "array"),
-        SchemaField("bytes", false, "string")
-    }},
-    {"microcontroller", {
-        SchemaField("graph", true, "string"),
-        SchemaField("metric", true, "string")
-    }}
-  };
-
-  const std::map<std::string, std::vector<SchemaField>> SettingsJsonParser::MODULE_SCHEMAS_TILE_BASED = {
-    {"aie", {
-        SchemaField("metric", true, "string"),
-        SchemaField("col", false, "int"),
-        SchemaField("row", false, "int"),
-        SchemaField("all_tiles", false, "bool"),
-        SchemaField("start", false, "array"),
-        SchemaField("end", false, "array"),
-        SchemaField("channels", false, "array")
-    }},
-    {"aie_memory", {
-        SchemaField("metric", true, "string"),
-        SchemaField("col", false, "int"),
-        SchemaField("row", false, "int"),
-        SchemaField("all_tiles", false, "bool"),
-        SchemaField("start", false, "array"),
-        SchemaField("end", false, "array"),
-        SchemaField("channels", false, "array")
-    }},
-    {"aie_tile", {
-        SchemaField("metric", true, "string"),
-        SchemaField("col", false, "int"),
-        SchemaField("row", false, "int"),
-        SchemaField("all_tiles", false, "bool"),
-        SchemaField("start", false, "array"),
-        SchemaField("end", false, "array"),
-        SchemaField("channels", false, "array")
-    }},
-    {"memory_tile", {
-        SchemaField("metric", true, "string"),
-        SchemaField("col", false, "int"),
-        SchemaField("row", false, "int"),
-        SchemaField("all_tiles", false, "bool"),
-        SchemaField("start", false, "array"),
-        SchemaField("end", false, "array"),
-        SchemaField("channels", false, "array")
-    }},
-    {"interface_tile", {
-        SchemaField("metric", true, "string"),
-        SchemaField("col", false, "int"),
-        SchemaField("row", false, "int"),
-        SchemaField("all_tiles", false, "bool"),
-        SchemaField("start", false, "array"),
-        SchemaField("end", false, "array"),
-        SchemaField("channels", false, "array"),
-        SchemaField("bytes", false, "string")
-    }},
-    {"microcontroller", {
-        SchemaField("metric", true, "string"),
-        SchemaField("col", false, "int"),
-        SchemaField("row", false, "int"),
-        SchemaField("all_tiles", false, "bool"),
-        SchemaField("start", false, "array"),
-        SchemaField("end", false, "array")
-    }}
-  };
-
-  const std::vector<SchemaField> SettingsJsonParser::PLUGIN_SETTINGS_SCHEMA = {
-      SchemaField("interval_us", false, "int"),
-      SchemaField("start_type", false, "string", {"time", "iteration"}),
-      SchemaField("start_iteration", false, "int")
-  };
+  const std::vector<SchemaField>& SettingsJsonParser::getPluginSettingsSchema() {
+    static const std::vector<SchemaField> schema = {
+        SchemaField("interval_us", false, "int"),
+        SchemaField("start_type", false, "string", {"time", "iteration"}),
+        SchemaField("start_iteration", false, "int")
+    };
+    return schema;
+  }
 
     XdpJsonSetting SettingsJsonParser::parseXdpJsonSetting(const std::string& jsonFilePath,
                                          uint64_t queryPluginType)
@@ -226,8 +242,10 @@ namespace xdp {
                 }
                 // Skip if plugin type does not match
                 if (pluginType != queryPluginType) {
+                  std::string queryPluginName = (queryPluginType == info::aie_profile) ? "aie_profile" : 
+                                               (queryPluginType == info::aie_trace) ? "aie_trace" : "unknown";
                   xrt_core::message::send(severity_level::debug, "XRT", 
-                                      "Skip this plugin, Mismatched plugin type: " + pluginName);
+                                      "Skipping " + pluginName + " settings for " + queryPluginName + " query");
                   continue;
                 }
                 
@@ -258,7 +276,7 @@ namespace xdp {
             auto supportedModules  = getSupportedModules(pluginType);
 
             // Parse plugin-level settings first
-            for (const auto& field : PLUGIN_SETTINGS_SCHEMA) {
+            for (const auto& field : getPluginSettingsSchema()) {
                 auto fieldOpt = tree.get_optional<std::string>(field.name);
                 if (fieldOpt) {
                     if (field.name == "interval_us") {
@@ -304,7 +322,7 @@ namespace xdp {
                 if (std::find(supportedSections.begin(), supportedSections.end(), sectionKey) == supportedSections.end()) {
                     // Skip plugin-level settings - they are not sections
                     bool isPluginSetting = false;
-                    for (const auto& field : PLUGIN_SETTINGS_SCHEMA) {
+                    for (const auto& field : getPluginSettingsSchema()) {
                         if (sectionKey == field.name) {
                             isPluginSetting = true;
                             break;
@@ -365,7 +383,7 @@ namespace xdp {
                      
                      if (metrics.empty()) {
                         xrt_core::message::send(severity_level::warning, "XRT", 
-                            "No valid metrics found for module: " + moduleKey);
+                            "No valid metrics found for module: " + moduleKey + " in plugin: " + getPluginNameFromType(pluginType));
                         continue;
                      }
                      config.sections[sectionKey][moduleKey] = metrics;
@@ -385,24 +403,36 @@ namespace xdp {
         return 0; // Unknown plugin type
     }
 
+    std::string SettingsJsonParser::getPluginNameFromType(uint64_t pluginType) {
+        if (pluginType == info::aie_profile) return "aie_profile";
+        if (pluginType == info::aie_trace) return "aie_trace";
+        return "unknown";
+    }
+
     std::vector<std::string> SettingsJsonParser::getSupportedModules(uint64_t pluginType) {
-        auto it = PLUGIN_MODULES.find(pluginType);
-        return (it != PLUGIN_MODULES.end()) ? it->second : std::vector<std::string>{};
+        const auto& pluginModules = getPluginModules();
+        auto it = pluginModules.find(pluginType);
+        return (it != pluginModules.end()) ? it->second : std::vector<std::string>{};
     }
 
     std::vector<std::string> SettingsJsonParser::getSupportedSections(uint64_t pluginType) {
-        auto it = PLUGIN_SECTIONS.find(pluginType);
-        return (it != PLUGIN_SECTIONS.end()) ? it->second : std::vector<std::string>{};
+        const auto& pluginSections = getPluginSections();
+        auto it = pluginSections.find(pluginType);
+        return (it != pluginSections.end()) ? it->second : std::vector<std::string>{};
     }
 
   ValidationResult SettingsJsonParser::validateMetricEntry(const pt::ptree& entry, const std::string& moduleName, 
                                                            const std::string& sectionType) {
     ValidationResult result;
     
+    // Get metric name for better error context
+    std::string metricName = entry.get<std::string>("metric", "<unknown>");
+    std::string contextPrefix = "metric '" + metricName + "' in module '" + moduleName + "': ";
+    
     auto schema = getSchemaForModule(moduleName, sectionType);
     
     for (const auto& field : schema) {
-        ValidationResult fieldResult = validateField(entry, field);
+        ValidationResult fieldResult = validateField(entry, field, contextPrefix);
         result.errors.insert(result.errors.end(), fieldResult.errors.begin(), fieldResult.errors.end());
         result.warnings.insert(result.warnings.end(), fieldResult.warnings.begin(), fieldResult.warnings.end());
         if (!fieldResult.isValid) {
@@ -418,34 +448,51 @@ namespace xdp {
         bool hasRange = entry.get_child_optional("start") && entry.get_child_optional("end");
         bool hasSingleCol = entry.get_optional<int>("col") && !entry.get_optional<int>("row");
         
+        // Build context string for tile specification
+        std::string tileSpec = "not specified";
+        if (hasAllTiles) {
+            tileSpec = "all_tiles=true";
+        } else if (hasColRow) {
+            tileSpec = "col=" + std::to_string(entry.get<int>("col")) + ", row=" + std::to_string(entry.get<int>("row"));
+        } else if (hasSingleCol) {
+            tileSpec = "col=" + std::to_string(entry.get<int>("col")) + " (row missing)";
+        } else if (hasRange) {
+            tileSpec = "start/end range specified";
+        }
+        
         // For microcontroller, only col or all_tiles is needed
         if (moduleName == "microcontroller") {
             if (!hasAllTiles && !hasSingleCol && !hasRange) {
-                result.addError("Tile specification required: either 'all_tiles': true, 'col': <num>, or 'start'/'end' range");
+                result.addError(contextPrefix + "tile specification required for microcontroller (current: " + tileSpec + 
+                              "). Use either 'all_tiles': true, 'col': <num>, or 'start'/'end' range");
             }
         } else {
             // For other modules, need proper tile specification
             if (!hasAllTiles && !hasColRow && !hasRange) {
-                result.addError("Tile specification required: either 'all_tiles': true, 'col'/'row' pair, or 'start'/'end' range");
+                result.addError(contextPrefix + "complete tile specification required (current: " + tileSpec + 
+                              "). Use either 'all_tiles': true, 'col'/'row' pair, or 'start'/'end' range");
             }
         }
         
-        // Validate tile range if present
-        if (hasRange && !isValidTileRange(entry)) {
-            result.addError("Invalid tile range specification");
+        // Validate tile range if present with detailed error reporting
+        if (hasRange) {
+            std::string rangeError = validateTileRange(entry);
+            if (!rangeError.empty()) {
+                result.addError(contextPrefix + rangeError);
+            }
         }
     }
     
     return result;
 }
 
-ValidationResult SettingsJsonParser::validateField(const pt::ptree& entry, const SchemaField& field) {
+ValidationResult SettingsJsonParser::validateField(const pt::ptree& entry, const SchemaField& field, const std::string& contextPrefix) {
     ValidationResult result;
     
     auto fieldOpt = entry.get_child_optional(field.name);
     
     if (field.required && fieldOpt == boost::none) {
-        result.addError("Required field '" + field.name + "' is missing");
+        result.addError(contextPrefix + "required field '" + field.name + "' is missing");
         result.isValid = false;
         return result;
     }
@@ -460,31 +507,31 @@ ValidationResult SettingsJsonParser::validateField(const pt::ptree& entry, const
             // Check allowed values if specified
             if (!field.allowedValues.empty()) {
                 if (std::find(field.allowedValues.begin(), field.allowedValues.end(), value) == field.allowedValues.end()) {
-                    result.addError("Invalid value '" + value + "' for field '" + field.name + "'");
+                    result.addError(contextPrefix + "invalid value '" + value + "' for field '" + field.name + "'");
                 }
             }
         } else if (field.type == "int") {
-            fieldOpt->get_value<int>();
+            int value = fieldOpt->get_value<int>();
+            // For debugging, we could add the actual value to the context if there's an error
         } else if (field.type == "bool") {
             fieldOpt->get_value<bool>();
         } else if (field.type == "array") {
             if (field.name == "channels") {
                 if (!isValidChannelArray(*fieldOpt)) {
-                    result.addError("Invalid channels array format");
+                    // Get detailed channel info for error message
+                    std::string channelInfo = getChannelArrayInfo(*fieldOpt);
+                    result.addError(contextPrefix + "invalid channels array format: " + channelInfo);
                 }
             } else if (field.name == "start" || field.name == "end") {
-                // Validate tile coordinate array
-                if (fieldOpt->size() != 2) {
-                    result.addError("Tile coordinate array must have exactly 2 elements [col, row]");
-                } else {
-                    for (const auto& coord : *fieldOpt) {
-                        coord.second.get_value<int>(); // Will throw if not int
-                    }
+                // Validate tile coordinate array with detailed error
+                std::string coordError = validateTileCoordinateArray(*fieldOpt, field.name);
+                if (!coordError.empty()) {
+                    result.addError(contextPrefix + coordError);
                 }
             }
         }
     } catch (const std::exception& e) {
-        result.addError("Invalid value for field '" + field.name + "': " + e.what());
+        result.addError(contextPrefix + "invalid value for field '" + field.name + "': " + e.what());
         result.isValid = false;
     }
     
@@ -507,39 +554,125 @@ bool SettingsJsonParser::isValidChannelArray(const pt::ptree& channelsArray) con
 
 std::vector<SchemaField> SettingsJsonParser::getSchemaForModule(const std::string& moduleName, 
                                                                const std::string& sectionType) const {
-    const auto& schemas = (sectionType == "graphs") ? MODULE_SCHEMAS_GRAPH_BASED : MODULE_SCHEMAS_TILE_BASED;
+    const auto& schemas = (sectionType == "graphs") ? getModuleSchemasGraphBased() : getModuleSchemasTileBased();
     auto it = schemas.find(moduleName);
     return (it != schemas.end()) ? it->second : std::vector<SchemaField>{};
 }
 
-bool SettingsJsonParser::isValidTileRange(const pt::ptree& entry) const {
+std::string SettingsJsonParser::validateTileRange(const pt::ptree& entry) const {
     try {
         auto startOpt = entry.get_child_optional("start");
         auto endOpt = entry.get_child_optional("end");
         
         if (!startOpt || !endOpt) {
-            return false;
+            return "tile range requires both 'start' and 'end' arrays";
         }
         
-        if (startOpt->size() != 2 || endOpt->size() != 2) {
-            return false;
+        if (startOpt->size() != 2) {
+            return "start array must contain exactly 2 elements [col, row], found " + std::to_string(startOpt->size()) + " elements";
+        }
+        
+        if (endOpt->size() != 2) {
+            return "end array must contain exactly 2 elements [col, row], found " + std::to_string(endOpt->size()) + " elements";
         }
         
         // Get coordinates
         std::vector<int> startCoords, endCoords;
-        for (const auto& coord : *startOpt) {
-            startCoords.push_back(coord.second.get_value<int>());
+        try {
+            for (const auto& coord : *startOpt) {
+                startCoords.push_back(coord.second.get_value<int>());
+            }
+            for (const auto& coord : *endOpt) {
+                endCoords.push_back(coord.second.get_value<int>());
+            }
+        } catch (const std::exception& e) {
+            return "tile coordinates must be integers: " + std::string(e.what());
         }
-        for (const auto& coord : *endOpt) {
-            endCoords.push_back(coord.second.get_value<int>());
+        
+        // Validate coordinates are non-negative
+        if (startCoords[0] < 0 || startCoords[1] < 0) {
+            return "start coordinates must be non-negative, found start=[" + std::to_string(startCoords[0]) + ", " + std::to_string(startCoords[1]) + "]";
+        }
+        
+        if (endCoords[0] < 0 || endCoords[1] < 0) {
+            return "end coordinates must be non-negative, found end=[" + std::to_string(endCoords[0]) + ", " + std::to_string(endCoords[1]) + "]";
         }
         
         // Validate range (start <= end)
-        return (startCoords[0] <= endCoords[0] && startCoords[1] <= endCoords[1]);
+        if (startCoords[0] > endCoords[0] || startCoords[1] > endCoords[1]) {
+            return "invalid tile range: start=[" + std::to_string(startCoords[0]) + ", " + std::to_string(startCoords[1]) + 
+                   "] must be <= end=[" + std::to_string(endCoords[0]) + ", " + std::to_string(endCoords[1]) + "]";
+        }
         
-    } catch (const std::exception&) {
-        return false;
+        return ""; // No error
+        
+    } catch (const std::exception& e) {
+        return "error parsing tile range: " + std::string(e.what());
     }
+}
+
+std::string SettingsJsonParser::validateTileCoordinateArray(const pt::ptree& coordArray, const std::string& fieldName) const {
+    try {
+        if (coordArray.size() != 2) {
+            return fieldName + " array must contain exactly 2 elements [col, row], found " + std::to_string(coordArray.size()) + " elements";
+        }
+        
+        std::vector<int> coords;
+        try {
+            for (const auto& coord : coordArray) {
+                coords.push_back(coord.second.get_value<int>());
+            }
+        } catch (const std::exception& e) {
+            return fieldName + " coordinates must be integers: " + std::string(e.what());
+        }
+        
+        // Validate coordinates are non-negative
+        if (coords[0] < 0 || coords[1] < 0) {
+            return fieldName + " coordinates must be non-negative, found [" + std::to_string(coords[0]) + ", " + std::to_string(coords[1]) + "]";
+        }
+        
+        return ""; // No error
+        
+    } catch (const std::exception& e) {
+        return "error parsing " + fieldName + " coordinates: " + std::string(e.what());
+    }
+}
+
+std::string SettingsJsonParser::getChannelArrayInfo(const pt::ptree& channelsArray) const {
+    std::stringstream info;
+    
+    try {
+        info << "found " << channelsArray.size() << " channel(s): [";
+        
+        bool first = true;
+        for (const auto& channelNode : channelsArray) {
+            if (!first) info << ", ";
+            first = false;
+            
+            try {
+                int channel = channelNode.second.get_value<int>();
+                info << channel;
+                
+                // Check for invalid values and note them
+                if (channel < 0 || channel > 255) {
+                    info << "(invalid)";
+                }
+            } catch (const std::exception&) {
+                info << "non-integer";
+            }
+        }
+        
+        info << "]. Channels must be integers between 0 and 255";
+        
+    } catch (const std::exception& e) {
+        info << "error reading channels array: " << e.what();
+    }
+    
+    return info.str();
+}
+
+bool SettingsJsonParser::isValidTileRange(const pt::ptree& entry) const {
+    return validateTileRange(entry).empty();
 }
 
 };

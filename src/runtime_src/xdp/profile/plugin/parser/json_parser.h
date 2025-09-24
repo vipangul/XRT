@@ -92,26 +92,28 @@ namespace xdp {
       SettingsJsonParser(const SettingsJsonParser&) = delete;
       SettingsJsonParser& operator=(const SettingsJsonParser&) = delete;
 
-      // Plugin-specific module mappings
-      static const std::map<uint64_t, std::vector<std::string>> PLUGIN_MODULES;
-      static const std::map<uint64_t, std::vector<std::string>> PLUGIN_SECTIONS;
-      
       JsonParseResult parseWithStatus(const std::string& jsonFilePath);
 
       // Plugin-specific validation
       uint64_t getPluginTypeFromString(const std::string& pluginName);
+      std::string getPluginNameFromType(uint64_t pluginType);
       std::vector<std::string> getSupportedModules(uint64_t pluginType);
       std::vector<std::string> getSupportedSections(uint64_t pluginType);
 
-      // JSON validation methods
-      static const std::map<std::string, std::vector<SchemaField>> MODULE_SCHEMAS_GRAPH_BASED;
-      static const std::map<std::string, std::vector<SchemaField>> MODULE_SCHEMAS_TILE_BASED;
-      static const std::vector<SchemaField> PLUGIN_SETTINGS_SCHEMA;
+      // Lazy initialization functions to avoid static destruction order issues
+      static const std::map<uint64_t, std::vector<std::string>>& getPluginModules();
+      static const std::map<uint64_t, std::vector<std::string>>& getPluginSections();
+      static const std::map<std::string, std::vector<SchemaField>>& getModuleSchemasGraphBased();
+      static const std::map<std::string, std::vector<SchemaField>>& getModuleSchemasTileBased();
+      static const std::vector<SchemaField>& getPluginSettingsSchema();
       
       bool validatePluginSchema(const pt::ptree& tree, uint64_t pluginType);
       ValidationResult validateMetricEntry(const pt::ptree& entry, const std::string& moduleName, 
                                           const std::string& sectionType);
-      ValidationResult validateField(const pt::ptree& entry, const SchemaField& field);
+      ValidationResult validateField(const pt::ptree& entry, const SchemaField& field, const std::string& contextPrefix = "");
+      std::string validateTileRange(const pt::ptree& entry) const;
+      std::string validateTileCoordinateArray(const pt::ptree& coordArray, const std::string& fieldName) const;
+      std::string getChannelArrayInfo(const pt::ptree& channelsArray) const;
       bool isValidChannelArray(const pt::ptree& channelsArray) const;
       bool isValidTileRange(const pt::ptree& entry) const;
       std::vector<SchemaField> getSchemaForModule(const std::string& moduleName, 

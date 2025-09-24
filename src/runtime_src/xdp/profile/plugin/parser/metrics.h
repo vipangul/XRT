@@ -90,7 +90,7 @@ namespace xdp {
         : Metric(std::move(metric), std::move(channels), std::move(bytes)), startTile(std::move(startTile)), endTile(std::move(endTile)) {}
      
       // Create from ptree
-      static std::unique_ptr<Metric> processSettings(const boost::property_tree::ptree& obj);
+      static std::unique_ptr<Metric> processSettings(const MetricType& type, const boost::property_tree::ptree& obj);
       
       virtual std::vector<uint8_t> getStartTile() const override { return startTile; }
       virtual std::vector<uint8_t> getEndTile() const override   { return endTile; }
