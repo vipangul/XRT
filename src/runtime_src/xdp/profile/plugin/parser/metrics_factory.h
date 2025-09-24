@@ -20,7 +20,7 @@ namespace xdp
             case MetricType::TILE_BASED_INTERFACE_TILE:
             case MetricType::TILE_BASED_MEM_TILE:
             case MetricType::TILE_BASED_UC:
-                return TileBasedMetricEntry::processSettings(obj);
+                return TileBasedMetricEntry::processSettings(type, obj);
             case MetricType::GRAPH_BASED_AIE_TILE:
             case MetricType::GRAPH_BASED_CORE_MOD:
             case MetricType::GRAPH_BASED_MEM_MOD:

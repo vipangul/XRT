@@ -171,6 +171,22 @@ namespace xdp {
 
       const std::string& graphName = metrics[i]->getGraph();
       const std::string& graphEntity = metrics[i]->getGraphEntity();
+      
+      // Check if graph name is valid (when not "all")
+      if ((graphName != "all") && 
+          (std::find(allValidGraphs.begin(), allValidGraphs.end(), graphName) == allValidGraphs.end())) {
+        std::stringstream msg;
+        msg << "Could not find graph " << graphName
+            << " as specified in aie_profile.graphs." << modName << " setting."
+            << " The following graphs are valid : " << allValidGraphs[0];
+
+        for (size_t j = 1; j < allValidGraphs.size(); j++)
+          msg << ", " << allValidGraphs[j];
+
+        xrt_core::message::send(severity_level::warning, "XRT", msg.str());
+        continue;
+      }
+      
       if ((graphEntity != "all") &&
           (std::find(allValidEntries.begin(), allValidEntries.end(), graphEntity) == allValidEntries.end())) {
         std::stringstream msg;
@@ -491,9 +507,9 @@ namespace xdp {
         if ((pairItr != configMetrics[pairModuleIdx].end())
             && (pairItr->second != metricSet)) {
           std::stringstream msg;
-        msg << "Replacing metric set " << pairItr->second << " with complementary set " 
-            << metricSet << " for tile (" << std::to_string(tile.col) << ","
-            << std::to_string(tile.row) << ").";
+          msg << "Replacing metric set " << pairItr->second << " with complementary set " 
+              << metricSet << " for tile (" << std::to_string(tile.col) << ","
+              << std::to_string(tile.row) << ") [1].";
           xrt_core::message::send(severity_level::warning, "XRT", msg.str());
         }
 
@@ -511,7 +527,7 @@ namespace xdp {
           std::stringstream msg;
           msg << "Replacing metric set " << metricSet << " with complementary set " 
               << pairItr2->second << " for tile (" << std::to_string(tile.col) << ","
-              << std::to_string(tile.row) << ").";
+              << std::to_string(tile.row) << ") [2].";
           xrt_core::message::send(severity_level::warning, "XRT", msg.str());
           configMetrics[moduleIdx][tile] = pairItr2->second;
         }

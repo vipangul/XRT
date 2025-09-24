@@ -73,7 +73,7 @@ namespace xdp {
       XdpJsonSetting XdpJsonSetting = SettingsJsonParser::getInstance().parseXdpJsonSetting(settingFile, info::aie_profile);
       if (!XdpJsonSetting.isValid) {
         xrt_core::message::send(severity_level::warning, "XRT",
-          "Unable to parse JSON settings from " + settingFile +
+          "Unable to parse aie_profile JSON settings from " + settingFile +
           ". Error: " + XdpJsonSetting.errorMessage + ". Falling back to xrt.ini settings.");
         useXdpJson = false;
       } else {

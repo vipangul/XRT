@@ -6,32 +6,32 @@ namespace xdp
 {
     void MetricsCollectionManager::addMetricCollection(module_type mod, const std::string& settingName, MetricCollection collection)
     {
-      // std::cout << "!!! Adding metric collection for module: " << static_cast<int>(mod) << ", setting: " << settingName << std::endl;
+      std::cout << "!!! Adding metric collection for module: " << static_cast<int>(mod) << ", setting: " << settingName << std::endl;
       allModulesMetricCollections[mod][settingName] = std::move(collection);
 
-      // // Make sure it was added
-      // auto modIt = allModulesMetricCollections.find(mod);
-      // if (modIt != allModulesMetricCollections.end())
-      // {
-      //   auto settingIt = modIt->second.find(settingName);
-      //   if (settingIt != modIt->second.end())
-      //   {
-      //     std::cout << "!! Metric collection added successfully." << std::endl;
-      //   }
-      //   else
-      //   {
-      //     std::cout << "!! ERROR: Failed to add metric collection. - setting" << std::endl;
-      //   }
-      // }
-      // else
-      // {
-      //   std::cout << "!! ERROR: Failed to add metric collection - Mod" << std::endl;
-      // }
+      // Make sure it was added
+      auto modIt = allModulesMetricCollections.find(mod);
+      if (modIt != allModulesMetricCollections.end())
+      {
+        auto settingIt = modIt->second.find(settingName);
+        if (settingIt != modIt->second.end())
+        {
+          std::cout << "!! Metric collection added successfully." << std::endl;
+        }
+        else
+        {
+          std::cout << "!! ERROR: Failed to add metric collection. - setting" << std::endl;
+        }
+      }
+      else
+      {
+        std::cout << "!! ERROR: Failed to add metric collection - Mod" << std::endl;
+      }
     }
 
     const MetricCollection& MetricsCollectionManager::getMetricCollection(module_type mod, const std::string& settingName) const
     {
-      // std::cout << "!! Getting metric collection for module: " << static_cast<int>(mod) << ", setting: " << settingName << std::endl;
+      std::cout << "!! Getting metric collection for module: " << static_cast<int>(mod) << ", setting: " << settingName << std::endl;
       auto modIt = allModulesMetricCollections.find(mod);
       if (modIt != allModulesMetricCollections.end())
       {
