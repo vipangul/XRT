@@ -180,7 +180,13 @@ AIETraceConfigV3Filetype::getTiles(const std::string& graph_name,
 
     std::vector<tile_type> tiles;
     for (const auto& pair : tileMap) {
-        tiles.push_back(pair.second);
+        const tile_type& tile = pair.second;
+
+        if ((type == module_type::core) && tile.active_core) {
+            tiles.push_back(tile);
+        } else if ((type == module_type::dma) && tile.active_memory) {
+            tiles.push_back(tile);
+        }
     }
     
     return tiles;
