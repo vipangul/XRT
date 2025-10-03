@@ -116,6 +116,7 @@ AIETraceConfigV3Filetype::getTiles(const std::string& graph_name,
 
     std::map<std::pair<uint8_t, uint8_t>, tile_type> tileMap; // Use map to handle unique tiles by location
     auto rowOffset = getAIETileRowOffset();
+    uint8_t colShift = getPartitionOverlayStartCols().front();
 
     // Parse all kernel mappings
     for (auto const &mapping : kernelToTileMapping.get()) {
@@ -136,7 +137,7 @@ AIETraceConfigV3Filetype::getTiles(const std::string& graph_name,
             continue;
 
         // Get core tile location
-        auto coreCol = mapping.second.get<uint8_t>("column");
+        auto coreCol = mapping.second.get<uint8_t>("column") + colShift;
         auto coreRow = static_cast<uint8_t>(mapping.second.get<uint8_t>("row") + rowOffset);
 
         // Create or get existing core tile
@@ -154,7 +155,7 @@ AIETraceConfigV3Filetype::getTiles(const std::string& graph_name,
         auto dmaChannelsTree = mapping.second.get_child_optional("dmaChannels");
         if (dmaChannelsTree) {
             for (auto const &channel : dmaChannelsTree.get()) {
-                uint8_t dmaCol = xdp::aie::convertStringToUint8(channel.second.get<std::string>("column"));
+                uint8_t dmaCol = xdp::aie::convertStringToUint8(channel.second.get<std::string>("column")) + colShift;
                 uint8_t dmaRow = static_cast<uint8_t>(xdp::aie::convertStringToUint8(channel.second.get<std::string>("row")) + rowOffset);
 
                 auto dmaKey = std::make_pair(dmaCol, dmaRow);

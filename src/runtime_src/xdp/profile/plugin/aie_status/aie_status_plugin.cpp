@@ -127,8 +127,9 @@ namespace xdp {
       mGraphCoreTilesMap[graph] = metadataReader->getTiles(graph, module_type::core, "all");
     }
 
-   // NOTE: Tiles from metadata are now absolute (include partition shift)
-   // No additional shift needed
+   // NOTE: AIE Status is not released product on client. Whenever client support is needed,
+   // required dynamic column start shift should come from XRT and not compiler metadata
+   // Tiles from metadata are now absolute (no additional shift needed)
 
     // Report tiles (debug only)
     if (aie::isDebugVerbosity()) {

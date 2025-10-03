@@ -316,7 +316,7 @@ namespace xdp {
       coreTraceStartEvent = XAIE_EVENT_INSTR_EVENT_0_CORE;
 
     // Iterate over all used/specified tiles
-    // NOTE: rows and columns are stored as absolute as required by resource manager
+    // NOTE: rows are stored as absolute as required by resource manager
     for (auto& tileMetric : metadata->getConfigMetrics()) {
       auto& metricSet = tileMetric.second;
       auto tile       = tileMetric.first;

@@ -412,9 +412,11 @@ AIEControlConfigFiletype::getMemoryTiles(const std::string& graph_name,
 
     std::vector<tile_type> allTiles;
     std::vector<tile_type> memTiles;
+    // Always one row of interface tiles
     uint8_t rowOffset = 1;
     uint8_t colShift = getPartitionOverlayStartCols().front();
 
+    // Now parse all shared buffers
     for (auto const &shared_buffer : sharedBufferTree.get()) {
         auto currGraph = shared_buffer.second.get<std::string>("graph");
         if ((currGraph.find(graph_name) == std::string::npos)
@@ -614,6 +616,7 @@ AIEControlConfigFiletype::getTiles(const std::string& graph_name,
     auto rowOffset = getAIETileRowOffset();
     uint8_t colShift = getPartitionOverlayStartCols().front();
 
+    // Traverse all tiles in kernel map
     for (auto const &mapping : kernelToTileMapping.get()) {
         auto currGraph = mapping.second.get<std::string>("graph");
         if ((currGraph.find(graph_name) == std::string::npos)

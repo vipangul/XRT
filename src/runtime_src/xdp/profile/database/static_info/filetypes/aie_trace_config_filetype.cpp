@@ -123,9 +123,11 @@ AIETraceConfigFiletype::getMemoryTiles(const std::string& graph_name,
 
     std::vector<tile_type> allTiles;
     std::vector<tile_type> memTiles;
+    // Always one row of interface tiles
     uint8_t rowOffset = 1;
     uint8_t colShift = getPartitionOverlayStartCols().front();
 
+    // Parse all shared buffers
     for (auto const &shared_buffer : sharedBufferTree.get()) {
         bool foundGraph  = (graph_name.compare("all") == 0);
         bool foundBuffer = (buffer_name.compare("all") == 0);
@@ -206,6 +208,7 @@ AIETraceConfigFiletype::getTiles(const std::string& graph_name,
     auto rowOffset = getAIETileRowOffset();
     uint8_t colShift = getPartitionOverlayStartCols().front();
 
+    // Parse all kernel mappings
     for (auto const &mapping : kernelToTileMapping.get()) {
         bool foundGraph  = isAllGraph;
         bool foundKernel = isAllKernel;
