@@ -170,6 +170,7 @@ AIEControlConfigFiletype::getPLIOs() const
     }
 
     std::unordered_map<std::string, io_config> plios;
+    uint8_t colShift = getPartitionOverlayStartCols().front();
 
     for (auto& plio_node : pliosMetadata.get()) {
         io_config plio;
@@ -178,7 +179,7 @@ AIEControlConfigFiletype::getPLIOs() const
         plio.id = plio_node.second.get<uint32_t>("id");
         plio.name = plio_node.second.get<std::string>("name");
         plio.logicalName = plio_node.second.get<std::string>("logical_name");
-        plio.shimColumn = plio_node.second.get<uint8_t>("shim_column");
+        plio.shimColumn = plio_node.second.get<uint8_t>("shim_column") + colShift;
         plio.streamId = plio_node.second.get<uint8_t>("stream_id");
         plio.slaveOrMaster = plio_node.second.get<bool>("slaveOrMaster");
         plio.channelNum = 0;
@@ -216,6 +217,7 @@ AIEControlConfigFiletype::getChildGMIOs( const std::string& childStr) const
     }
 
     std::unordered_map<std::string, io_config> gmios;
+    uint8_t colShift = getPartitionOverlayStartCols().front();
 
     for (auto& gmio_node : gmiosMetadata.get()) {
         io_config gmio;
@@ -233,7 +235,7 @@ AIEControlConfigFiletype::getChildGMIOs( const std::string& childStr) const
         gmio.name = gmio_node.second.get<std::string>("name");
         gmio.logicalName = gmio_node.second.get<std::string>("logical_name");
         gmio.slaveOrMaster = slaveOrMaster;
-        gmio.shimColumn = gmio_node.second.get<uint8_t>("shim_column");
+        gmio.shimColumn = gmio_node.second.get<uint8_t>("shim_column") + colShift;
         gmio.channelNum = (slaveOrMaster == 0) ? (channelNumber - 2) : channelNumber;
         gmio.streamId = gmio_node.second.get<uint8_t>("stream_id");
         gmio.burstLength = gmio_node.second.get<uint8_t>("burst_length_in_16byte");
@@ -410,10 +412,9 @@ AIEControlConfigFiletype::getMemoryTiles(const std::string& graph_name,
 
     std::vector<tile_type> allTiles;
     std::vector<tile_type> memTiles;
-    // Always one row of interface tiles
     uint8_t rowOffset = 1;
+    uint8_t colShift = getPartitionOverlayStartCols().front();
 
-    // Now parse all shared buffers
     for (auto const &shared_buffer : sharedBufferTree.get()) {
         auto currGraph = shared_buffer.second.get<std::string>("graph");
         if ((currGraph.find(graph_name) == std::string::npos)
@@ -425,7 +426,7 @@ AIEControlConfigFiletype::getMemoryTiles(const std::string& graph_name,
             continue;
 
         tile_type tile;
-        tile.col = shared_buffer.second.get<uint8_t>("column");
+        tile.col = shared_buffer.second.get<uint8_t>("column") + colShift;
         tile.row = shared_buffer.second.get<uint8_t>("row") + rowOffset;
 
         // Store names of DMA channels for reporting purposes
@@ -461,6 +462,7 @@ AIEControlConfigFiletype::getAIETiles(const std::string& graph_name) const
 
     std::vector<tile_type> tiles;
     auto rowOffset = getAIETileRowOffset();
+    uint8_t colShift = getPartitionOverlayStartCols().front();
     int startCount = 0;
 
     for (auto& graph : graphsMetadata.get()) {
@@ -472,7 +474,7 @@ AIEControlConfigFiletype::getAIETiles(const std::string& graph_name) const
         for (auto& node : graph.second.get_child("core_columns")) {
             tiles.push_back(tile_type());
             auto& t = tiles.at(count++);
-            t.col = xdp::aie::convertStringToUint8(node.second.data());
+            t.col = xdp::aie::convertStringToUint8(node.second.data()) + colShift;
             t.active_core = true;
         }
 
@@ -550,10 +552,10 @@ AIEControlConfigFiletype::getEventTiles(const std::string& graph_name,
 
     std::vector<tile_type> tiles;
     auto rowOffset = getAIETileRowOffset();
+    uint8_t colShift = getPartitionOverlayStartCols().front();
     int startCount = 0;
 
     for (auto& graph : graphsMetadata.get()) {
-        // Make sure this is requested graph
         // NOTE: Only top-level graphs are currently listed in metadata,
         // so search is reversed to support sub-graph requests
         // (e.g., "mygraph" is found in "mygraph.subgraph1")
@@ -566,7 +568,7 @@ AIEControlConfigFiletype::getEventTiles(const std::string& graph_name,
         for (auto& node : graph.second.get_child(col_name)) {
             tiles.push_back(tile_type());
             auto& t = tiles.at(count++);
-            t.col = xdp::aie::convertStringToUint8(node.second.data());
+            t.col = xdp::aie::convertStringToUint8(node.second.data()) + colShift;
             if (type == module_type::core)
               t.active_core = true;
             else
@@ -610,10 +612,9 @@ AIEControlConfigFiletype::getTiles(const std::string& graph_name,
 
     std::vector<tile_type> tiles;
     auto rowOffset = getAIETileRowOffset();
+    uint8_t colShift = getPartitionOverlayStartCols().front();
 
-    // Traverse all tiles in kernel map
     for (auto const &mapping : kernelToTileMapping.get()) {
-        // Make sure this tile is what we're looking for
         auto currGraph = mapping.second.get<std::string>("graph");
         if ((currGraph.find(graph_name) == std::string::npos)
             && (graph_name.compare("all") != 0)) 
@@ -626,9 +627,8 @@ AIEControlConfigFiletype::getTiles(const std::string& graph_name,
                 continue;
         }
 
-        // Store this tile
         tile_type tile;
-        tile.col = mapping.second.get<uint8_t>("column");
+        tile.col = mapping.second.get<uint8_t>("column") + colShift;
         tile.row = mapping.second.get<uint8_t>("row") + rowOffset;
         tile.active_core = true;
         tile.active_memory = true;

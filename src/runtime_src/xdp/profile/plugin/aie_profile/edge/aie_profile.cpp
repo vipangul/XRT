@@ -261,8 +261,6 @@ namespace xdp {
     auto stats = aieDevice->getRscStat(XAIEDEV_DEFAULT_GROUP_AVAIL);
     auto configChannel0 = metadata->getConfigChannel0();
     auto configChannel1 = metadata->getConfigChannel1();
-    uint8_t startColShift = metadata->getPartitionOverlayStartCols().front();
-    aie::displayColShiftInfo(startColShift);
 
     for (int module = 0; module < metadata->getNumModules(); ++module) {
       auto configMetrics = metadata->getConfigMetricsVec(module);
@@ -276,7 +274,8 @@ namespace xdp {
       for (auto& tileMetric : configMetrics) {
         auto& metricSet  = tileMetric.second;
         auto tile        = tileMetric.first;
-        auto col         = tile.col + startColShift;
+        // NOTE: tile.col is now absolute (includes partition shift)
+        auto col         = tile.col;
         auto row         = tile.row;
         auto subtype     = tile.subtype;
         auto type        = aie::getModuleType(row, metadata->getAIETileRowOffset());
@@ -295,15 +294,14 @@ namespace xdp {
             continue;
         }
 
-        // Get the column relative to partition.
-        // For loadxclbin flow currently XRT creates partition of whole device from 0th column.
-        // Hence absolute and relative columns are same.
-        // TODO: For loadxclbin flow XRT will start creating partition of the specified columns,
-        //       hence we should stop adding partition shift to col for passing to XAIE Apis
-        auto relCol     = (db->getStaticInfo().getAppStyle() == xdp::AppStyle::LOAD_XCLBIN_STYLE)
-                          ? col /* startColShift already added */ : tile.col;
-        auto loc        = XAie_TileLoc(relCol, row);
-        auto& xaieTile  = aieDevice->tile(relCol, row);
+        // Get the column for XAIE APIs
+        // For LOAD_XCLBIN_STYLE: use absolute column (includes partition shift from metadata)
+        // For REGISTER_XCLBIN_STYLE (hw_context): XAIE APIs expect relative columns, so subtract partition shift
+        auto partitionShift = metadata->getPartitionOverlayStartCols().front();
+        auto xaieCol    = (db->getStaticInfo().getAppStyle() == xdp::AppStyle::LOAD_XCLBIN_STYLE)
+                          ? col : (col - partitionShift);
+        auto loc        = XAie_TileLoc(xaieCol, row);
+        auto& xaieTile  = aieDevice->tile(xaieCol, row);
 
         auto xaieModule  = (mod == XAIE_CORE_MOD) ? xaieTile.core()
                          : ((mod == XAIE_MEM_MOD) ? xaieTile.mem() 
@@ -444,7 +442,7 @@ namespace xdp {
                                                startEvent, metricSet, channel);
           // Store counter info in database
           std::string counterName = "AIE Counter " + std::to_string(counterId);
-          (db->getStaticInfo()).addAIECounter(deviceId, counterId, relCol, row, i,
+          (db->getStaticInfo()).addAIECounter(deviceId, counterId, col, row, i,
                 phyStartEvent, phyEndEvent, resetEvent, payload, metadata->getClockFreqMhz(), 
                 metadata->getModuleName(module), counterName, (tile.stream_ids.empty() ? 0 : tile.stream_ids[0]));
           counterId++;
@@ -518,10 +516,7 @@ namespace xdp {
         continue;
 
       std::vector<uint64_t> values;
-      auto writerCol = (db->getStaticInfo().getAppStyle() == xdp::AppStyle::LOAD_XCLBIN_STYLE)
-                        ? aie->column 
-                        : aie->column + metadata->getPartitionOverlayStartCols().front() /* need to add shift for displaying results*/ ;
-      values.push_back(writerCol);
+      values.push_back(aie->column);
       values.push_back(aie::getRelativeRow(aie->row, metadata->getAIETileRowOffset()));
       values.push_back(aie->startEvent);
       values.push_back(aie->endEvent);

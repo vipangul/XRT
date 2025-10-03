@@ -279,11 +279,6 @@ namespace xdp {
     auto configChannel1 = metadata->getConfigChannel1();
     int hwGen = metadata->getHardwareGen();
 
-    // Get the column shift for partition
-    // NOTE: If partition is not used, this value is zero.
-    uint8_t startColShift = metadata->getPartitionOverlayStartCols().front();
-    aie::displayColShiftInfo(startColShift);
-
     // Zero trace event tile counts
     for (int m = 0; m < static_cast<int>(module_type::num_types); ++m) {
       for (int n = 0; n <= NUM_TRACE_EVENTS; ++n)
@@ -299,25 +294,25 @@ namespace xdp {
     coreTraceEndEvent = XAIE_EVENT_INSTR_EVENT_1_CORE;
 
     // Iterate over all used/specified tiles
-    // NOTE: rows are stored as absolute as required by resource manager
+    // NOTE: rows and columns are stored as absolute as required by resource manager
     for (auto& tileMetric : metadata->getConfigMetrics()) {
       auto& metricSet = tileMetric.second;
       auto tile       = tileMetric.first;
-      auto col        = tile.col + startColShift;
+      // NOTE: tile.col is now absolute (includes partition shift)
+      auto col        = tile.col;
       auto row        = tile.row;
       auto subtype    = tile.subtype;
       auto type       = aie::getModuleType(row, metadata->getRowOffset());
       auto typeInt    = static_cast<int>(type);
 
-      // Get the column relative to partition.
-      // For loadxclbin flow currently XRT creates partition of whole device from 0th column.
-      // Hence absolute and relative columns are same.
-      // TODO: For loadxclbin flow XRT will start creating partition of the specified columns,
-      //       hence we should stop adding partition shift to col for passing to XAIE Apis.
-      auto relCol     = (db->getStaticInfo().getAppStyle() == xdp::AppStyle::LOAD_XCLBIN_STYLE)
-                        ? col /* startColShift already added */ : tile.col;
-      auto& xaieTile  = aieDevice->tile(relCol, row);
-      auto loc        = XAie_TileLoc(relCol, row);
+      // Get the column for XAIE APIs
+      // For LOAD_XCLBIN_STYLE: use absolute column (tile.col already includes partition shift from metadata)
+      // For REGISTER_XCLBIN_STYLE (hw_context): XAIE APIs expect relative columns, so subtract partition shift
+      auto partitionShift = metadata->getPartitionOverlayStartCols().front();
+      auto xaieCol    = (db->getStaticInfo().getAppStyle() == xdp::AppStyle::LOAD_XCLBIN_STYLE)
+                        ? col : (col - partitionShift);
+      auto& xaieTile  = aieDevice->tile(xaieCol, row);
+      auto loc        = XAie_TileLoc(xaieCol, row);
 
       if ((type == module_type::core) && !aie::isDmaSet(metricSet)) {
         // If we're not looking at DMA events, then don't display the DMA
@@ -330,7 +325,6 @@ namespace xdp {
 
       std::string tileName = (type == module_type::mem_tile) ? "memory" 
                            : ((type == module_type::shim) ? "interface" : "AIE");
-      // Add partition shift to the column to display absolute column on the terminal.
       tileName.append(" tile (" + std::to_string(col) + "," + std::to_string(row) + ")");
 
       if (aie::isInfoVerbosity()) {
@@ -361,7 +355,6 @@ namespace xdp {
       }
 
       // AIE config object for this tile
-      // Add partition shift to the column to report absolute column.
       auto cfgTile = std::make_unique<aie_cfg_tile>(col, row, type);
       cfgTile->type = type;
       cfgTile->trace_metric_set = metricSet;

@@ -75,6 +75,7 @@ AIETraceConfigFiletype::getExternalBuffers() const
     }
 
     std::unordered_map<std::string, io_config> gmios;
+    uint8_t colShift = getPartitionOverlayStartCols().front();
 
     for (auto& buf_node : bufferMetadata.get()) {
         io_config gmio;
@@ -82,7 +83,7 @@ AIETraceConfigFiletype::getExternalBuffers() const
         gmio.name = buf_node.second.get<std::string>("portName");
         auto direction = buf_node.second.get<std::string>("direction");
         gmio.slaveOrMaster = (direction == "s2mm") ? 1 : 0;
-        gmio.shimColumn = buf_node.second.get<uint8_t>("shim_column");
+        gmio.shimColumn = buf_node.second.get<uint8_t>("shim_column") + colShift;
         gmio.channelNum = buf_node.second.get<uint8_t>("channel_number");
         gmio.streamId = buf_node.second.get<uint8_t>("stream_id");
         gmio.burstLength = 8;
@@ -122,10 +123,9 @@ AIETraceConfigFiletype::getMemoryTiles(const std::string& graph_name,
 
     std::vector<tile_type> allTiles;
     std::vector<tile_type> memTiles;
-    // Always one row of interface tiles
     uint8_t rowOffset = 1;
+    uint8_t colShift = getPartitionOverlayStartCols().front();
 
-    // Parse all shared buffers
     for (auto const &shared_buffer : sharedBufferTree.get()) {
         bool foundGraph  = (graph_name.compare("all") == 0);
         bool foundBuffer = (buffer_name.compare("all") == 0);
@@ -152,7 +152,7 @@ AIETraceConfigFiletype::getMemoryTiles(const std::string& graph_name,
         // Add to list if verified
         if (foundGraph && foundBuffer) {
             tile_type tile;
-            tile.col = shared_buffer.second.get<uint8_t>("column");
+            tile.col = shared_buffer.second.get<uint8_t>("column") + colShift;
             tile.row = shared_buffer.second.get<uint8_t>("row") + rowOffset;
 
             // Store names of DMA channels for reporting purposes
@@ -204,8 +204,8 @@ AIETraceConfigFiletype::getTiles(const std::string& graph_name,
 
     std::vector<tile_type> tiles;
     auto rowOffset = getAIETileRowOffset();
+    uint8_t colShift = getPartitionOverlayStartCols().front();
 
-    // Parse all kernel mappings
     for (auto const &mapping : kernelToTileMapping.get()) {
         bool foundGraph  = isAllGraph;
         bool foundKernel = isAllKernel;
@@ -236,7 +236,7 @@ AIETraceConfigFiletype::getTiles(const std::string& graph_name,
         // Add to list if verified
         if (foundGraph && foundKernel) {
             tile_type tile;
-            tile.col = mapping.second.get<uint8_t>("column");
+            tile.col = mapping.second.get<uint8_t>("column") + colShift;
             tile.row = mapping.second.get<uint8_t>("row") + rowOffset;
             tile.active_core = true;
             tile.active_memory = true;

@@ -268,8 +268,6 @@ namespace xdp {
     auto hwGen = metadata->getHardwareGen();
     auto configChannel0 = metadata->getConfigChannel0();
     auto configChannel1 = metadata->getConfigChannel1();
-    uint8_t startColShift = metadata->getPartitionOverlayStartCols().front();
-    aie::displayColShiftInfo(startColShift);
 
     for (int module = 0; module < metadata->getNumModules(); ++module) {
       auto configMetrics = metadata->getConfigMetricsVec(module);
@@ -283,7 +281,8 @@ namespace xdp {
       for (auto& tileMetric : configMetrics) {
         auto& metricSet  = tileMetric.second;
         auto tile        = tileMetric.first;
-        auto col         = tile.col + startColShift;
+        // NOTE: tile.col is now absolute (includes partition shift)
+        auto col         = tile.col;
         auto row         = tile.row;
         auto subtype     = tile.subtype;
         auto type        = aie::getModuleType(row, metadata->getAIETileRowOffset());
@@ -316,8 +315,14 @@ namespace xdp {
             continue;
         }
 
-        auto loc         = XAie_TileLoc(col, row);
-        auto& xaieTile   = aieDevice->tile(col, row);
+        // Get the column for XAIE APIs
+        // For LOAD_XCLBIN_STYLE: use absolute column (tile.col already includes partition shift from metadata)
+        // For REGISTER_XCLBIN_STYLE (hw_context): XAIE APIs expect relative columns, so subtract partition shift
+        auto partitionShift = metadata->getPartitionOverlayStartCols().front();
+        auto xaieCol    = (db->getStaticInfo().getAppStyle() == xdp::AppStyle::LOAD_XCLBIN_STYLE)
+                          ? col : (col - partitionShift);
+        auto loc         = XAie_TileLoc(xaieCol, row);
+        auto& xaieTile   = aieDevice->tile(xaieCol, row);
         auto xaieModule  = (mod == XAIE_CORE_MOD) ? xaieTile.core()
                          : ((mod == XAIE_MEM_MOD) ? xaieTile.mem() 
                          : xaieTile.pl());

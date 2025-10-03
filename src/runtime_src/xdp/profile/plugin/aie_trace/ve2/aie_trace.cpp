@@ -269,11 +269,6 @@ namespace xdp {
     auto configChannel0 = metadata->getConfigChannel0();
     auto configChannel1 = metadata->getConfigChannel1();
 
-    // Get the column shift for partition
-    // NOTE: If partition is not used, this value is zero.
-    uint8_t startColShift = metadata->getPartitionOverlayStartCols().front();
-    aie::displayColShiftInfo(startColShift);
-
     // Zero trace event tile counts
     for (int m = 0; m < static_cast<int>(module_type::num_types); ++m) {
       for (int n = 0; n <= NUM_TRACE_EVENTS; ++n)
@@ -321,17 +316,25 @@ namespace xdp {
       coreTraceStartEvent = XAIE_EVENT_INSTR_EVENT_0_CORE;
 
     // Iterate over all used/specified tiles
-    // NOTE: rows are stored as absolute as required by resource manager
+    // NOTE: rows and columns are stored as absolute as required by resource manager
     for (auto& tileMetric : metadata->getConfigMetrics()) {
       auto& metricSet = tileMetric.second;
       auto tile       = tileMetric.first;
-      auto col        = tile.col + startColShift;
+      // NOTE: tile.col is now absolute (includes partition shift)
+      auto col        = tile.col;
       auto row        = tile.row;
       auto subtype    = tile.subtype;
       auto type       = aie::getModuleType(row, metadata->getRowOffset());
       auto typeInt    = static_cast<int>(type);
-      auto& xaieTile  = aieDevice->tile(col, row);
-      auto loc        = XAie_TileLoc(col, row);
+
+      // Get the column for XAIE APIs
+      // For LOAD_XCLBIN_STYLE: use absolute column (tile.col already includes partition shift from metadata)
+      // For REGISTER_XCLBIN_STYLE (hw_context): XAIE APIs expect relative columns, so subtract partition shift
+      auto partitionShift = metadata->getPartitionOverlayStartCols().front();
+      auto xaieCol    = (db->getStaticInfo().getAppStyle() == xdp::AppStyle::LOAD_XCLBIN_STYLE)
+                        ? col : (col - partitionShift);
+      auto& xaieTile  = aieDevice->tile(xaieCol, row);
+      auto loc        = XAie_TileLoc(xaieCol, row);
 
       if ((type == module_type::core) && !aie::isDmaSet(metricSet)) {
         // If we're not looking at DMA events, then don't display the DMA
