@@ -516,6 +516,7 @@ namespace xdp {
         continue;
 
       std::vector<uint64_t> values;
+      // NOTE: aie->column is now absolute (includes partition shift)
       values.push_back(aie->column);
       values.push_back(aie::getRelativeRow(aie->row, metadata->getAIETileRowOffset()));
       values.push_back(aie->startEvent);
@@ -525,8 +526,15 @@ namespace xdp {
       // Read counter value from device
       uint32_t counterValue;
       if (perfCounters.empty()) {
+        // Get the column for XAIE APIs
+        // For LOAD_XCLBIN_STYLE: use absolute column (includes partition shift from metadata)
+        // For REGISTER_XCLBIN_STYLE (hw_context): XAIE APIs expect relative columns, so subtract partition shift
+        auto partitionShift = metadata->getPartitionOverlayStartCols().front();
+        auto xaieCol = (db->getStaticInfo().getAppStyle() == xdp::AppStyle::LOAD_XCLBIN_STYLE)
+                       ? aie->column : (aie->column - partitionShift);
+        XAie_LocType tileLocation = XAie_TileLoc(xaieCol, aie->row);
+        
         // Compiler-defined counters
-        XAie_LocType tileLocation = XAie_TileLoc(aie->column, aie->row);
         XAie_PerfCounterGet(aieDevInst, tileLocation, XAIE_CORE_MOD, aie->counterNumber, &counterValue);
       }
       else {
@@ -580,7 +588,13 @@ namespace xdp {
         auto falModuleType =  (moduleType == module_type::core) ? XAIE_CORE_MOD 
                             : ((moduleType == module_type::shim) ? XAIE_PL_MOD 
                             : XAIE_MEM_MOD);
-        XAie_LocType tileLocation = XAie_TileLoc(aie->column, aie->row);
+        // Get the column for XAIE APIs
+        // For LOAD_XCLBIN_STYLE: use absolute column (includes partition shift from metadata)
+        // For REGISTER_XCLBIN_STYLE (hw_context): XAIE APIs expect relative columns, so subtract partition shift
+        auto partitionShift = metadata->getPartitionOverlayStartCols().front();
+        auto xaieCol    = (db->getStaticInfo().getAppStyle() == xdp::AppStyle::LOAD_XCLBIN_STYLE)
+                          ? aie->column : (aie->column - partitionShift);
+        XAie_LocType tileLocation = XAie_TileLoc(xaieCol, aie->row);
         XAie_ReadTimer(aieDevInst, tileLocation, falModuleType, &timerValue);
       }
       values.push_back(timerValue);

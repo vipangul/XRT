@@ -120,7 +120,13 @@ bool AIETraceOffload::initReadTrace()
       VPDatabase* db = VPDatabase::Instance();
       TraceGMIO*  traceGMIO = (db->getStaticInfo()).getTraceGMIO(deviceId, i);
 
-      gmioDMAInsts[i].gmioTileLoc = XAie_TileLoc(traceGMIO->shimColumn, 0);
+      // Get the column for XAIE APIs
+      // For LOAD_XCLBIN_STYLE: use absolute column (includes partition shift from metadata)
+      // For REGISTER_XCLBIN_STYLE (hw_context): XAIE APIs expect relative columns, so subtract partition shift
+      auto partitionShift = (db->getStaticInfo()).getAIEmetadataReader(deviceId)->getPartitionOverlayStartCols().front();
+      auto col = (db->getStaticInfo().getAppStyle() == xdp::AppStyle::LOAD_XCLBIN_STYLE)
+                 ? traceGMIO->shimColumn : (traceGMIO->shimColumn - partitionShift);
+      gmioDMAInsts[i].gmioTileLoc = XAie_TileLoc(col, 0);
 
       int driverStatus = XAIE_OK;
       driverStatus = XAie_DmaDescInit(devInst, &(gmioDMAInsts[i].shimDmaInst), gmioDMAInsts[i].gmioTileLoc);

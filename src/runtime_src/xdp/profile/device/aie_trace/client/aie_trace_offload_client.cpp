@@ -121,7 +121,14 @@ namespace xdp {
       // Todo: get this from aie metadata
       XAie_LocType loc;
       XAie_DmaDesc DmaDesc;
-      loc = XAie_TileLoc(traceGMIO->shimColumn, 0);
+
+      // Get the column for XAIE APIs
+      // For LOAD_XCLBIN_STYLE: use absolute column (includes partition shift from metadata)
+      // For REGISTER_XCLBIN_STYLE (hw_context): XAIE APIs expect relative columns, so subtract partition shift
+      auto partitionShift = (db->getStaticInfo()).getAIEmetadataReader(deviceId)->getPartitionOverlayStartCols().front();
+      auto col = (db->getStaticInfo().getAppStyle() == xdp::AppStyle::LOAD_XCLBIN_STYLE)
+                 ? traceGMIO->shimColumn : (traceGMIO->shimColumn - partitionShift);
+      loc = XAie_TileLoc(col, 0);
       uint8_t s2mm_ch_id = traceGMIO->channelNumber;
       uint16_t s2mm_bd_id = 15; /* for now use last bd */
 
