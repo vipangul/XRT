@@ -58,6 +58,9 @@ namespace xdp {
     // Get AIE clock frequency
     clockFreqMhz = (db->getStaticInfo()).getClockRateMHz(deviceID, false);
 
+    // Check if user wants to use absolute tile columns
+    absoluteTileColumns = xrt_core::config::get_aie_profile_settings_use_absolute_tile_columns();
+
     // Tile-based metrics settings
     std::vector<std::string> tileMetricsConfig;
     tileMetricsConfig.push_back(xrt_core::config::get_aie_profile_settings_tile_based_aie_metrics());
@@ -122,7 +125,7 @@ namespace xdp {
       "tile_based_aie_metrics", "tile_based_aie_memory_metrics",
       "tile_based_memory_tile_metrics", "tile_based_interface_tile_metrics",
       "interval_us", "interface_tile_latency", "start_type", "start_iteration",
-      "tile_based_microcontroller_metrics", "config_one_partition"};
+      "tile_based_microcontroller_metrics", "config_one_partition", "use_absolute_tile_columns"};
     const std::map<std::string, std::string> deprecatedSettings {
       {"aie_profile_core_metrics", "AIE_profile_settings.graph_based_aie_metrics or tile_based_aie_metrics"},
       {"aie_profile_memory_metrics", "AIE_profile_settings.graph_based_aie_memory_metrics or tile_based_aie_memory_metrics"},
@@ -562,31 +565,43 @@ namespace xdp {
         }
       }
 
+      // Get partition shift for coordinate normalization if using absolute columns
+      uint8_t startColShift = absoluteTileColumns ? metadataReader->getPartitionOverlayStartCols().front() : 0;
+
       for (uint8_t col = minCol; col <= maxCol; ++col) {
         for (uint8_t row = minRow; row <= maxRow; ++row) {
-          tile_type tile;
-          tile.col = col;
-          tile.row = row;
-          tile.active_core   = true;
-          tile.active_memory = true;
+          tile_type userTile;
+          userTile.col = col;
+          userTile.row = row;
+          userTile.active_core   = true;
+          userTile.active_memory = true;
 
-          // Make sure tile is used
+          // Normalize tile coordinates for validation against metadata
+          // Metadata tiles are in relative coordinates, so convert absolute to relative if needed
+          tile_type tileToValidate;
+          tileToValidate.col = absoluteTileColumns ? (userTile.col - startColShift) : userTile.col;
+          tileToValidate.row = userTile.row;
+          tileToValidate.active_core = true;
+          tileToValidate.active_memory = true;
+
+          // Make sure tile is used (validate against relative coordinates)
           auto it = std::find_if(allValidTiles.begin(), allValidTiles.end(),
-            compareTileByLoc(tile));
+            compareTileByLoc(tileToValidate));
           if (it == allValidTiles.end()) {
             std::stringstream msg;
-            msg << "Specified Tile (" << std::to_string(tile.col) << "," 
-                << std::to_string(tile.row) << ") is not active. Hence skipped.";
+            msg << "Specified Tile (" << std::to_string(userTile.col) << "," 
+                << std::to_string(userTile.row) << ") is not active. Hence skipped.";
             xrt_core::message::send(severity_level::warning, "XRT", msg.str());
             continue;
           }
 
-          configMetrics[moduleIdx][tile] = metrics[i][2];
+          // Store using user's original coordinates
+          configMetrics[moduleIdx][userTile] = metrics[i][2];
 
           // Grab channel numbers (if specified; memory tiles only)
           if (metrics[i].size() == 5) {
-            configChannel0[tile] = channel0;
-            configChannel1[tile] = channel1;
+            configChannel0[userTile] = channel0;
+            configChannel1[userTile] = channel1;
           }
         }
       }
@@ -618,30 +633,40 @@ namespace xdp {
         continue;
       }
 
-      tile_type tile;
-      tile.col = col;
-      tile.row = row;
-      tile.active_core   = true;
-      tile.active_memory = true;
+      tile_type userTile;
+      userTile.col = col;
+      userTile.row = row;
+      userTile.active_core   = true;
+      userTile.active_memory = true;
 
-      // Make sure tile is used
+      // Normalize tile coordinates for validation against metadata
+      // Get partition shift for coordinate normalization if using absolute columns
+      uint8_t startColShift = absoluteTileColumns ? metadataReader->getPartitionOverlayStartCols().front() : 0;
+      tile_type tileToValidate;
+      tileToValidate.col = absoluteTileColumns ? (userTile.col - startColShift) : userTile.col;
+      tileToValidate.row = userTile.row;
+      tileToValidate.active_core = true;
+      tileToValidate.active_memory = true;
+
+      // Make sure tile is used (validate against relative coordinates)
       auto it = std::find_if(allValidTiles.begin(), allValidTiles.end(),
-                             compareTileByLoc(tile));
+                             compareTileByLoc(tileToValidate));
       if (it == allValidTiles.end()) {
         std::stringstream msg;
-        msg << "Specified Tile (" << std::to_string(tile.col) << "," 
-            << std::to_string(tile.row) << ") is not active. Hence skipped.";
+        msg << "Specified Tile (" << std::to_string(userTile.col) << "," 
+            << std::to_string(userTile.row) << ") is not active. Hence skipped.";
         xrt_core::message::send(severity_level::warning, "XRT", msg.str());
         continue;
       }
 
-      configMetrics[moduleIdx][tile] = metrics[i][1];
+      // Store using user's original coordinates
+      configMetrics[moduleIdx][userTile] = metrics[i][1];
 
       // Grab channel numbers (if specified; memory tiles only)
       if (metrics[i].size() == 4) {
         try {
-          configChannel0[tile] = aie::convertStringToUint8(metrics[i][2]);
-          configChannel1[tile] = aie::convertStringToUint8(metrics[i][3]);
+          configChannel0[userTile] = aie::convertStringToUint8(metrics[i][2]);
+          configChannel1[userTile] = aie::convertStringToUint8(metrics[i][3]);
         }
         catch (...) {
           std::stringstream msg;

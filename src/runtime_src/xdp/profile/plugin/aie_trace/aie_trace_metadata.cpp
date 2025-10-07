@@ -93,6 +93,9 @@ namespace xdp {
     if (!metadataReader)
       return;
     
+    // Check if user wants to use absolute tile columns
+    absoluteTileColumns = xrt_core::config::get_aie_trace_settings_use_absolute_tile_columns();
+
     // Make sure compiler trace option is available as runtime
     auto compilerOptions = metadataReader->getAIECompilerOptions();
     setRuntimeMetrics(compilerOptions.event_trace == "runtime");
@@ -146,7 +149,8 @@ namespace xdp {
       "start_type", "start_time", "start_iteration", "end_type",
       "periodic_offload", "reuse_buffer", "buffer_size", 
       "buffer_offload_interval_us", "file_dump_interval_s",
-      "enable_system_timeline", "poll_timers_interval_us", "config_one_partition"
+      "enable_system_timeline", "poll_timers_interval_us", "config_one_partition",
+      "use_absolute_tile_columns"
     };
     const std::map<std::string, std::string> deprecatedSettings {
       {"aie_trace_metrics", "AIE_trace_settings.graph_based_aie_tile_metrics or tile_based_aie_tile_metrics"},
@@ -530,31 +534,43 @@ namespace xdp {
         }
       }
 
+      // Get partition shift for coordinate normalization if using absolute columns
+      uint8_t startColShift = absoluteTileColumns ? metadataReader->getPartitionOverlayStartCols().front() : 0;
+
       for (uint8_t col = minCol; col <= maxCol; ++col) {
         for (uint8_t row = minRow; row <= maxRow; ++row) {
-          tile_type tile;
-          tile.col = col;
-          tile.row = row;
-          tile.active_core   = true;
-          tile.active_memory = true;
+          tile_type userTile;
+          userTile.col = col;
+          userTile.row = row;
+          userTile.active_core   = true;
+          userTile.active_memory = true;
 
-          // Make sure tile is used
+          // Normalize tile coordinates for validation against metadata
+          // Metadata tiles are in relative coordinates, so convert absolute to relative if needed
+          tile_type tileToValidate;
+          tileToValidate.col = absoluteTileColumns ? (userTile.col - startColShift) : userTile.col;
+          tileToValidate.row = userTile.row;
+          tileToValidate.active_core = true;
+          tileToValidate.active_memory = true;
+
+          // Make sure tile is used (validate against relative coordinates)
           auto it = std::find_if(allValidTiles.begin(), allValidTiles.end(),
-                                 compareTileByLoc(tile));
+                                 compareTileByLoc(tileToValidate));
           if (it == allValidTiles.end()) {
             std::stringstream msg;
-            msg << "Specified Tile {" << std::to_string(tile.col) << ","
-                << std::to_string(tile.row) << "} is not active. Hence skipped.";
+            msg << "Specified Tile {" << std::to_string(userTile.col) << ","
+                << std::to_string(userTile.row) << "} is not active. Hence skipped.";
             xrt_core::message::send(severity_level::warning, "XRT", msg.str());
             continue;
           }
           
-          configMetrics[tile] = metrics[i][2];
+          // Store using user's original coordinates
+          configMetrics[userTile] = metrics[i][2];
 
           // Grab channel numbers (if specified; memory .tiles only)
           if (metrics[i].size() > 3) {
-            configChannel0[tile] = channel0;
-            configChannel1[tile] = channel1;
+            configChannel0[userTile] = channel0;
+            configChannel1[userTile] = channel1;
           }
         }
       }
@@ -585,30 +601,40 @@ namespace xdp {
         continue;
       }
 
-      tile_type tile;
-      tile.col = col;
-      tile.row = row;
-      tile.active_core   = true;
-      tile.active_memory = true;
+      tile_type userTile;
+      userTile.col = col;
+      userTile.row = row;
+      userTile.active_core   = true;
+      userTile.active_memory = true;
 
-      // Make sure tile is used
+      // Normalize tile coordinates for validation against metadata
+      // Get partition shift for coordinate normalization if using absolute columns
+      uint8_t startColShift = absoluteTileColumns ? metadataReader->getPartitionOverlayStartCols().front() : 0;
+      tile_type tileToValidate;
+      tileToValidate.col = absoluteTileColumns ? (userTile.col - startColShift) : userTile.col;
+      tileToValidate.row = userTile.row;
+      tileToValidate.active_core = true;
+      tileToValidate.active_memory = true;
+
+      // Make sure tile is used (validate against relative coordinates)
       auto it = std::find_if(allValidTiles.begin(), allValidTiles.end(),
-                             compareTileByLoc(tile));
+                             compareTileByLoc(tileToValidate));
       if (it == allValidTiles.end()) {
         std::stringstream msg;
-        msg << "Specified Tile {" << std::to_string(tile.col) << ","
-            << std::to_string(tile.row) << "} is not active. Hence skipped.";
+        msg << "Specified Tile {" << std::to_string(userTile.col) << ","
+            << std::to_string(userTile.row) << "} is not active. Hence skipped.";
         xrt_core::message::send(severity_level::warning, "XRT", msg.str());
         continue;
       }
 
-      configMetrics[tile] = metrics[i][1];
+      // Store using user's original coordinates
+      configMetrics[userTile] = metrics[i][1];
       
       // Grab channel numbers (if specified; memory tiles only)
       if (metrics[i].size() > 2) {
         try {
-          configChannel0[tile] = aie::convertStringToUint8(metrics[i][2]);
-          configChannel1[tile] = aie::convertStringToUint8(metrics[i].back());
+          configChannel0[userTile] = aie::convertStringToUint8(metrics[i][2]);
+          configChannel1[userTile] = aie::convertStringToUint8(metrics[i].back());
         } catch (...) {
           std::stringstream msg;
           msg << "Channel specifications in tile_based_" << tileName
@@ -616,7 +642,7 @@ namespace xdp {
           xrt_core::message::send(severity_level::warning, "XRT", msg.str());
         }
       }
-    } // Pass 3 
+    } // Pass 3
 
     processed.clear();
 

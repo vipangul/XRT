@@ -283,7 +283,8 @@ namespace xdp {
       for (auto& tileMetric : configMetrics) {
         auto& metricSet  = tileMetric.second;
         auto tile        = tileMetric.first;
-        auto col         = tile.col + startColShift;
+        // Apply partition shift conditionally based on absolute/relative column mode
+        auto col         = metadata->useAbsoluteTileColumns() ? tile.col : (tile.col + startColShift);
         auto row         = tile.row;
         auto subtype     = tile.subtype;
         auto type        = aie::getModuleType(row, metadata->getAIETileRowOffset());

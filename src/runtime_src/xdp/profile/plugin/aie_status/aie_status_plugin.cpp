@@ -132,10 +132,13 @@ namespace xdp {
    uint8_t startColShift = metadataReader->getPartitionOverlayStartCols().front();
    aie::displayColShiftInfo(startColShift);
 
+   // Note: For aie_status, tiles from metadata are already in relative coordinates
+   // If user wants absolute display, we add the shift; otherwise tiles stay relative
+   // Since status reports actual HW state, keeping absolute display for consistency
    if (startColShift > 0) {
     for(auto& [graph, tileVec] : mGraphCoreTilesMap) {
       for(auto& tile : tileVec)
-        tile.col += startColShift;
+        tile.col += startColShift;  // Always convert to absolute for status display
     }
    }
 

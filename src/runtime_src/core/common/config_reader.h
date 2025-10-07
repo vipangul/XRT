@@ -935,6 +935,13 @@ get_aie_profile_settings_start_iteration()
   return value;
 }
 
+inline bool
+get_aie_profile_settings_use_absolute_tile_columns()
+{
+  static bool value = detail::get_bool_value("AIE_profile_settings.use_absolute_tile_columns", false);
+  return value;
+}
+
 // AIE_trace_settings
 
 inline std::string
@@ -1081,6 +1088,13 @@ inline bool
 get_aie_trace_settings_enable_system_timeline()
 {
   static bool value = detail::get_bool_value("AIE_trace_settings.enable_system_timeline", false);
+  return value;
+}
+
+inline bool
+get_aie_trace_settings_use_absolute_tile_columns()
+{
+  static bool value = detail::get_bool_value("AIE_trace_settings.use_absolute_tile_columns", false);
   return value;
 }
 

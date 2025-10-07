@@ -276,7 +276,8 @@ namespace xdp {
       for (auto& tileMetric : configMetrics) {
         auto& metricSet  = tileMetric.second;
         auto tile        = tileMetric.first;
-        auto col         = tile.col + startColShift;
+        // Apply partition shift conditionally based on absolute/relative column mode
+        auto col         = metadata->useAbsoluteTileColumns() ? tile.col : (tile.col + startColShift);
         auto row         = tile.row;
         auto subtype     = tile.subtype;
         auto type        = aie::getModuleType(row, metadata->getAIETileRowOffset());
@@ -295,13 +296,12 @@ namespace xdp {
             continue;
         }
 
-        // Get the column relative to partition.
-        // For loadxclbin flow currently XRT creates partition of whole device from 0th column.
-        // Hence absolute and relative columns are same.
-        // TODO: For loadxclbin flow XRT will start creating partition of the specified columns,
-        //       hence we should stop adding partition shift to col for passing to XAIE Apis
-        auto relCol     = (db->getStaticInfo().getAppStyle() == xdp::AppStyle::LOAD_XCLBIN_STYLE)
-                          ? col /* startColShift already added */ : tile.col;
+        // Get the column relative to partition for XAIE APIs
+        // XAIE APIs always work with relative (partition-based) columns
+        auto relCol     = metadata->useAbsoluteTileColumns() 
+                          ? (tile.col - startColShift)  // Convert absolute to relative
+                          : ((db->getStaticInfo().getAppStyle() == xdp::AppStyle::LOAD_XCLBIN_STYLE)
+                            ? col /* startColShift already added */ : tile.col);
         auto loc        = XAie_TileLoc(relCol, row);
         auto& xaieTile  = aieDevice->tile(relCol, row);
 

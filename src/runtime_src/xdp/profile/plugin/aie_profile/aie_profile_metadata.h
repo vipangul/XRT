@@ -103,6 +103,7 @@ class AieProfileMetadata {
     xrt::hw_context hwContext;
     bool useGraphIterator = false;
     uint32_t iterationCount = 0;
+    bool absoluteTileColumns = false;
     
     std::vector<std::map<tile_type, std::string>> configMetrics;
     std::map<tile_type, std::string> pairConfigMetrics;
@@ -187,6 +188,7 @@ class AieProfileMetadata {
     void setUserSpecifiedBytes(const tile_type& tile, const uint32_t& threshold);
     bool getUseGraphIterator(){return useGraphIterator;}
     uint32_t getIterationCount(){return iterationCount;}
+    bool useAbsoluteTileColumns() const { return absoluteTileColumns; }
 
     bool isSourceTile(const tile_type& tile);
     bool isValidLatencyTile(const tile_type& tile) const;

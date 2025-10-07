@@ -106,6 +106,7 @@ class AieTraceMetadata {
     void setDelayCycles(uint64_t newDelayCycles) {delayCycles = newDelayCycles;}
     void setRuntimeMetrics(bool metrics) {runtimeMetrics = metrics;}
     uint64_t getDelay() {return ((useDelay) ? delayCycles : 0);}
+    bool useAbsoluteTileColumns() const { return absoluteTileColumns; }
 
     xrt::hw_context getHwContext(){return hwContext;}
     void setHwContext(xrt::hw_context c) {
@@ -130,6 +131,7 @@ class AieTraceMetadata {
     bool runtimeMetrics;
     bool continuousTrace;
     bool invalidXclbinMetadata;
+    bool absoluteTileColumns = false;
 
     uint32_t pollingInterval;
     uint32_t iterationCount = 0;

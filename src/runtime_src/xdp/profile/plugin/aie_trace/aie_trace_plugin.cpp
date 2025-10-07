@@ -196,11 +196,9 @@ void AieTracePluginUnified::updateAIEDevice(void *handle, bool hw_context_flow) 
         // NOTE: If partition is not used, this value is zero.
         // This is later required for GMIO trace offload.
         uint8_t startColShift = AIEData.metadata->getPartitionOverlayStartCols().front();
-        // Get the column relative to partition.
-        // For loadxclbin flow currently XRT creates partition of whole device from 0th column.
-        // Hence absolute and relative columns are same.
-        // TODO: For loadxclbin flow XRT will start creating partition of the specified columns,
-        //       hence we should stop adding partition shift to col for passing to XAIE Apis.
+        // GMIO columns from xclbin metadata are already in proper format (relative to partition)
+        // For load_xclbin flow, add partition shift to get absolute column for reporting
+        // Note: useAbsoluteTileColumns flag doesn't apply to GMIO since GMIO data comes from xclbin, not xrt.ini
         uint8_t relCol = ((db->getStaticInfo()).getAppStyle() == xdp::AppStyle::LOAD_XCLBIN_STYLE) ? gmio.shimColumn + startColShift : gmio.shimColumn;
         (db->getStaticInfo()).addTraceGMIO(deviceID, gmio.id, relCol, gmio.channelNum,
                                             gmio.streamId, gmio.burstLength);
