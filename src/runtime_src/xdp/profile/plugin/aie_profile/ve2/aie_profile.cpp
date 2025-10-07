@@ -229,7 +229,13 @@ namespace xdp {
   {
     auto col = tile.col;
     auto row = tile.row;
-    auto loc = XAie_TileLoc(col, row);
+    // Get the column for XAIE APIs
+    // For LOAD_XCLBIN_STYLE: use absolute column (includes partition shift from metadata)
+    // For REGISTER_XCLBIN_STYLE (hw_context): XAIE APIs expect relative columns, so subtract partition shift
+    auto partitionShift = metadata->getPartitionOverlayStartCols().front();
+    auto xaieCol    = (db->getStaticInfo().getAppStyle() == xdp::AppStyle::LOAD_XCLBIN_STYLE)
+                      ? col : (col - partitionShift);
+    auto loc = XAie_TileLoc(xaieCol, row);
     std::string moduleName = (mod == XAIE_CORE_MOD) ? "aie" 
                            : ((mod == XAIE_MEM_MOD) ? "aie_memory" 
                            : "interface_tile");
@@ -443,7 +449,13 @@ namespace xdp {
 
           // Generate user_event_1 for byte count metric set after configuration
           if ((metricSet == METRIC_BYTE_COUNT) && (i == 1) && !graphItrBroadcastConfigDone) {
-            XAie_LocType tileloc = XAie_TileLoc(tile.col, tile.row);
+            // Get the column for XAIE APIs
+            // For LOAD_XCLBIN_STYLE: use absolute column (includes partition shift from metadata)
+            // For REGISTER_XCLBIN_STYLE (hw_context): XAIE APIs expect relative columns, so subtract partition shift
+            auto partitionShift = metadata->getPartitionOverlayStartCols().front();
+            auto xaieCol    = (db->getStaticInfo().getAppStyle() == xdp::AppStyle::LOAD_XCLBIN_STYLE)
+                              ? tile.col : (tile.col - partitionShift);
+            XAie_LocType tileloc = XAie_TileLoc(xaieCol, tile.row);
             //Note: For BYTE_COUNT metric, user_event_1 is used twice as eventA & eventB to
             //      to transition the FSM from Idle->State0->State1.
             //      eventC = Port Running and eventD = stop event (counter event).
@@ -547,7 +559,13 @@ namespace xdp {
       uint32_t counterValue;
       if (perfCounters.empty()) {
         // Compiler-defined counters
-        XAie_LocType tileLocation = XAie_TileLoc(aie->column, aie->row);
+        // Get the column for XAIE APIs
+        // For LOAD_XCLBIN_STYLE: use absolute column (includes partition shift from metadata)
+        // For REGISTER_XCLBIN_STYLE (hw_context): XAIE APIs expect relative columns, so subtract partition shift
+        auto partitionShift = metadata->getPartitionOverlayStartCols().front();
+        auto xaieCol    = (db->getStaticInfo().getAppStyle() == xdp::AppStyle::LOAD_XCLBIN_STYLE)
+                          ? tile.col : (tile.col - partitionShift);
+        XAie_LocType tileLocation = XAie_TileLoc(xaieCol, aie->row);
         XAie_PerfCounterGet(aieDevInst, tileLocation, XAIE_CORE_MOD, aie->counterNumber, &counterValue);
       }
       else {
@@ -601,7 +619,13 @@ namespace xdp {
         auto falModuleType =  (moduleType == module_type::core) ? XAIE_CORE_MOD 
                             : ((moduleType == module_type::shim) ? XAIE_PL_MOD 
                             : XAIE_MEM_MOD);
-        XAie_LocType tileLocation = XAie_TileLoc(aie->column, aie->row);
+        // Get the column for XAIE APIs
+        // For LOAD_XCLBIN_STYLE: use absolute column (includes partition shift from metadata)
+        // For REGISTER_XCLBIN_STYLE (hw_context): XAIE APIs expect relative columns, so subtract partition shift
+        auto partitionShift = metadata->getPartitionOverlayStartCols().front();
+        auto xaieCol    = (db->getStaticInfo().getAppStyle() == xdp::AppStyle::LOAD_XCLBIN_STYLE)
+                          ? tile.col : (tile.col - partitionShift);
+        XAie_LocType tileLocation = XAie_TileLoc(xaieCol, aie->row);
         XAie_ReadTimer(aieDevInst, tileLocation, falModuleType, &timerValue);
       }
       values.push_back(timerValue);

@@ -345,6 +345,7 @@ namespace xdp::aie::profile {
       return std::make_pair(0, XAIE_EVENT_USER_EVENT_0_PL);
     }
 
+    // !!! TODO: do we need to account for partition shift in this file?
     XAie_LocType destTileLocation = XAie_TileLoc(destTile.col, destTile.row);
 
     // Include all tiles between source and destination

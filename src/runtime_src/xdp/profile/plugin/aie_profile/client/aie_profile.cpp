@@ -137,7 +137,13 @@ namespace xdp {
             continue;
         }
 
-        auto loc         = XAie_TileLoc(col, row);
+        // Get the column for XAIE APIs
+        // For LOAD_XCLBIN_STYLE: use absolute column (includes partition shift from metadata)
+        // For REGISTER_XCLBIN_STYLE (hw_context): XAIE APIs expect relative columns, so subtract partition shift
+        auto partitionShift = metadata->getPartitionOverlayStartCols().front();
+        auto xaieCol    = (db->getStaticInfo().getAppStyle() == xdp::AppStyle::LOAD_XCLBIN_STYLE)
+                          ? col : (col - partitionShift);
+        auto loc         = XAie_TileLoc(xaieCol, row);
         auto startEvents = (type  == module_type::core) ? coreStartEvents[metricSet]
                          : ((type == module_type::dma)  ? memoryStartEvents[metricSet]
                          : ((type == module_type::shim) ? shimStartEvents[metricSet]
