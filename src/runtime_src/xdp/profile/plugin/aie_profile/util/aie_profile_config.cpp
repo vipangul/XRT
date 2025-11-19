@@ -465,8 +465,7 @@ namespace xdp::aie::profile {
     if (ret != XAIE_OK)
       return nullptr;
 
-    uint8_t startColShift = metadata->getPartitionOverlayStartCols().front();
-    auto absCol = tile.col + startColShift;
+    auto absCol = tile.abs_col;
     auto relCol = tile.col;
     // For loadxclbin flow currently XRT creates partition of whole device from 0th column.
     // Hence absolute and relative columns are same.
@@ -520,9 +519,8 @@ namespace xdp::aie::profile {
       }
 
       // Use the first available core tile to configure the broadcasting
-      uint8_t startColShift = metadata->getPartitionOverlayStartCols().front();
       uint8_t relCol = aieCoreTilesVec.begin()->col; 
-      auto absCol    = aieCoreTilesVec.begin()->col + startColShift;
+      auto absCol    = aieCoreTilesVec.begin()->abs_col;
       // For loadxclbin flow currently XRT creates partition of whole device from 0th column.
       // Hence absolute and relative columns are same.
       // TODO: For loadxclbin flow XRT will start creating partition of the specified columns,
@@ -604,8 +602,7 @@ namespace xdp::aie::profile {
       return;
 
     for (auto &tile : allIntfTiles) {
-      uint8_t startColShift = metadata->getPartitionOverlayStartCols().front();
-      auto absCol = tile.col + startColShift;
+      auto absCol = tile.abs_col;
       auto relCol = tile.col;
       // For loadxclbin flow currently XRT creates partition of whole device from 0th column.
       // Hence absolute and relative columns are same.

@@ -117,6 +117,45 @@ namespace xdp {
   }
 
   /****************************************************************************
+   * Helper function to populate and validate tile coordinates
+   ***************************************************************************/
+  bool AieProfileMetadata::populateAndValidateTile(
+      tile_type& tile, uint8_t col, uint8_t row, module_type mod, 
+      uint8_t rowOffset, const std::set<tile_type>& allValidTiles)
+  {
+    // Populate coordinates based on input mode
+    if (useAbsoluteLocations) {
+      // User provided absolute coordinates
+      tile.abs_col = col;
+      tile.abs_row = row;
+      tile.populateRelativeCoords(startColShift, rowOffset, mod);
+    } else {
+      // User provided relative coordinates
+      tile.col = col;
+      tile.row = row;
+      tile.populateAbsoluteCoords(startColShift, rowOffset, mod);
+    }
+    
+    tile.active_core = true;
+    tile.active_memory = true;
+
+    // Validate tile is in use
+    auto it = useAbsoluteLocations
+      ? std::find_if(allValidTiles.begin(), allValidTiles.end(), compareTileByAbsLoc(tile))
+      : std::find_if(allValidTiles.begin(), allValidTiles.end(), compareTileByLoc(tile));
+    
+    if (it == allValidTiles.end()) {
+      std::stringstream msg;
+      msg << "Specified Tile " << getTileCoordString(tile) 
+          << " is not active. Hence skipped.";
+      xrt_core::message::send(severity_level::warning, "XRT", msg.str());
+      return false;
+    }
+    
+    return true;
+  }
+
+  /****************************************************************************
    * Check validity of settings
    ***************************************************************************/
   void AieProfileMetadata::checkSettings()
@@ -571,31 +610,8 @@ namespace xdp {
       for (uint8_t col = minCol; col <= maxCol; ++col) {
         for (uint8_t row = minRow; row <= maxRow; ++row) {
           tile_type tile;
-          if (useAbsoluteLocations) {
-            // User provided absolute coordinates
-            tile.abs_col = col;
-            tile.abs_row = row;
-            tile.populateRelativeCoords(startColShift, rowOffset, mod);
-          } else {
-            // User provided relative coordinates
-            tile.col = col;
-            tile.row = row;
-            tile.populateAbsoluteCoords(startColShift, rowOffset, mod);
-          }
-          tile.active_core   = true;
-          tile.active_memory = true;
-
-          // Make sure tile is used
-          auto it = useAbsoluteLocations
-            ? std::find_if(allValidTiles.begin(), allValidTiles.end(), compareTileByAbsLoc(tile))
-            : std::find_if(allValidTiles.begin(), allValidTiles.end(), compareTileByLoc(tile));
-          if (it == allValidTiles.end()) {
-            std::stringstream msg;
-            msg << "Specified Tile " << getTileCoordString(tile) 
-                << " is not active. Hence skipped.";
-            xrt_core::message::send(severity_level::warning, "XRT", msg.str());
+          if (!populateAndValidateTile(tile, col, row, mod, rowOffset, allValidTiles))
             continue;
-          }
 
           configMetrics[moduleIdx][tile] = metrics[i][2];
 
@@ -625,9 +641,6 @@ namespace xdp {
         boost::split(tilePos, metrics[i][0], boost::is_any_of(","));
         col = aie::convertStringToUint8(tilePos[0]);
         row = aie::convertStringToUint8(tilePos[1]);
-        if (!useAbsoluteLocations) {
-          row += rowOffset;  // Convert to absolute for relative input
-        }
       }
       catch (...) {
         std::stringstream msg;
@@ -638,29 +651,8 @@ namespace xdp {
       }
 
       tile_type tile;
-      if (useAbsoluteLocations) {
-        tile.abs_col = col;
-        tile.abs_row = row;
-        tile.populateRelativeCoords(startColShift, rowOffset, mod);
-      } else {
-        tile.col = col;
-        tile.row = row;
-        tile.populateAbsoluteCoords(startColShift, rowOffset, mod);
-      }
-      tile.active_core   = true;
-      tile.active_memory = true;
-
-      // Make sure tile is used
-      auto it = useAbsoluteLocations
-        ? std::find_if(allValidTiles.begin(), allValidTiles.end(), compareTileByAbsLoc(tile))
-        : std::find_if(allValidTiles.begin(), allValidTiles.end(), compareTileByLoc(tile));
-      if (it == allValidTiles.end()) {
-        std::stringstream msg;
-        msg << "Specified Tile " << getTileCoordString(tile) 
-            << " is not active. Hence skipped.";
-        xrt_core::message::send(severity_level::warning, "XRT", msg.str());
+      if (!populateAndValidateTile(tile, col, row, mod, rowOffset, allValidTiles))
         continue;
-      }
 
       configMetrics[moduleIdx][tile] = metrics[i][1];
 

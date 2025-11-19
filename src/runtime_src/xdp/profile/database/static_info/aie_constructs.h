@@ -40,6 +40,28 @@ namespace xdp::aie {
 
 namespace xdp {
 
+  // AIE Tile Coordinate Systems
+  // ============================
+  // This codebase supports two coordinate systems for addressing AIE tiles:
+  //
+  // 1. RELATIVE COORDINATES (col, row):
+  //    - Coordinates relative to the partition/overlay start position
+  //    - Used internally by XAie_ driver APIs
+  //    - Default mode for user input in xrt.ini
+  //    - Column: relative to partition start (startColShift)
+  //    - Row: relative to tile type offset (shim=0, mem_tile=1, aie_tile=rowOffset)
+  //
+  // 2. ABSOLUTE COORDINATES (abs_col, abs_row):
+  //    - Physical device coordinates
+  //    - Always displayed in logs and warnings for clarity
+  //    - Optional user input mode (use_absolute_locations=true in xrt.ini)
+  //    - Column: physical column on device
+  //    - Row: physical row on device
+  //
+  // The tile_type struct maintains BOTH coordinate systems simultaneously.
+  // Conversion functions (populateAbsoluteCoords/populateRelativeCoords) ensure
+  // consistency between the two representations.
+
   enum module_type {
     core = 0,
     dma,
@@ -54,12 +76,18 @@ namespace xdp {
     GMIO
   };
 
+  // Tile coordinate representation supporting both absolute and relative addressing
+  // Invariants:
+  //   - Both relative (row, col) and absolute (abs_row, abs_col) must be populated
+  //   - Coordinate values must fit in uint8_t (0-255 range)
+  //   - Conversion between coordinate systems must not overflow/underflow
+  //   - For valid AIE hardware: col + startColShift < 256, row + rowOffset < 256
   struct tile_type
   {
-    uint8_t  row = 0;      // Relative row
-    uint8_t  col = 0;      // Relative column
-    uint8_t  abs_row = 0;  // Absolute row
-    uint8_t  abs_col = 0;  // Absolute column
+    uint8_t  row = 0;      // Relative row (relative to tile type offset)
+    uint8_t  col = 0;      // Relative column (relative to partition start)
+    uint8_t  abs_row = 0;  // Absolute row (physical device row)
+    uint8_t  abs_col = 0;  // Absolute column (physical device column)
     std::vector<uint8_t> stream_ids;
     std::vector<uint8_t> is_master_vec;
     // Pre-sized to maximum known port count (NUM_SWITCH_MONITOR_PORTS=8) with default "unused" values
@@ -93,6 +121,11 @@ namespace xdp {
     }
 
     // Populate absolute coordinates from relative
+    // Preconditions:
+    //   - col and row must be initialized with valid relative coordinates
+    //   - startColShift and rowOffset must be valid for the target hardware
+    //   - Caller must ensure col + startColShift doesn't overflow uint8_t (< 256)
+    //   - Caller must ensure row + rowOffset doesn't overflow uint8_t (< 256)
     void populateAbsoluteCoords(uint8_t startColShift, uint8_t rowOffset, module_type type) {
       abs_col = col + startColShift;
       
@@ -106,6 +139,11 @@ namespace xdp {
     }
 
     // Populate relative coordinates from absolute
+    // Preconditions:
+    //   - abs_col and abs_row must be initialized with valid absolute coordinates
+    //   - startColShift and rowOffset must be valid for the target hardware
+    //   - Caller must ensure abs_col >= startColShift (no underflow)
+    //   - For mem_tile: abs_row >= 1, for core/dma: abs_row >= rowOffset
     void populateRelativeCoords(uint8_t startColShift, uint8_t rowOffset, module_type type) {
       col = abs_col - startColShift;
       
@@ -136,6 +174,9 @@ namespace xdp {
 
   };
 
+  // Tile comparison functors for relative coordinates
+  // Use these when user input is in relative coordinate mode or when searching
+  // tiles from metadata (which uses relative coordinates by default)
   struct compareTileByLoc {
     tile_type target_tile;
     compareTileByLoc(const tile_type& t) : target_tile(t) {}
@@ -164,6 +205,9 @@ namespace xdp {
     }
   };
 
+  // Tile comparison functors for absolute coordinates
+  // Use these when user input is in absolute coordinate mode (use_absolute_locations=true)
+  // or when matching tiles to physical device coordinates
   struct compareTileByAbsLoc {
     tile_type target_tile;
     compareTileByAbsLoc(const tile_type& t) : target_tile(t) {}

@@ -213,6 +213,13 @@ class AieProfileMetadata {
     getTiles(const std::string& graph_name, module_type type, const std::string& kernel_name) const;
 
     std::unique_ptr<const AIEProfileFinalConfig> createAIEProfileConfig() ;
+
+  private:
+    // Helper function to populate and validate tile coordinates
+    // Returns true if tile is valid and active, false otherwise
+    bool populateAndValidateTile(tile_type& tile, uint8_t col, uint8_t row,
+                                  module_type mod, uint8_t rowOffset,
+                                  const std::set<tile_type>& allValidTiles);
 };
 
 } // end XDP namespace

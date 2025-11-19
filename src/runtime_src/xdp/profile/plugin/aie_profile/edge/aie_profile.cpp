@@ -238,9 +238,8 @@ namespace xdp {
       XAIEDEV_DEFAULT_GROUP_AVAIL
     };
     
-    auto absCol = tile.abs_col;
     std::stringstream msg;
-    msg << "Resource usage stats for Tile : (" << +absCol << "," << +row 
+    msg << "Resource usage stats for Tile : (" << +tile.abs_col << "," << +row 
         << ") Module : " << moduleName << std::endl;
     for (auto&g : groups) {
       auto stats = aieDevice->getRscStat(g);
@@ -282,8 +281,6 @@ namespace xdp {
       for (auto& tileMetric : configMetrics) {
         auto& metricSet  = tileMetric.second;
         auto tile        = tileMetric.first;
-        auto absCol      = tile.abs_col;
-        auto relCol      = tile.col;
         auto row         = tile.row;
         auto subtype     = tile.subtype;
         auto type        = aie::getModuleType(row, metadata->getAIETileRowOffset());
