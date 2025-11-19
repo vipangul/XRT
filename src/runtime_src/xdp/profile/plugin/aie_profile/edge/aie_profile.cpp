@@ -452,13 +452,8 @@ namespace xdp {
         } // numFreeCtr
 
         std::stringstream msg;
-        if (metadata->getUseAbsoluteLocations()) {
-          msg << "Reserved " << numCounters << " counters for profiling AIE tile (" 
-              << +tile.abs_col << "," << +tile.abs_row << ") using metric set " << metricSet << ".";
-        } else {
-          msg << "Reserved " << numCounters << " counters for profiling AIE tile (" 
-              << +absCol << "," << +row << ") using metric set " << metricSet << ".";
-        }
+        msg << "Reserved " << numCounters << " counters for profiling AIE tile (" 
+            << +tile.abs_col << "," << +tile.abs_row << ") using metric set " << metricSet << ".";
         xrt_core::message::send(severity_level::debug, "XRT", msg.str());
         numTileCounters[numCounters]++;
       } // configMetrics

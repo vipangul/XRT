@@ -194,11 +194,7 @@ class AieProfileMetadata {
 
     std::string getTileCoordString(const tile_type& tile) const {
       std::stringstream ss;
-      if (useAbsoluteLocations) {
-        ss << "(" << +tile.abs_col << "," << +tile.abs_row << ")";
-      } else {
-        ss << "(" << +tile.col << "," << +tile.row << ")";
-      }
+      ss << "(" << +tile.abs_col << "," << +tile.abs_row << ")";
       return ss.str();
     }
 
