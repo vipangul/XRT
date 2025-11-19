@@ -472,7 +472,7 @@ namespace xdp::aie::profile {
     // TODO: For loadxclbin flow XRT will start creating partition of the specified columns,
     //       hence we should stop adding partition shift to col for passing to XAIE Apis
     auto xaieCol = (xdp::VPDatabase::Instance()->getStaticInfo().getAppStyle() == xdp::AppStyle::LOAD_XCLBIN_STYLE) ? absCol : relCol; 
-    XAie_LocType tileloc = XAie_TileLoc(xaieCol, tile.row);
+    XAie_LocType tileloc = XAie_TileLoc(xaieCol, tile.abs_row);
 
     // uint8_t status = -1;
     // uint8_t broadcastId  = 10;
@@ -609,7 +609,7 @@ namespace xdp::aie::profile {
       // TODO: For loadxclbin flow XRT will start creating partition of the specified columns,
       //       hence we should stop adding partition shift to col for passing to XAIE Apis
       auto xaieCol = (xdp::VPDatabase::Instance()->getStaticInfo().getAppStyle() == xdp::AppStyle::LOAD_XCLBIN_STYLE) ? absCol : relCol; 
-      vL.push_back(XAie_TileLoc(xaieCol, tile.row));
+      vL.push_back(XAie_TileLoc(xaieCol, tile.abs_row));
     }
 
     auto BC = aieDevice->broadcast(vL, XAIE_PL_MOD, XAIE_PL_MOD);

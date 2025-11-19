@@ -153,7 +153,7 @@ AIETraceConfigFiletype::getMemoryTiles(const std::string& graph_name,
         if (foundGraph && foundBuffer) {
             tile_type tile;
             tile.col = shared_buffer.second.get<uint8_t>("column");
-            tile.row = shared_buffer.second.get<uint8_t>("row") + rowOffset;
+            tile.row = shared_buffer.second.get<uint8_t>("row");
 
             // Store names of DMA channels for reporting purposes
             for (auto& chan : shared_buffer.second.get_child("dmaChannels")) {
@@ -240,7 +240,7 @@ AIETraceConfigFiletype::getTiles(const std::string& graph_name,
         if (foundGraph && foundKernel) {
             tile_type tile;
             tile.col = mapping.second.get<uint8_t>("column");
-            tile.row = mapping.second.get<uint8_t>("row") + rowOffset;
+            tile.row = mapping.second.get<uint8_t>("row");
             tile.active_core = true;
             tile.active_memory = true;
             // Populate absolute coordinates

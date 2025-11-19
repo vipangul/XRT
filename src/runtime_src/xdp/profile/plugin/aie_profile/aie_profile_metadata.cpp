@@ -140,9 +140,6 @@ namespace xdp {
     tile.active_core = true;
     tile.active_memory = true;
 
-    std::cout << "!!! Tile from user input: rel(" << +tile.col << "," << +tile.row 
-              << ") abs(" << +tile.abs_col << "," << +tile.abs_row << ")" << std::endl;
-
     // Validate tile is in use
     auto it = useAbsoluteLocations
       ? std::find_if(allValidTiles.begin(), allValidTiles.end(), compareTileByAbsLoc(tile))

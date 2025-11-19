@@ -228,7 +228,7 @@ namespace xdp {
   void AieProfile_EdgeImpl::printTileModStats(xaiefal::XAieDev* aieDevice, 
       const tile_type& tile, XAie_ModuleType mod)
   {
-    auto row = tile.row;
+    auto row = tile.abs_row;
     auto loc = XAie_TileLoc(getXAIECol(tile.col), row);
     std::string moduleName = (mod == XAIE_CORE_MOD) ? "aie" 
                            : ((mod == XAIE_MEM_MOD) ? "aie_memory" 
@@ -282,19 +282,22 @@ namespace xdp {
       for (auto& tileMetric : configMetrics) {
         auto& metricSet  = tileMetric.second;
         auto tile        = tileMetric.first;
-        std::cout << "!!! Configuring tile: rel(" << +tile.col << "," << +tile.row 
-                  << ") abs(" << +tile.abs_col << "," << +tile.abs_row << ")" << std::endl;
-        auto row         = tile.row;
+        auto absRow      = tile.abs_row;
         auto subtype     = tile.subtype;
-        auto type        = aie::getModuleType(row, metadata->getAIETileRowOffset());
+        auto type        = aie::getModuleType(absRow, metadata->getAIETileRowOffset());
         if ((mod == XAIE_MEM_MOD) && (type == module_type::core))
           type = module_type::dma;
+
+        std::cout << "DEBUG: tile(" << +tile.abs_col << "," << +tile.abs_row 
+                  << ") mod=" << mod << " type=" << static_cast<int>(type) << std::endl;
 
         // Ignore invalid types and inactive modules
         // NOTE: Inactive core modules are configured when utilizing
         //       stream switch monitor ports to profile DMA channels
-        if (!aie::profile::isValidType(type, mod))
+        if (!aie::profile::isValidType(type, mod)) {
+          std::cout << "DEBUG: SKIP - invalid type for tile(" << +tile.abs_col << "," << +tile.abs_row << ")" << std::endl;
           continue;
+        }
         if ((type == module_type::dma) && !tile.active_memory)
           continue;
         if ((type == module_type::core) && !tile.active_core) {
@@ -302,8 +305,8 @@ namespace xdp {
             continue;
         }
 
-        auto loc        = XAie_TileLoc(getXAIECol(tile.col), row);
-        auto& xaieTile  = aieDevice->tile(getXAIECol(tile.col), row);
+        auto loc        = XAie_TileLoc(getXAIECol(tile.col), absRow);
+        auto& xaieTile  = aieDevice->tile(getXAIECol(tile.col), absRow);
 
         auto xaieModule  = (mod == XAIE_CORE_MOD) ? xaieTile.core()
                          : ((mod == XAIE_MEM_MOD) ? xaieTile.mem() 
@@ -378,6 +381,8 @@ namespace xdp {
         }
 
         uint32_t threshold = 0;
+        std::cout << "DEBUG: tile(" << +tile.abs_col << "," << +tile.abs_row 
+                  << ") numFreeCtr=" << numFreeCtr << " startEvents.size()=" << startEvents.size() << std::endl;
         // Request and configure all available counters for this tile
         for (int i=0; i < numFreeCtr; ++i) {
           auto startEvent    = startEvents.at(i);
@@ -425,7 +430,7 @@ namespace xdp {
 
           // Generate user_event_1 for byte count metric set after configuration
           if ((metricSet == METRIC_BYTE_COUNT) && (i == 1) && !graphItrBroadcastConfigDone) {
-            XAie_LocType tileloc = XAie_TileLoc(getXAIECol(tile.col), tile.row);
+            XAie_LocType tileloc = XAie_TileLoc(getXAIECol(tile.col), tile.abs_row);
             //Note: For BYTE_COUNT metric, user_event_1 is used twice as eventA & eventB to
             //      to transition the FSM from Idle->State0->State1.
             //      eventC = Port Running and eventD = stop event (counter event).
@@ -440,16 +445,19 @@ namespace xdp {
           uint16_t phyEndEvent   = physicalEventIds.second;
 
           // Get payload for reporting purposes
-          uint64_t payload = getCounterPayload(aieDevInst, tileMetric.first, type, getXAIECol(tile.col), row, 
+          uint64_t payload = getCounterPayload(aieDevInst, tileMetric.first, type, getXAIECol(tile.col), absRow, 
                                                startEvent, metricSet, channel);
           // Store counter info in database
           std::string counterName = "AIE Counter " + std::to_string(counterId);
-          (db->getStaticInfo()).addAIECounter(deviceId, counterId, getXAIECol(tile.col), row, i,
+          (db->getStaticInfo()).addAIECounter(deviceId, counterId, getXAIECol(tile.col), absRow, i,
                 phyStartEvent, phyEndEvent, resetEvent, payload, metadata->getClockFreqMhz(), 
                 metadata->getModuleName(module), counterName, (tile.stream_ids.empty() ? 0 : tile.stream_ids[0]));
           counterId++;
           numCounters++;
         } // numFreeCtr
+
+        std::cout << "DEBUG: tile(" << +tile.abs_col << "," << +tile.abs_row 
+                  << ") reserved " << numCounters << " counters" << std::endl;
 
         std::stringstream msg;
         msg << "Reserved " << numCounters << " counters for profiling AIE tile (" 

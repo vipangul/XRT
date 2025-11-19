@@ -406,8 +406,6 @@ AIEControlConfigFiletype::getInterfaceTiles(const std::string& graphName,
             // Populate absolute coordinates
             tile.populateAbsoluteCoords(getPartitionOverlayStartCols().front(), 
                                        getAIETileRowOffset(), module_type::shim);
-            std::cout << "!!! Tile from metadata (InterfaceTile): rel(" << +tile.col << "," << +tile.row 
-                      << ") abs(" << +tile.abs_col << "," << +tile.abs_row << ")" << std::endl;
             tiles.emplace_back(std::move(tile));
         }
     }
@@ -455,7 +453,7 @@ AIEControlConfigFiletype::getMemoryTiles(const std::string& graph_name,
 
         tile_type tile;
         tile.col = shared_buffer.second.get<uint8_t>("column");
-        tile.row = shared_buffer.second.get<uint8_t>("row") + rowOffset;
+        tile.row = shared_buffer.second.get<uint8_t>("row");
 
         // Store names of DMA channels for reporting purposes
         for (auto& chan : shared_buffer.second.get_child("dmaChannels")) {
@@ -474,8 +472,6 @@ AIEControlConfigFiletype::getMemoryTiles(const std::string& graph_name,
         // Populate absolute coordinates
         tile.populateAbsoluteCoords(getPartitionOverlayStartCols().front(), 
                                    getAIETileRowOffset(), module_type::mem_tile);
-        std::cout << "!!! Tile from metadata (MemoryTile): rel(" << +tile.col << "," << +tile.row 
-                  << ") abs(" << +tile.abs_col << "," << +tile.abs_row << ")" << std::endl;
         allTiles.emplace_back(std::move(tile));
     }
 
@@ -513,7 +509,7 @@ AIEControlConfigFiletype::getAIETiles(const std::string& graph_name) const
         int num_tiles = count;
         count = startCount;
         for (auto& node : graph.second.get_child("core_rows"))
-            tiles.at(count++).row = xdp::aie::convertStringToUint8(node.second.data()) + rowOffset;
+            tiles.at(count++).row = xdp::aie::convertStringToUint8(node.second.data());
         xdp::aie::throwIfError(count < num_tiles,"core_rows < num_tiles");
 
         count = startCount;
@@ -616,7 +612,7 @@ AIEControlConfigFiletype::getEventTiles(const std::string& graph_name,
         int num_tiles = count;
         count = startCount;
         for (auto& node : graph.second.get_child(row_name))
-            tiles.at(count++).row = xdp::aie::convertStringToUint8(node.second.data()) + rowOffset;
+            tiles.at(count++).row = xdp::aie::convertStringToUint8(node.second.data());
         xdp::aie::throwIfError(count < num_tiles,"rows < num_tiles");
 
         startCount = count;
@@ -676,14 +672,12 @@ AIEControlConfigFiletype::getTiles(const std::string& graph_name,
         // Store this tile
         tile_type tile;
         tile.col = mapping.second.get<uint8_t>("column");
-        tile.row = mapping.second.get<uint8_t>("row") + rowOffset;
+        tile.row = mapping.second.get<uint8_t>("row");
         tile.active_core = true;
         tile.active_memory = true;
         // Populate absolute coordinates
         tile.populateAbsoluteCoords(getPartitionOverlayStartCols().front(), 
                                    rowOffset, module_type::core);
-        std::cout << "!!! Tile from metadata (AIETile): rel(" << +tile.col << "," << +tile.row 
-                  << ") abs(" << +tile.abs_col << "," << +tile.abs_row << ")" << std::endl;
         tiles.emplace_back(std::move(tile));
     }
     return tiles;

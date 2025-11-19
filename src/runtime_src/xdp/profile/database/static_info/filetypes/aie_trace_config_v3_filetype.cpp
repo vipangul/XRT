@@ -137,7 +137,7 @@ AIETraceConfigV3Filetype::getTiles(const std::string& graph_name,
 
         // Get core tile location
         auto coreCol = mapping.second.get<uint8_t>("column");
-        auto coreRow = static_cast<uint8_t>(mapping.second.get<uint8_t>("row") + rowOffset);
+        auto coreRow = mapping.second.get<uint8_t>("row");
 
         // Create or get existing core tile
         auto coreKey = std::make_pair(coreCol, coreRow);
@@ -158,7 +158,7 @@ AIETraceConfigV3Filetype::getTiles(const std::string& graph_name,
         if (dmaChannelsTree) {
             for (auto const &channel : dmaChannelsTree.get()) {
                 uint8_t dmaCol = xdp::aie::convertStringToUint8(channel.second.get<std::string>("column"));
-                uint8_t dmaRow = static_cast<uint8_t>(xdp::aie::convertStringToUint8(channel.second.get<std::string>("row")) + rowOffset);
+                uint8_t dmaRow = xdp::aie::convertStringToUint8(channel.second.get<std::string>("row"));
 
                 auto dmaKey = std::make_pair(dmaCol, dmaRow);
 
