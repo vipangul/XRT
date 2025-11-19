@@ -56,8 +56,10 @@ namespace xdp {
 
   struct tile_type
   {
-    uint8_t  row = 0;
-    uint8_t  col = 0;
+    uint8_t  row = 0;      // Relative row
+    uint8_t  col = 0;      // Relative column
+    uint8_t  abs_row = 0;  // Absolute row
+    uint8_t  abs_col = 0;  // Absolute column
     std::vector<uint8_t> stream_ids;
     std::vector<uint8_t> is_master_vec;
     // Pre-sized to maximum known port count (NUM_SWITCH_MONITOR_PORTS=8) with default "unused" values
@@ -88,6 +90,32 @@ namespace xdp {
     // Function to get the first is_master value
     uint8_t getFirstIsMaster() const {
       return is_master_vec.empty() ? 0 : is_master_vec[0];
+    }
+
+    // Populate absolute coordinates from relative
+    void populateAbsoluteCoords(uint8_t startColShift, uint8_t rowOffset, module_type type) {
+      abs_col = col + startColShift;
+      
+      if (type == module_type::shim) {
+        abs_row = row;  // Shim at absolute row 0
+      } else if (type == module_type::mem_tile) {
+        abs_row = row + 1;  // Memory tile offset = 1
+      } else {  // AIE core/dma
+        abs_row = row + rowOffset;
+      }
+    }
+
+    // Populate relative coordinates from absolute
+    void populateRelativeCoords(uint8_t startColShift, uint8_t rowOffset, module_type type) {
+      col = abs_col - startColShift;
+      
+      if (type == module_type::shim) {
+        row = abs_row;
+      } else if (type == module_type::mem_tile) {
+        row = abs_row - 1;
+      } else {
+        row = abs_row - rowOffset;
+      }
     }
 
     // For debugging function to print tile_type all fields stream_ids, is_master_vec using stringstream 
@@ -131,6 +159,36 @@ namespace xdp {
     bool operator()(const tile_type& src_tile) const {
       return (src_tile.col == target_tile.col) &&
              (src_tile.row == target_tile.row) &&
+             (src_tile.active_core == target_tile.active_core) &&
+             (src_tile.active_memory == target_tile.active_memory);
+    }
+  };
+
+  struct compareTileByAbsLoc {
+    tile_type target_tile;
+    compareTileByAbsLoc(const tile_type& t) : target_tile(t) {}
+    
+    bool operator()(const tile_type& src_tile) const {
+      return (src_tile.abs_col == target_tile.abs_col) && (src_tile.abs_row == target_tile.abs_row);
+    }
+  };
+
+  struct compareTileByAbsLocMap {
+    tile_type target_tile;
+    compareTileByAbsLocMap(const tile_type& t) : target_tile(t) {}
+    
+    bool operator()(const std::pair<tile_type, std::string>& p) const {
+      return (p.first.abs_col == target_tile.abs_col) && (p.first.abs_row == target_tile.abs_row);
+    }
+  };
+
+  struct compareTileByAbsLocAndActiveType {
+    tile_type target_tile;
+    compareTileByAbsLocAndActiveType(const tile_type& t) : target_tile(t) {}
+    
+    bool operator()(const tile_type& src_tile) const {
+      return (src_tile.abs_col == target_tile.abs_col) &&
+             (src_tile.abs_row == target_tile.abs_row) &&
              (src_tile.active_core == target_tile.active_core) &&
              (src_tile.active_memory == target_tile.active_memory);
     }

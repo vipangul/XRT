@@ -169,6 +169,9 @@ AIETraceConfigFiletype::getMemoryTiles(const std::string& graph_name,
                   tile.mm2s_names[channel] = chan.second.get<std::string>("name");
             }
 
+            // Populate absolute coordinates
+            tile.populateAbsoluteCoords(getPartitionOverlayStartCols().front(), 
+                                       getAIETileRowOffset(), module_type::mem_tile);
             allTiles.emplace_back(std::move(tile));
         }
     }
@@ -240,6 +243,9 @@ AIETraceConfigFiletype::getTiles(const std::string& graph_name,
             tile.row = mapping.second.get<uint8_t>("row") + rowOffset;
             tile.active_core = true;
             tile.active_memory = true;
+            // Populate absolute coordinates
+            tile.populateAbsoluteCoords(getPartitionOverlayStartCols().front(), 
+                                       rowOffset, module_type::core);
             tiles.emplace_back(std::move(tile));
         }
     }

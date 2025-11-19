@@ -103,6 +103,8 @@ class AieProfileMetadata {
     xrt::hw_context hwContext;
     bool useGraphIterator = false;
     uint32_t iterationCount = 0;
+    bool useAbsoluteLocations = false;
+    uint8_t startColShift = 0;
     
     std::vector<std::map<tile_type, std::string>> configMetrics;
     std::map<tile_type, std::string> pairConfigMetrics;
@@ -187,6 +189,18 @@ class AieProfileMetadata {
     void setUserSpecifiedBytes(const tile_type& tile, const uint32_t& threshold);
     bool getUseGraphIterator(){return useGraphIterator;}
     uint32_t getIterationCount(){return iterationCount;}
+    bool getUseAbsoluteLocations() const { return useAbsoluteLocations; }
+    uint8_t getStartColShift() const { return startColShift; }
+
+    std::string getTileCoordString(const tile_type& tile) const {
+      std::stringstream ss;
+      if (useAbsoluteLocations) {
+        ss << "(" << +tile.abs_col << "," << +tile.abs_row << ")";
+      } else {
+        ss << "(" << +tile.col << "," << +tile.row << ")";
+      }
+      return ss.str();
+    }
 
     bool isSourceTile(const tile_type& tile);
     bool isValidLatencyTile(const tile_type& tile) const;

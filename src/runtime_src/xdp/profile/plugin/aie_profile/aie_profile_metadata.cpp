@@ -47,6 +47,12 @@ namespace xdp {
     
     auto compilerOptions = metadataReader->getAIECompilerOptions();
 
+    // Initialize absolute location settings
+    useAbsoluteLocations = xrt_core::config::get_use_absolute_locations();
+    if (metadataReader) {
+      startColShift = metadataReader->getPartitionOverlayStartCols().front();
+    }
+
     // Verify settings from xrt.ini
     checkSettings();
 
@@ -565,18 +571,28 @@ namespace xdp {
       for (uint8_t col = minCol; col <= maxCol; ++col) {
         for (uint8_t row = minRow; row <= maxRow; ++row) {
           tile_type tile;
-          tile.col = col;
-          tile.row = row;
+          if (useAbsoluteLocations) {
+            // User provided absolute coordinates
+            tile.abs_col = col;
+            tile.abs_row = row;
+            tile.populateRelativeCoords(startColShift, rowOffset, mod);
+          } else {
+            // User provided relative coordinates
+            tile.col = col;
+            tile.row = row;
+            tile.populateAbsoluteCoords(startColShift, rowOffset, mod);
+          }
           tile.active_core   = true;
           tile.active_memory = true;
 
           // Make sure tile is used
-          auto it = std::find_if(allValidTiles.begin(), allValidTiles.end(),
-            compareTileByLoc(tile));
+          auto it = useAbsoluteLocations
+            ? std::find_if(allValidTiles.begin(), allValidTiles.end(), compareTileByAbsLoc(tile))
+            : std::find_if(allValidTiles.begin(), allValidTiles.end(), compareTileByLoc(tile));
           if (it == allValidTiles.end()) {
             std::stringstream msg;
-            msg << "Specified Tile (" << std::to_string(tile.col) << "," 
-                << std::to_string(tile.row) << ") is not active. Hence skipped.";
+            msg << "Specified Tile " << getTileCoordString(tile) 
+                << " is not active. Hence skipped.";
             xrt_core::message::send(severity_level::warning, "XRT", msg.str());
             continue;
           }
@@ -608,7 +624,10 @@ namespace xdp {
         std::vector<std::string> tilePos;
         boost::split(tilePos, metrics[i][0], boost::is_any_of(","));
         col = aie::convertStringToUint8(tilePos[0]);
-        row = aie::convertStringToUint8(tilePos[1]) + rowOffset;
+        row = aie::convertStringToUint8(tilePos[1]);
+        if (!useAbsoluteLocations) {
+          row += rowOffset;  // Convert to absolute for relative input
+        }
       }
       catch (...) {
         std::stringstream msg;
@@ -619,18 +638,26 @@ namespace xdp {
       }
 
       tile_type tile;
-      tile.col = col;
-      tile.row = row;
+      if (useAbsoluteLocations) {
+        tile.abs_col = col;
+        tile.abs_row = row;
+        tile.populateRelativeCoords(startColShift, rowOffset, mod);
+      } else {
+        tile.col = col;
+        tile.row = row;
+        tile.populateAbsoluteCoords(startColShift, rowOffset, mod);
+      }
       tile.active_core   = true;
       tile.active_memory = true;
 
       // Make sure tile is used
-      auto it = std::find_if(allValidTiles.begin(), allValidTiles.end(),
-                             compareTileByLoc(tile));
+      auto it = useAbsoluteLocations
+        ? std::find_if(allValidTiles.begin(), allValidTiles.end(), compareTileByAbsLoc(tile))
+        : std::find_if(allValidTiles.begin(), allValidTiles.end(), compareTileByLoc(tile));
       if (it == allValidTiles.end()) {
         std::stringstream msg;
-        msg << "Specified Tile (" << std::to_string(tile.col) << "," 
-            << std::to_string(tile.row) << ") is not active. Hence skipped.";
+        msg << "Specified Tile " << getTileCoordString(tile) 
+            << " is not active. Hence skipped.";
         xrt_core::message::send(severity_level::warning, "XRT", msg.str());
         continue;
       }
@@ -923,8 +950,9 @@ namespace xdp {
 
       for (auto& t : tiles) {
         // Only specify metric set and channel if not already defined
-        auto tileItr = std::find_if(configMetrics[moduleIdx].begin(),
-          configMetrics[moduleIdx].end(), compareTileByLocMap(t));
+        auto tileItr = useAbsoluteLocations
+          ? std::find_if(configMetrics[moduleIdx].begin(), configMetrics[moduleIdx].end(), compareTileByAbsLocMap(t))
+          : std::find_if(configMetrics[moduleIdx].begin(), configMetrics[moduleIdx].end(), compareTileByLocMap(t));
 
         if (tileItr == configMetrics[moduleIdx].end()) {
           configMetrics[moduleIdx][t] = metrics[i][1];
@@ -1144,8 +1172,9 @@ namespace xdp {
 
       auto tiles = metadataReader->getMicrocontrollers(false);
 
-      for (auto& t : tiles)
+      for (auto& t : tiles) {
         configMetrics[moduleIdx][t] = metrics[i][1];
+      }
     } // Pass 1
 
     // Pass 2 : process only range of tiles metric setting
@@ -1177,8 +1206,9 @@ namespace xdp {
 
       auto tiles = metadataReader->getMicrocontrollers(true, minCol, maxCol);
       
-      for (auto& t : tiles)
+      for (auto& t : tiles) {
         configMetrics[moduleIdx][t] = metrics[i][2];
+      }
     } // Pass 2
 
     // Pass 3 : process only single tile metric setting
@@ -1209,8 +1239,9 @@ namespace xdp {
 
       auto tiles = metadataReader->getMicrocontrollers(true, col, col);
         
-      for (auto& t : tiles)
+      for (auto& t : tiles) {
         configMetrics[moduleIdx][t] = metrics[i][1];
+      }
     } // Pass 3
 
     // Set default, check validity, and remove "off" tiles

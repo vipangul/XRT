@@ -266,6 +266,9 @@ AIEControlConfigFiletype::getMicrocontrollers(bool useColumn,
         tile_type tile;
         tile.col = col;
         tile.row = 0;
+        // Populate absolute coordinates
+        tile.populateAbsoluteCoords(getPartitionOverlayStartCols().front(), 
+                                   getAIETileRowOffset(), module_type::uc);
         tiles.emplace_back(std::move(tile));
     }
 
@@ -399,6 +402,9 @@ AIEControlConfigFiletype::getInterfaceTiles(const std::string& graphName,
             }
 
             tile.subtype = type;
+            // Populate absolute coordinates
+            tile.populateAbsoluteCoords(getPartitionOverlayStartCols().front(), 
+                                       getAIETileRowOffset(), module_type::shim);
             tiles.emplace_back(std::move(tile));
         }
     }
@@ -462,6 +468,9 @@ AIEControlConfigFiletype::getMemoryTiles(const std::string& graph_name,
               tile.mm2s_names[channel] = chan.second.get<std::string>("name");
         }
 
+        // Populate absolute coordinates
+        tile.populateAbsoluteCoords(getPartitionOverlayStartCols().front(), 
+                                   getAIETileRowOffset(), module_type::mem_tile);
         allTiles.emplace_back(std::move(tile));
     }
 
@@ -523,6 +532,12 @@ AIEControlConfigFiletype::getAIETiles(const std::string& graph_name) const
         xdp::aie::throwIfError(count < num_tiles,"multirate_triggers < num_tiles");
 
         startCount = count;
+    }
+
+    // Populate absolute coordinates for all tiles
+    for (auto& t : tiles) {
+        t.populateAbsoluteCoords(getPartitionOverlayStartCols().front(), 
+                                rowOffset, module_type::core);
     }
 
     return tiles;
@@ -602,6 +617,13 @@ AIEControlConfigFiletype::getEventTiles(const std::string& graph_name,
         startCount = count;
     }
 
+    // Populate absolute coordinates for all tiles
+    auto tileType = (type == module_type::core) ? module_type::core : module_type::dma;
+    for (auto& t : tiles) {
+        t.populateAbsoluteCoords(getPartitionOverlayStartCols().front(), 
+                                rowOffset, tileType);
+    }
+
     return tiles;
 }
 
@@ -652,6 +674,9 @@ AIEControlConfigFiletype::getTiles(const std::string& graph_name,
         tile.row = mapping.second.get<uint8_t>("row") + rowOffset;
         tile.active_core = true;
         tile.active_memory = true;
+        // Populate absolute coordinates
+        tile.populateAbsoluteCoords(getPartitionOverlayStartCols().front(), 
+                                   rowOffset, module_type::core);
         tiles.emplace_back(std::move(tile));
     }
     return tiles;

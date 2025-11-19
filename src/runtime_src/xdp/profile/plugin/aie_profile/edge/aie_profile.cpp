@@ -238,7 +238,7 @@ namespace xdp {
       XAIEDEV_DEFAULT_GROUP_AVAIL
     };
     
-    auto absCol = tile.col + m_startColShift;
+    auto absCol = tile.abs_col;
     std::stringstream msg;
     msg << "Resource usage stats for Tile : (" << +absCol << "," << +row 
         << ") Module : " << moduleName << std::endl;
@@ -282,7 +282,7 @@ namespace xdp {
       for (auto& tileMetric : configMetrics) {
         auto& metricSet  = tileMetric.second;
         auto tile        = tileMetric.first;
-        auto absCol      = tile.col + startColShift;
+        auto absCol      = tile.abs_col;
         auto relCol      = tile.col;
         auto row         = tile.row;
         auto subtype     = tile.subtype;
@@ -452,8 +452,13 @@ namespace xdp {
         } // numFreeCtr
 
         std::stringstream msg;
-        msg << "Reserved " << numCounters << " counters for profiling AIE tile (" << +absCol 
-            << "," << +row << ") using metric set " << metricSet << ".";
+        if (metadata->getUseAbsoluteLocations()) {
+          msg << "Reserved " << numCounters << " counters for profiling AIE tile (" 
+              << +tile.abs_col << "," << +tile.abs_row << ") using metric set " << metricSet << ".";
+        } else {
+          msg << "Reserved " << numCounters << " counters for profiling AIE tile (" 
+              << +absCol << "," << +row << ") using metric set " << metricSet << ".";
+        }
         xrt_core::message::send(severity_level::debug, "XRT", msg.str());
         numTileCounters[numCounters]++;
       } // configMetrics

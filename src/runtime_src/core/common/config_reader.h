@@ -197,6 +197,13 @@ get_aie_status_interval_us()
 }
 
 inline bool
+get_use_absolute_locations()
+{
+  static bool value = detail::get_bool_value("Debug.use_absolute_locations", false);
+  return value;
+}
+
+inline bool
 get_noc_profile()
 {
   static bool value = detail::get_bool_value("Debug.noc_profile",false);

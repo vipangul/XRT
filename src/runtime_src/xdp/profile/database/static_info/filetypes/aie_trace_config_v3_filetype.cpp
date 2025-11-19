@@ -147,6 +147,9 @@ AIETraceConfigV3Filetype::getTiles(const std::string& graph_name,
             coreTile.row = coreRow;
             coreTile.active_core = (mapping.second.get<std::string>("tile", "") == "aie");
             coreTile.active_memory = false; // Will be set to true if DMA channels exist
+            // Populate absolute coordinates
+            coreTile.populateAbsoluteCoords(getPartitionOverlayStartCols().front(), 
+                                           rowOffset, module_type::core);
             tileMap[coreKey] = coreTile;
         }
 
@@ -171,6 +174,9 @@ AIETraceConfigV3Filetype::getTiles(const std::string& graph_name,
                     dmaTile.row = dmaRow;
                     dmaTile.active_core = false;
                     dmaTile.active_memory = true;
+                    // Populate absolute coordinates
+                    dmaTile.populateAbsoluteCoords(getPartitionOverlayStartCols().front(), 
+                                                  rowOffset, module_type::dma);
                     tileMap[dmaKey] = dmaTile;
                     populateDMAChannelNames(tileMap[dmaKey], channel.second);
                 }
