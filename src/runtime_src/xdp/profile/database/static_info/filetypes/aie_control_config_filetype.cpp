@@ -6,6 +6,7 @@
 #include <boost/algorithm/string.hpp>
 #include <boost/property_tree/json_parser.hpp>
 #include <boost/property_tree/ptree.hpp>
+#include <iostream>
 
 #include "aie_control_config_filetype.h"
 #include "core/common/message.h"
@@ -405,6 +406,8 @@ AIEControlConfigFiletype::getInterfaceTiles(const std::string& graphName,
             // Populate absolute coordinates
             tile.populateAbsoluteCoords(getPartitionOverlayStartCols().front(), 
                                        getAIETileRowOffset(), module_type::shim);
+            std::cout << "!!! Tile from metadata (InterfaceTile): rel(" << +tile.col << "," << +tile.row 
+                      << ") abs(" << +tile.abs_col << "," << +tile.abs_row << ")" << std::endl;
             tiles.emplace_back(std::move(tile));
         }
     }
@@ -471,6 +474,8 @@ AIEControlConfigFiletype::getMemoryTiles(const std::string& graph_name,
         // Populate absolute coordinates
         tile.populateAbsoluteCoords(getPartitionOverlayStartCols().front(), 
                                    getAIETileRowOffset(), module_type::mem_tile);
+        std::cout << "!!! Tile from metadata (MemoryTile): rel(" << +tile.col << "," << +tile.row 
+                  << ") abs(" << +tile.abs_col << "," << +tile.abs_row << ")" << std::endl;
         allTiles.emplace_back(std::move(tile));
     }
 
@@ -677,6 +682,8 @@ AIEControlConfigFiletype::getTiles(const std::string& graph_name,
         // Populate absolute coordinates
         tile.populateAbsoluteCoords(getPartitionOverlayStartCols().front(), 
                                    rowOffset, module_type::core);
+        std::cout << "!!! Tile from metadata (AIETile): rel(" << +tile.col << "," << +tile.row 
+                  << ") abs(" << +tile.abs_col << "," << +tile.abs_row << ")" << std::endl;
         tiles.emplace_back(std::move(tile));
     }
     return tiles;

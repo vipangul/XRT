@@ -21,6 +21,7 @@
 #include <boost/algorithm/string.hpp>
 #include <boost/property_tree/json_parser.hpp>
 #include <boost/property_tree/ptree.hpp>
+#include <iostream>
 
 #include "core/common/config_reader.h"
 #include "core/common/device.h"
@@ -138,6 +139,9 @@ namespace xdp {
     
     tile.active_core = true;
     tile.active_memory = true;
+
+    std::cout << "!!! Tile from user input: rel(" << +tile.col << "," << +tile.row 
+              << ") abs(" << +tile.abs_col << "," << +tile.abs_row << ")" << std::endl;
 
     // Validate tile is in use
     auto it = useAbsoluteLocations

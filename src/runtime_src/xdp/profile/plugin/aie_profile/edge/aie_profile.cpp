@@ -20,6 +20,7 @@
 #include <memory>
 #include <cstring>
 #include <map>
+#include <iostream>
 
 #include "core/common/message.h"
 #include "core/common/time.h"
@@ -281,6 +282,8 @@ namespace xdp {
       for (auto& tileMetric : configMetrics) {
         auto& metricSet  = tileMetric.second;
         auto tile        = tileMetric.first;
+        std::cout << "!!! Configuring tile: rel(" << +tile.col << "," << +tile.row 
+                  << ") abs(" << +tile.abs_col << "," << +tile.abs_row << ")" << std::endl;
         auto row         = tile.row;
         auto subtype     = tile.subtype;
         auto type        = aie::getModuleType(row, metadata->getAIETileRowOffset());
