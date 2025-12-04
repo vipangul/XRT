@@ -2,46 +2,23 @@
 # Copyright (C) 2019-2021 Xilinx, Inc. All rights reserved.
 # Copyright (C) 2023-2025 Advanced Micro Devices, Inc. All rights reserved.
 
-if (WIN32 AND XRT_RC_VERSION)
-  function(xrt_configure_version_file target_name type)
-    message(STATUS "-- Generating version file for target: ${target_name} of type: ${type}")
-    if (type STREQUAL "SHARED")
-      set(OriginalFilename ${target_name}.dll)
-      set(FileType VFT_DLL)
-    elseif(type STREQUAL "APP")
-      set(OriginalFilename ${target_name}.exe)
-      set(FileType VFT_APP)
-    else()
-      message(FATAL_ERROR "Unknown file type ${type} for version file configuration")
-    endif()
-
-    configure_file(
-      ${XRT_SOURCE_DIR}/CMake/config/version.rc.in
-      ${CMAKE_CURRENT_BINARY_DIR}/${target_name}-version.rc
-      @ONLY
-      )
-  endfunction()
-else()
-  function(xrt_configure_version_file target_name type)
-    file(TOUCH ${CMAKE_CURRENT_BINARY_DIR}/${target_name}-version.rc)
-  endfunction()
-endif()
-
 # The version.cmake should only be include once in a project
 # otherwise configured files may be overwritten.  This may
 # not be a problem but is better to avoid it.
-if (DEFINED XRT_VERSION_CMAKE_INCLUDED)
-  return()
-endif()
+#if (DEFINED XRT_VERSION_CMAKE_INCLUDED)
+#  return()
+#endif()
 set(XRT_VERSION_CMAKE_INCLUDED TRUE CACHE INTERNAL "XRT version cmake included")
 
 # AMD promotion build works from copied sources with no git
 # repository.  The build cannot query git for git metadata.  The
 # promotion build has explicitly overwritten config/version.h.in and
 # config/version.json.in with pre-generated ones.
-if (DEFINED ENV{DK_ROOT})
+if (DEFINED ENV{DK_ROOT} OR XRT_UPSTREAM)
 
-message("-- Skipping Git metadata")
+  message("-- Skipping Git metadata")
+  set (XRT_HEAD_COMMITS 0)
+  set (XRT_BRANCH_COMMITS 0)
 
 else (DEFINED ENV{DK_ROOT})
 
@@ -104,17 +81,20 @@ execute_process(
 )
 string(REPLACE "\n" "," XRT_MODIFIED_FILES "${XRT_MODIFIED_FILES}")
 
-endif(DEFINED ENV{DK_ROOT})
+endif(DEFINED ENV{DK_ROOT} OR XRT_UPSTREAM)
 
-# Get the build date RFC format
-execute_process(
-  COMMAND date -R
-  WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}
-  OUTPUT_VARIABLE XRT_DATE_RFC
-  OUTPUT_STRIP_TRAILING_WHITESPACE
-)
+# Upstream builds must be reproducilble.
+if (NOT XRT_UPSTREAM)
+  # Get the build date RFC format
+  execute_process(
+    COMMAND date -R
+    WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}
+    OUTPUT_VARIABLE XRT_DATE_RFC
+    OUTPUT_STRIP_TRAILING_WHITESPACE
+    )
 
-string(TIMESTAMP XRT_DATE "%Y-%m-%d %H:%M:%S")
+  string(TIMESTAMP XRT_DATE "%Y-%m-%d %H:%M:%S")
+endif()
 
 configure_file(
   ${XRT_SOURCE_DIR}/CMake/config/version-slim.h.in
@@ -149,6 +129,29 @@ if (WIN32 AND XRT_RC_VERSION)
   set(XRT_RC_MINOR ${XRT_RC_MINOR} CACHE STRING "Minor version for RC file")
   set(XRT_RC_BUILD ${XRT_RC_BUILD} CACHE STRING "Build version for RC file")
   set(XRT_RC_PATCH ${XRT_RC_PATCH} CACHE STRING "Patch version for RC file")
+
+  function(xrt_configure_version_file target_name type)
+    message(STATUS "-- Generating version file for target: ${target_name} of type: ${type}")
+    if (type STREQUAL "SHARED")
+      set(OriginalFilename ${target_name}.dll)
+      set(FileType VFT_DLL)
+    elseif(type STREQUAL "APP")
+      set(OriginalFilename ${target_name}.exe)
+      set(FileType VFT_APP)
+    else()
+      message(FATAL_ERROR "Unknown file type ${type} for version file configuration")
+    endif()
+
+    configure_file(
+      ${XRT_SOURCE_DIR}/CMake/config/version.rc.in
+      ${CMAKE_CURRENT_BINARY_DIR}/${target_name}-version.rc
+      @ONLY
+      )
+  endfunction()
+else()
+  function(xrt_configure_version_file target_name type)
+    file(TOUCH ${CMAKE_CURRENT_BINARY_DIR}/${target_name}-version.rc)
+  endfunction()
 endif()  
 
 # xrt component install
