@@ -157,6 +157,27 @@ namespace xdp {
   }
 
   /****************************************************************************
+   * Helper to convert column based on useAbsoluteLocations setting
+   ***************************************************************************/
+  uint8_t AieProfileMetadata::getRelativeColumn(uint8_t col) const {
+    // If using relative mode, return as-is
+    if (!useAbsoluteLocations)
+      return col;
+
+    // Validate absolute column
+    if (col < startColShift) {
+      std::stringstream msg;
+      msg << "Invalid absolute column " << +col
+          << " (must be >= " << +startColShift << "). Using column 0.";
+      xrt_core::message::send(severity_level::warning, "XRT", msg.str());
+      return 0;
+    }
+
+    // Convert absolute to relative
+    return col - startColShift;
+  }
+
+  /****************************************************************************
    * Check validity of settings
    ***************************************************************************/
   void AieProfileMetadata::checkSettings()
@@ -973,6 +994,7 @@ namespace xdp {
       uint8_t maxCol = 0;
       try {
         maxCol = aie::convertStringToUint8(metrics[i][1]);
+        maxCol = getRelativeColumn(maxCol);
       }
       catch (std::invalid_argument const&) {
         // maxColumn is not an integer i.e either 1st style or wrong format, skip for now
@@ -982,6 +1004,7 @@ namespace xdp {
       uint8_t minCol = 0;
       try {
         minCol = aie::convertStringToUint8(metrics[i][0]);
+        minCol = getRelativeColumn(minCol);
       }
       catch (std::invalid_argument const&) {
         // 2nd style but expected min column is not an integer, give warning and skip
@@ -1080,8 +1103,11 @@ namespace xdp {
           }
         }
 
+        // Convert to relative column if needed
+        uint8_t relCol = getRelativeColumn(col);
+
         int16_t channelNum = (foundChannels) ? channelId0 : -1;
-        auto tiles = metadataReader->getInterfaceTiles("all", "all", metrics[i][1], channelNum, true, col, col);
+        auto tiles = metadataReader->getInterfaceTiles("all", "all", metrics[i][1], channelNum, true, relCol, relCol);
         
         for (auto& t : tiles) {
           configMetrics[moduleIdx][t] = metrics[i][1];

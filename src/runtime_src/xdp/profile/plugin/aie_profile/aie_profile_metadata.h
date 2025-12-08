@@ -220,6 +220,9 @@ class AieProfileMetadata {
     bool populateAndValidateTile(tile_type& tile, uint8_t col, uint8_t row,
                                   module_type mod, uint8_t rowOffset,
                                   const std::set<tile_type>& allValidTiles);
+
+    // Helper to convert column based on useAbsoluteLocations setting
+    uint8_t getRelativeColumn(uint8_t col) const;
 };
 
 } // end XDP namespace
