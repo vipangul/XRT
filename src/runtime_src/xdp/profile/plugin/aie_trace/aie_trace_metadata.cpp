@@ -93,6 +93,12 @@ namespace xdp {
     if (!metadataReader)
       return;
     
+    // Initialize absolute location settings
+    useAbsoluteLocations = xrt_core::config::get_use_absolute_locations();
+    if (metadataReader) {
+      startColShift = metadataReader->getPartitionOverlayStartCols().front();
+    }
+
     // Make sure compiler trace option is available as runtime
     auto compilerOptions = metadataReader->getAIECompilerOptions();
     setRuntimeMetrics(compilerOptions.event_trace == "runtime");
@@ -134,6 +140,66 @@ namespace xdp {
   // **************************************************************************
   // Helpers
   // **************************************************************************
+
+  /****************************************************************************
+   * Helper function to populate and validate tile coordinates
+   ***************************************************************************/
+  bool AieTraceMetadata::populateAndValidateTile(
+      tile_type& tile, uint8_t col, uint8_t row, module_type mod, 
+      uint8_t rowOffset, const std::set<tile_type>& allValidTiles)
+  {
+    // Populate coordinates based on input mode
+    if (useAbsoluteLocations) {
+      // User provided absolute coordinates
+      tile.abs_col = col;
+      tile.abs_row = row;
+      tile.populateRelativeCoords(startColShift, rowOffset, mod);
+    } else {
+      // User provided relative coordinates
+      tile.col = col;
+      tile.row = row;
+      tile.populateAbsoluteCoords(startColShift, rowOffset, mod);
+    }
+    
+    tile.active_core = true;
+    tile.active_memory = true;
+
+    // Validate tile is in use
+    auto it = useAbsoluteLocations
+      ? std::find_if(allValidTiles.begin(), allValidTiles.end(), compareTileByAbsLoc(tile))
+      : std::find_if(allValidTiles.begin(), allValidTiles.end(), compareTileByLoc(tile));
+    
+    if (it == allValidTiles.end()) {
+      std::stringstream msg;
+      msg << "Specified Tile " << getTileCoordString(tile) 
+          << " is not active. Hence skipped.";
+      xrt_core::message::send(severity_level::warning, "XRT", msg.str());
+      return false;
+    }
+    
+    return true;
+  }
+
+  /****************************************************************************
+   * Helper to convert column based on useAbsoluteLocations setting
+   ***************************************************************************/
+  uint8_t AieTraceMetadata::getRelativeColumn(uint8_t col) const {
+    // If using relative mode, return as-is
+    if (!useAbsoluteLocations)
+      return col;
+
+    // Validate absolute column
+    if (col < startColShift) {
+      std::stringstream msg;
+      msg << "Invalid absolute column " << +col
+          << " (must be >= " << +startColShift << "). Using column 0.";
+      xrt_core::message::send(severity_level::warning, "XRT", msg.str());
+      return 0;
+    }
+
+    // Convert absolute to relative
+    return col - startColShift;
+  }
 
   // Verify user settings in xrt.ini
   void AieTraceMetadata::checkSettings()
@@ -491,12 +557,12 @@ namespace xdp {
         std::vector<std::string> minTile;
         boost::split(minTile, metrics[i][0], boost::is_any_of(","));
         minCol = aie::convertStringToUint8(minTile[0]);
-        minRow = aie::convertStringToUint8(minTile[1]) + rowOffset;
+        minRow = aie::convertStringToUint8(minTile[1]);
 
         std::vector<std::string> maxTile;
         boost::split(maxTile, metrics[i][1], boost::is_any_of(","));
         maxCol = aie::convertStringToUint8(maxTile[0]);
-        maxRow = aie::convertStringToUint8(maxTile[1]) + rowOffset;
+        maxRow = aie::convertStringToUint8(maxTile[1]);
       } catch (...) {
         std::stringstream msg;
         msg << "Valid Tile range specification in tile_based_" << tileName
@@ -533,25 +599,12 @@ namespace xdp {
       for (uint8_t col = minCol; col <= maxCol; ++col) {
         for (uint8_t row = minRow; row <= maxRow; ++row) {
           tile_type tile;
-          tile.col = col;
-          tile.row = row;
-          tile.active_core   = true;
-          tile.active_memory = true;
-
-          // Make sure tile is used
-          auto it = std::find_if(allValidTiles.begin(), allValidTiles.end(),
-                                 compareTileByLoc(tile));
-          if (it == allValidTiles.end()) {
-            std::stringstream msg;
-            msg << "Specified Tile {" << std::to_string(tile.col) << ","
-                << std::to_string(tile.row) << "} is not active. Hence skipped.";
-            xrt_core::message::send(severity_level::warning, "XRT", msg.str());
+          if (!populateAndValidateTile(tile, col, row, type, rowOffset, allValidTiles))
             continue;
-          }
           
           configMetrics[tile] = metrics[i][2];
 
-          // Grab channel numbers (if specified; memory .tiles only)
+          // Grab channel numbers (if specified; memory tiles only)
           if (metrics[i].size() > 3) {
             configChannel0[tile] = channel0;
             configChannel1[tile] = channel1;
@@ -576,7 +629,7 @@ namespace xdp {
         std::vector<std::string> tilePos;
         boost::split(tilePos, metrics[i][0], boost::is_any_of(","));
         col = aie::convertStringToUint8(tilePos[0]);
-        row = aie::convertStringToUint8(tilePos[1]) + rowOffset;
+        row = aie::convertStringToUint8(tilePos[1]);
       } catch (...) {
         std::stringstream msg;
         msg << "Tile specification in tile_based_" << tileName
@@ -586,21 +639,8 @@ namespace xdp {
       }
 
       tile_type tile;
-      tile.col = col;
-      tile.row = row;
-      tile.active_core   = true;
-      tile.active_memory = true;
-
-      // Make sure tile is used
-      auto it = std::find_if(allValidTiles.begin(), allValidTiles.end(),
-                             compareTileByLoc(tile));
-      if (it == allValidTiles.end()) {
-        std::stringstream msg;
-        msg << "Specified Tile {" << std::to_string(tile.col) << ","
-            << std::to_string(tile.row) << "} is not active. Hence skipped.";
-        xrt_core::message::send(severity_level::warning, "XRT", msg.str());
+      if (!populateAndValidateTile(tile, col, row, type, rowOffset, allValidTiles))
         continue;
-      }
 
       configMetrics[tile] = metrics[i][1];
       
@@ -820,6 +860,7 @@ namespace xdp {
       uint8_t maxCol = 0;
       try {
         maxCol = aie::convertStringToUint8(metrics[i][1]);
+        maxCol = getRelativeColumn(maxCol);
       }
       catch (std::invalid_argument const&) {
         // Max column is not an integer, so either first style or wrong format. Skip for now.
@@ -829,6 +870,7 @@ namespace xdp {
       uint8_t minCol = 0;
       try {
         minCol = aie::convertStringToUint8(metrics[i][0]);
+        minCol = getRelativeColumn(minCol);
       }
       catch (std::invalid_argument const&) {
         // Second style but expected min column is not an integer. Give warning and skip.
@@ -895,6 +937,9 @@ namespace xdp {
           continue;
         }
  
+        // Convert to relative column if needed
+        uint8_t relCol = getRelativeColumn(col);
+
         // By-default select both the channels
         bool foundChannels = false;
         uint8_t channelId0 = 0;
@@ -917,7 +962,7 @@ namespace xdp {
 
         int16_t channelNum = (foundChannels) ? channelId0 : -1;
         auto tiles = metadataReader->getInterfaceTiles(metrics[i][0], "all", metrics[i][1],
-                                                       channelNum, true, col, col);
+                                                       channelNum, true, relCol, relCol);
 
         for (auto& t : tiles) {
           configMetrics[t] = metrics[i][1];

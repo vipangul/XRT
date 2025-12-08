@@ -121,6 +121,15 @@ class AieTraceMetadata {
     }
     bool configMetricsEmpty() const { return configMetrics.empty(); }
 
+    bool getUseAbsoluteLocations() const { return useAbsoluteLocations; }
+    uint8_t getStartColShift() const { return startColShift; }
+
+    std::string getTileCoordString(const tile_type& tile) const {
+      std::stringstream ss;
+      ss << "{" << +tile.abs_col << "," << +tile.abs_row << "}";
+      return ss.str();
+    }
+
   private:
     bool useDelay = false;
     bool useUserControl = false;
@@ -130,6 +139,7 @@ class AieTraceMetadata {
     bool runtimeMetrics;
     bool continuousTrace;
     bool invalidXclbinMetadata;
+    bool useAbsoluteLocations = false;
 
     uint32_t pollingInterval;
     uint32_t iterationCount = 0;
@@ -139,6 +149,7 @@ class AieTraceMetadata {
     uint64_t numAIETraceOutputGMIO = 0;
     uint64_t offloadIntervalUs = 0;
     unsigned int aie_trace_file_dump_int_s;
+    uint8_t startColShift = 0;
     
     std::string counterScheme;
     std::string metricSet;
@@ -184,6 +195,15 @@ class AieTraceMetadata {
 
     void* handle;
     xrt::hw_context hwContext;
+
+    // Helper function to populate and validate tile coordinates
+    // Returns true if tile is valid and active, false otherwise
+    bool populateAndValidateTile(tile_type& tile, uint8_t col, uint8_t row,
+                                  module_type mod, uint8_t rowOffset,
+                                  const std::set<tile_type>& allValidTiles);
+
+    // Helper to convert column based on useAbsoluteLocations setting
+    uint8_t getRelativeColumn(uint8_t col) const;
   };
 
 }
